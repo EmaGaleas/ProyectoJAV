@@ -69,12 +69,12 @@ function Login() {
           {/* Correo */}
           <div className="w-full">
             <label className="block mb-2">
-              Número de Cuenta
+              Correo Electrónico
             </label>
 
             <input
-              type="text"
-              placeholder="Ingrese Número de Cuenta"
+              type="email"
+              placeholder="Ingrese Correo Electrónico"
               className="w-full px-4 py-2 border border-[#E5E5E5] rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
