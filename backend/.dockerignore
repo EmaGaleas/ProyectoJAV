@@ -1,0 +1,18 @@
+# Ignorar carpetas de compilación locales
+**/bin/
+**/obj/
+
+# Ignorar configuraciones del editor
+.vs/
+.vscode/
+
+# Ignorar control de versiones y archivos de Docker
+.git/
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+# Ignorar archivos de ambiente locales de Node/React (si se colaran)
+**/node_modules/
+**/.env
