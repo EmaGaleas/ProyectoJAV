@@ -13,6 +13,10 @@ build/
 .vite/
 coverage/
 
+# pnpm
+package-lock.json
+.pnpm-store/
+
 # Backend 
 ## .NET
 bin/

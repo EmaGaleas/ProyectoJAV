@@ -1,23 +1,27 @@
-# ===== Base image =====
-FROM node:20
+# ===== Stage 1: Build =====
+FROM node:22-alpine AS builder
 
-# Set working directory
+RUN corepack enable && corepack prepare pnpm@11 --activate
+
 WORKDIR /app
 
-# Copy dependency files first (better caching)
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
-RUN npm install
+RUN pnpm install
 
-# Copy all source code
 COPY . .
 
-# Build React app (optional depending on setup)
-RUN npm run build
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 
-# Expose React dev server port
-EXPOSE 3000
+RUN pnpm run build
 
-# Start app
-CMD ["npm", "run", "dev", "--", "--host"]
+# ===== Stage 2: Producción con Nginx =====
+FROM nginx:alpine AS production
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

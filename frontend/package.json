@@ -27,4 +27,10 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12"
   }
+  ,
+  "pnpm": {
+    "strictDepBuilds": true,
+    "minimumReleaseAge": "24 hours",
+    "blockExoticSubdeps": true
+  }
 }
