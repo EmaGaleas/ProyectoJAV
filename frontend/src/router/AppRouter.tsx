@@ -4,6 +4,7 @@ import { PrivateRoute }  from './PrivateRoute'
 import { RoleRoute }     from './RoleRoute'
 import LoginPage         from '../features/auth/Login'
 import { SidebarLayout } from '../layouts/SidebarLayout/SidebarLayout'
+import { PaymentRegistration } from '../features/ingresos/components/PaymentRegistration'
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -23,7 +24,7 @@ export const AppRouter = () => (
 
           {/* ── Tesorero + SuperAdministrador ── */}
           <Route element={<RoleRoute allowedRoles={['Tesorero', 'SuperAdministrador']} />}>
-            <Route path={ROUTES.INGRESOS_REGISTRAR}  element={<></>} />
+            <Route path={ROUTES.INGRESOS_REGISTRAR}  element={<PaymentRegistration />} />
             <Route path={ROUTES.INGRESOS_HISTORIAL}  element={<></>} />
             <Route path={ROUTES.EGRESOS_REGISTRAR}   element={<></>} />
             <Route path={ROUTES.EGRESOS_HISTORIAL}   element={<></>} />
