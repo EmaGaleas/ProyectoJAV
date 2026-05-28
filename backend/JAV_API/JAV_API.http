@@ -4,3 +4,32 @@ GET {{JAV_API_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST {{JAV_API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "correo": "[EMAIL_ADDRESS]",
+  "password": "admin"
+}
+
+
+###
+POST {{JAV_API_HostAddress}}/api/usuarios
+Content-Type: application/json
+
+{
+  "dni": "12345678",
+  "primerNombre": "Juan",
+  "segundoNombre": "",
+  "primerApellido": "Perez",
+  "segundoApellido": "Lopez",
+  "telefono": "123456789",
+  "sexo": "M",
+  "correo": "[EMAIL_ADDRESS]",
+  "password": "[PASSWORD]"
+}
+
+###
+GET {{JAV_API_HostAddress}}/api/usuarios
+Authorization: Bearer TOKEN
