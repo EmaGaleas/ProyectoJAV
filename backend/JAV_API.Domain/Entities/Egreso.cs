@@ -13,6 +13,6 @@ public class Egreso
     public DateTime Fecha { get; set; }
     public string Url { get; set; } = string.Empty;
     public EstadoAprobacion Estado { get; set; } = EstadoAprobacion.EnRevision;
-    public int AprobadoPor { get; set; }
-    public Usuario Aprobador { get; set; } = null!;
+    public int? AprobadoPor { get; set; }
+    public Usuario? Aprobador { get; set; }
 }
