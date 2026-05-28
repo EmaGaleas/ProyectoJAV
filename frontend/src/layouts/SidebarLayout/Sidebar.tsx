@@ -1,89 +1,72 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../../features/auth/store/authStore'
-import { SIDEBAR_CONFIG } from './sidebarItems'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../../features/auth/store/authStore'
+import { SidebarHeader } from './SidebarHeader'
+import { SidebarBody }   from './SidebarBody'
+import { SidebarFooter } from './SidebarFooter'
 
 export const Sidebar = () => {
-  const { user, logout }    = useAuthStore()
-  const navigate            = useNavigate()
-  const [openItem, setOpen] = useState<string | null>(null)
+  const { user, logout }          = useAuthStore()
+  const navigate                  = useNavigate()
+  const [collapsed, setCollapsed] = useState(false)
 
   if (!user) return null
-
-  const sections = SIDEBAR_CONFIG[user.rol]
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
 
+  if (collapsed) {
+    return (
+      <aside className="
+        relative w-12 min-h-screen flex-shrink-0 bg-white border-r border-black/[0.08] rounded-tr-2xl rounded-br-2xl
+        flex items-start justify-center pt-7 shadow-[2px_0_12px_rgba(0,0,0,0.05)]
+      ">
+        <button
+          onClick={() => setCollapsed(false)}
+          aria-label="Expandir menú"
+          className=" w-7 h-7 bg-white border border-gray-200 rounded-lg flex items-center justify-center shadow-sm hover:bg-[#F0FAF4] transition-colors "
+        >
+          <span className="text-gray-400 text-base leading-none select-none">›</span>
+        </button>
+      </aside>
+    )
+  }
+
   return (
-    <aside className="sidebar">
-      {sections.map((section) => (
-        <div key={section.section} className="sidebar__section">
-          <span className="sidebar__section-label">{section.section}</span>
+    <aside
+      className="
+        relative min-h-screen flex-shrink-0  bg-white border-r border-black/[0.08]  rounded-tr-2xl rounded-br-2xl  shadow-[2px_0_12px_rgba(0,0,0,0.05)]
+      "
+      style={{
+        display:'flex',
+        width:'256px',
+        padding:'24px',
+        flexDirection:'column',
+        alignItems:'flex-start',
+        gap:'24px',
+        fontFamily:"'Inter', sans-serif",
+      }}
+    >
+      {/* ── Botón colapsar ── */}
+      <button
+        onClick={() => setCollapsed(true)}
+        aria-label="Colapsar menú"
+        className="
+          absolute top-7 -right-3.5 z-10 w-7 h-7 bg-white border border-gray-200 rounded-lg
+          flex items-center justify-center shadow-sm hover:bg-[#F0FAF4] transition-colors
+        "
+      >
+        <span className="text-gray-400 text-base leading-none select-none">‹</span>
+      </button>
 
-          {section.items.map((item) => {
-            // Cerrar sesión lo manejamos aparte
-            if (item.label === 'Cerrar Sesión') {
-              return (
-                <button
-                  key="logout"
-                  onClick={handleLogout}
-                  className="sidebar__item sidebar__item--logout"
-                >
-                  {item.label}
-                </button>
-              )
-            }
+      <SidebarHeader cargo={user.cargo} nombre={user.nombre} />
 
-            // Item con children — acordeón
-            if (item.children?.length) {
-              const isOpen = openItem === item.label
-              return (
-                <div key={item.label} className="sidebar__group">
-                  <button
-                    className="sidebar__item sidebar__item--parent"
-                    onClick={() => setOpen(isOpen ? null : item.label)}
-                  >
-                    <span>{item.label}</span>
-                    <span>{isOpen ? '▴' : '▾'}</span>
-                  </button>
+      <SidebarBody rol={user.rol} />
 
-                  {isOpen && (
-                    <div className="sidebar__children">
-                      {item.children.map((child) => (
-                        <NavLink
-                          key={child.path}
-                          to={child.path}
-                          className={({ isActive }) =>
-                            `sidebar__child ${isActive ? 'sidebar__child--active' : ''}`
-                          }
-                        >
-                          {child.label}
-                        </NavLink>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            }
+      <SidebarFooter rol={user.rol} onLogout={handleLogout} />
 
-            // Item simple
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `sidebar__item ${isActive ? 'sidebar__item--active' : ''}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            )
-          })}
-        </div>
-      ))}
     </aside>
   )
 }
