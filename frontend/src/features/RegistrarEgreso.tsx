@@ -39,6 +39,7 @@ export default function RegistrarEgreso() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuthStore();
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -47,7 +48,14 @@ export default function RegistrarEgreso() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFormData(prev => ({ ...prev, factura: e.target.files![0] }));
+      const file = e.target.files[0];
+      if (file.size > MAX_FILE_SIZE) {
+        setError("El archivo excede el tamaño máximo permitido de 5MB.");
+        e.target.value = ""; 
+        return;
+      }
+      setError(null); 
+      setFormData(prev => ({ ...prev, factura: file }));
     }
   };
 
