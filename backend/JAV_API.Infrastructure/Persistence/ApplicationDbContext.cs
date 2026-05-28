@@ -59,6 +59,8 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.IdUsuario);
             entity.Property(e => e.IdUsuario).HasColumnName("id_Usuario").ValueGeneratedNever(); // La PK viene de Persona
             entity.Property(e => e.Correo).HasColumnName("correo").HasMaxLength(150).IsRequired();
+            // Columna para el hash de contraseña (BCrypt). Máx 72 chars de entrada, hash de 60 chars de salida.
+            entity.Property(e => e.PasswordHash).HasColumnName("password_hash").HasMaxLength(255).IsRequired();
             entity.Property(e => e.Telefono).HasColumnName("telefono").HasMaxLength(20).IsRequired();
             entity.Property(e => e.Estado).HasColumnName("estado").IsRequired();
             entity.Property(e => e.UltimoAcceso).HasColumnName("ultimo_Acceso").IsRequired();
