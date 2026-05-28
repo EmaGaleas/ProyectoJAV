@@ -371,6 +371,9 @@ public class ApplicationDbContext : DbContext
         // ─────────────────────────────────────────────────────────
         // Egreso (con 2 FKs hacia Usuario)
         // ─────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────────────
+        // Egreso (con 2 FKs hacia Usuario)
+        // ─────────────────────────────────────────────────────────
         modelBuilder.Entity<Egreso>(entity =>
         {
             entity.ToTable("Egresos");
@@ -383,16 +386,20 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Fecha).HasColumnName("fecha").IsRequired();
             entity.Property(e => e.Url).HasColumnName("url").HasMaxLength(500).IsRequired();
             entity.Property(e => e.Estado).HasColumnName("estado").HasConversion<string>().IsRequired();
-            entity.Property(e => e.AprobadoPor).HasColumnName("aprobado_Por").IsRequired();
+            
+            // CORREGIDO: Se elimina .IsRequired() para permitir nulos en la columna
+            entity.Property(e => e.AprobadoPor).HasColumnName("aprobado_Por");
 
             entity.HasOne(e => e.Registrador)
                   .WithMany(u => u.EgresosRegistrados)
                   .HasForeignKey(e => e.RegistradoPor)
                   .OnDelete(DeleteBehavior.Restrict);
 
+            // CORREGIDO: Se agrega .IsRequired(false) para indicar relación opcional
             entity.HasOne(e => e.Aprobador)
                   .WithMany(u => u.EgresosAprobados)
                   .HasForeignKey(e => e.AprobadoPor)
+                  .IsRequired(false) 
                   .OnDelete(DeleteBehavior.Restrict);
         });
 

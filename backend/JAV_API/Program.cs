@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
 using JAV_API.Application.Interfaces;
 using JAV_API.Application.Services;
 using JAV_API.Infrastructure.Persistence;
@@ -63,13 +64,20 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Repositorios (capa Infrastructure)
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<IEgresoRepository, EgresoRepository>(); 
+builder.Services.AddScoped<IPagoRepository, PagoRepository>();
+builder.Services.AddScoped<IMensualidadRepository, MensualidadRepository>();
 
-// Servicios de seguridad (capa Infrastructure)
+// Servicios de seguridad e infraestructura general (capa Infrastructure)
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>(); // Integrado
 
 // Servicios de negocio (capa Application)
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+builder.Services.AddScoped<EgresoService>(); // Integrado
+builder.Services.AddScoped<IngresoService>(); // Integrado
+
 
 // ─────────────────────────────────────────────────────────
 // Autenticación y Autorización con JWT
@@ -193,6 +201,23 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// ─────────────────────────────────────────────────────────
+// Middleware de Archivos Estáticos para Evidencias (Integrado)
+// Permite acceder a las evidencias vía HTTP (ej. http://localhost:8080/uploads/archivo.pdf)
+// ─────────────────────────────────────────────────────────
+var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+if (!Directory.Exists(uploadPath))
+{
+    Directory.CreateDirectory(uploadPath);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadPath),
+    RequestPath = "/uploads"
+});
+
+// IMPORTANTE: UseAuthentication() SIEMPRE debe ir ANTES que UseAuthorization()
 // IMPORTANTE: UseCors() debe ir ANTES de UseAuthentication/UseAuthorization
 app.UseCors();
 app.UseAuthentication();
