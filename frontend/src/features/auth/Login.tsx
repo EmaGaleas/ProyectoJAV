@@ -17,8 +17,9 @@ function Login() {
 
     setAuth({
       id: '1',
-      nombre: 'Usuario de prueba',
-      rol: rolDePrueba,
+      nombre: 'Usuario de prueba Juan',
+      rol: rolDePrueba, //roles son admin, super admin..
+      cargo: rolDePrueba, // Usamos el rol como cargo para esta prueba pero debe ir en terminos de db es si es secretario, presidente
     });
 
     navigate(ROUTES.DASHBOARD);

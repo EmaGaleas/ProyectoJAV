@@ -4,6 +4,7 @@ export interface AuthUser {
   id: string
   nombre: string
   rol: Role
+  cargo: string
 }
 
 export interface AuthState {
