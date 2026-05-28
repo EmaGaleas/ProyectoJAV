@@ -1,29 +1,41 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from './store/authStore';
-import type { Role } from './types';
-import { ROUTES } from '../../router/routes';
-import logo from '../../assets/logo.png';
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from './store/authStore'
+import { loginApi } from './services/authService'
+import { ApiError } from '../../services/apiClient'
+import { ROUTES } from '../../router/routes'
+import logo from '../../assets/logo.png'
 
 function Login() {
-  const { setAuth } = useAuthStore();
-  const navigate = useNavigate();
+  const { setAuth } = useAuthStore()
+  const navigate    = useNavigate()
 
-  //TEMPORAL sin backend ─
-  const [rolDePrueba, setRolDePrueba] = useState<Role>('Tesorero');
+  const [correo,    setCorreo]    = useState('')
+  const [password,  setPassword]  = useState('')
+  const [error,     setError]     = useState<string | null>(null)
+  const [cargando,  setCargando]  = useState(false)
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setCargando(true)
 
-    setAuth({
-      id: '1',
-      nombre: 'Usuario de prueba Juan',
-      rol: rolDePrueba, //roles son admin, super admin..
-      cargo: rolDePrueba, // Usamos el rol como cargo para esta prueba pero debe ir en terminos de db es si es secretario, presidente
-    });
-
-    navigate(ROUTES.DASHBOARD);
-  };
+    try {
+      const { user, token } = await loginApi(correo, password)
+      setAuth(user, token)
+      navigate(ROUTES.DASHBOARD)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setError('Correo o contraseña incorrectos.')
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Ocurrió un error inesperado. Intente de nuevo.')
+      }
+    } finally {
+      setCargando(false)
+    }
+  }
 
   return (
     <div className="bg-[#308C58] h-screen flex">
@@ -76,7 +88,11 @@ function Login() {
             <input
               type="email"
               placeholder="Ingrese Correo Electrónico"
-              className="w-full px-4 py-2 border border-[#E5E5E5] rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              required
+              disabled={cargando}
+              className="w-full px-4 py-2 border border-[#E5E5E5] rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             />
           </div>
 
@@ -89,53 +105,28 @@ function Login() {
             <input
               type="password"
               placeholder="Ingrese Contraseña"
-              className="w-full px-4 py-2 border border-[#E5E5E5] rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={cargando}
+              className="w-full px-4 py-2 border border-[#E5E5E5] rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             />
           </div>
 
-          {/* Selector de rol */}
-          <div className="w-full">
-            <label className="block mb-2">
-              Rol de prueba
-            </label>
-
-            <select
-              value={rolDePrueba}
-              onChange={(e) =>
-                setRolDePrueba(e.target.value as Role)
-              }
-              className="w-full px-4 py-2 border border-[#E5E5E5] rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="SuperAdministrador">
-                Super Administrador
-              </option>
-
-              <option value="Administrador">
-                Administrador
-              </option>
-
-              <option value="Tesorero">
-                Tesorero
-              </option>
-
-              <option value="Fiscal">
-                Fiscal
-              </option>
-            </select>
-          </div>
-
-          {/* Texto temporal */}
-          <p className="text-gray-500 text-sm">
-            Rol activo (temporal):{' '}
-            <strong>{rolDePrueba}</strong>
-          </p>
+          {/* Error */}
+          {error && (
+            <p className="w-full text-red-600 text-sm text-center">
+              {error}
+            </p>
+          )}
 
           {/* Botón */}
           <button
             type="submit"
-            className="w-full h-12 bg-[#0D1273] text-white text-[18px] rounded-lg hover:bg-blue-800 transition flex items-center justify-center"
+            disabled={cargando}
+            className="w-full h-12 bg-[#0D1273] text-white text-[18px] rounded-lg hover:bg-blue-800 transition flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Iniciar Sesión
+            {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
 
           {/* Recuperar contraseña */}
@@ -145,7 +136,7 @@ function Login() {
         </form>
       </div>
     </div>
-  );
+  )
 }
 
-export default Login;
+export default Login
