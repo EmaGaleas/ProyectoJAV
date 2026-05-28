@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../services/apiClient';
+import { useAuthStore } from './auth/store/authStore';
 
 function Link() {
   return (
@@ -33,6 +35,10 @@ export default function RegistrarEgreso() {
     monto: '',
     factura: null as File | null,
   });
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { token } = useAuthStore();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -45,10 +51,41 @@ export default function RegistrarEgreso() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Formulario enviado:', formData);
-    alert('Formulario listo para enviar. Revisa la consola para ver los datos.');
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const payload = {
+        Titulo: `Egreso a ${formData.cliente} (${formData.categoria})`,
+        Descripcion: `Comprobante: ${formData.numeroComprobante}, Categoría: ${formData.categoria}`,
+        Monto: parseFloat(formData.monto),
+        Fecha: new Date(formData.fecha).toISOString(),
+        Url: formData.factura ? formData.factura.name : '', 
+      };
+
+      await apiFetch('/api/Egresos', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      }, token || undefined);
+
+      alert('Egreso registrado exitosamente');
+      
+      setFormData({
+        cliente: '',
+        numeroComprobante: '',
+        fecha: '',
+        categoria: '',
+        monto: '',
+        factura: null,
+      });
+    } catch (err: any) {
+      console.error('Error al registrar egreso:', err);
+      setError(err.message || 'Ocurrió un error al registrar el egreso.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -158,12 +195,20 @@ export default function RegistrarEgreso() {
           </label>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className="absolute left-[1050px] top-[710px] w-[300px] text-red-500 text-sm text-center font-['Montserrat:Medium',sans-serif]">
+            {error}
+          </div>
+        )}
+
         {/* Boton: Registrar Egreso */}
         <button 
           type="submit"
-          className="absolute bg-[#8ebfa3] h-[48px] left-[1050px] rounded-[15px] top-[750px] w-[300px] font-['Montserrat:Medium',sans-serif] font-medium text-[#f2f2f2] text-[20px] flex items-center justify-center hover:bg-[#7ead91] transition-colors z-10 shadow-sm"
+          disabled={isLoading}
+          className="absolute bg-[#8ebfa3] h-[48px] left-[1050px] rounded-[15px] top-[750px] w-[300px] font-['Montserrat:Medium',sans-serif] font-medium text-[#f2f2f2] text-[20px] flex items-center justify-center hover:bg-[#7ead91] transition-colors z-10 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Registrar Egreso
+          {isLoading ? 'Registrando...' : 'Registrar Egreso'}
         </button>
       </form>
     </div>
