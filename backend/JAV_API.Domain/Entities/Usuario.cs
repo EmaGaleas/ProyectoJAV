@@ -9,6 +9,8 @@ public class Usuario
     public Persona Persona { get; set; } = null!;
 
     public string Correo { get; set; } = string.Empty;
+    // Almacena exclusivamente el hash (BCrypt), nunca la contraseña en texto plano
+    public string PasswordHash { get; set; } = string.Empty;
     public string Telefono { get; set; } = string.Empty;
     public bool Estado { get; set; } = true;
     public DateTime UltimoAcceso { get; set; }
