@@ -109,6 +109,23 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // ─────────────────────────────────────────────────────────
+// CORS
+// ─────────────────────────────────────────────────────────
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost",
+                "http://localhost:80",
+                "http://localhost:5173"  // Vite dev server
+              )
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// ─────────────────────────────────────────────────────────
 // Controladores y documentación
 // ─────────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -201,6 +218,8 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 // IMPORTANTE: UseAuthentication() SIEMPRE debe ir ANTES que UseAuthorization()
+// IMPORTANTE: UseCors() debe ir ANTES de UseAuthentication/UseAuthorization
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
