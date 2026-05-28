@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
+import { apiFetch } from "../services/apiClient";
+import { useAuthStore } from "./auth/store/authStore";
 
 interface Propiedad {
   id: number;
@@ -22,6 +24,10 @@ export default function Create_user_form({ onClose }: CreateUserFormProps) {
     rol: "",
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { token } = useAuthStore();
+
   const [propiedades, setPropiedades] = useState<Propiedad[]>([
     {
       id: 1,
@@ -29,18 +35,7 @@ export default function Create_user_form({ onClose }: CreateUserFormProps) {
       domicilio: "Bloque 6 lote 16",
       activo: true,
     },
-    {
-      id: 2,
-      nombre: "Propiedad #2",
-      domicilio: "Bloque 6 lote 16",
-      activo: true,
-    },
-    {
-      id: 3,
-      nombre: "Propiedad #3",
-      domicilio: "Bloque 6 lote 16",
-      activo: true,
-    },
+    
   ]);
 
   const handleInputChange = (
@@ -60,11 +55,41 @@ export default function Create_user_form({ onClose }: CreateUserFormProps) {
     setPropiedades([...propiedades, nuevaPropiedad]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Datos del formulario:", formData);
-    console.log("Propiedades:", propiedades);
-    // Aquí puedes agregar la lógica para enviar los datos
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const [primerNombre, ...restNombres] = formData.nombre.trim().split(" ");
+      const [primerApellido, ...restApellidos] = formData.apellido.trim().split(" ");
+
+      const payload = {
+        PrimerNombre: primerNombre || "",
+        SegundoNombre: restNombres.join(" ") || null,
+        PrimerApellido: primerApellido || "",
+        SegundoApellido: restApellidos.join(" ") || null,
+        Dni: formData.identificacion,
+        Correo: formData.email,
+        Telefono: formData.telefono,
+        Password: formData.identificacion, // Usa DNI como contraseña por defecto
+        Rol: formData.rol ? parseInt(formData.rol) : 0,
+        IdTipoUsuario: 1, // Por defecto 1
+      };
+
+      await apiFetch("/api/Usuarios", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }, token || undefined);
+
+      alert("Usuario creado exitosamente");
+      if (onClose) onClose();
+    } catch (err: any) {
+      console.error("Error al crear usuario:", err);
+      setError(err.message || "Ocurrió un error al crear el usuario.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -79,7 +104,7 @@ export default function Create_user_form({ onClose }: CreateUserFormProps) {
       <div className="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-50 overflow-y-auto gap-6">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-8 flex justify-center z-50">
-          <div className="w-full h-14 flex items-center justify-between">
+          <div className="w-full h-14 flex items-center justify-between max-w-[500px]">
             <h2 className="text-[#101828] text-[24px] font-semibold font-['Arimo',sans-serif] max-w-[500px] pl-10">
               Crear Usuario
             </h2>
@@ -161,9 +186,13 @@ export default function Create_user_form({ onClose }: CreateUserFormProps) {
                   className="h-[45.6px] w-full px-[15.2px] py-[10px] rounded-[10px] border-[#d1d5dc] border-[0.8px] border-solid font-['Arimo',sans-serif] font-normal text-[16px] text-[#514f4f] appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-[#308c58]/20 focus:border-[#308c58]"
                 >
                   <option value="">Seleccione el rol</option>
-                  <option value="administrador">Administrador</option>
-                  <option value="usuario">Usuario</option>
-                  <option value="invitado">Invitado</option>
+                  <option value="0">Dueño de Casa</option>
+                  <option value="1">Tesorero</option>
+                  <option value="2">Secretario</option>
+                  <option value="3">Vocal</option>
+                  <option value="4">Vicepresidente</option>
+                  <option value="5">Presidente</option>
+                  <option value="6">Fiscal</option>
                 </select>
                 <div className="absolute right-[15.2px] top-1/2 -translate-y-1/2 pointer-events-none rotate-90"></div>
               </div>
@@ -245,13 +274,21 @@ export default function Create_user_form({ onClose }: CreateUserFormProps) {
             </div>
           </div>
 
+          {/* Error Display */}
+          {error && (
+            <div className="text-red-500 text-sm mt-2 text-center font-['Arimo',sans-serif]">
+              {error}
+            </div>
+          )}
+
           {/* Botón Submit */}
           <div className="pt-4 border-t border-gray-200 mt-4">
             <button
               type="submit"
-              className="w-full h-[48px] bg-[#308c58] drop-shadow-[0px_4px_2px_rgba(0,0,0,0.25)] rounded-[10px] font-['Arimo',sans-serif] font-normal text-[20px] text-center text-white hover:bg-[#267045] transition-colors flex items-center justify-center cursor-pointer"
+              disabled={isLoading}
+              className="w-full h-[48px] bg-[#308c58] drop-shadow-[0px_4px_2px_rgba(0,0,0,0.25)] rounded-[10px] font-['Arimo',sans-serif] font-normal text-[20px] text-center text-white hover:bg-[#267045] transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Crear Usuario
+              {isLoading ? "Creando..." : "Crear Usuario"}
             </button>
             </div>
           </form>
