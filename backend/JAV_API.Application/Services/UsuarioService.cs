@@ -2,6 +2,8 @@ using JAV_API.Application.DTOs.Requests;
 using JAV_API.Application.DTOs.Responses;
 using JAV_API.Application.Interfaces;
 using JAV_API.Domain.Entities;
+using JAV_API.Domain.Enums;
+
 
 namespace JAV_API.Application.Services;
 
@@ -38,6 +40,7 @@ public class UsuarioService : IUsuarioService
     public async Task<UsuarioResponse> CrearUsuarioAsync(RegistroUsuarioRequest request)
     {
         await ValidarDuplicadosAsync(request);
+        await ValidarReglasNegocioAsync(request);
 
         var persona = ConstruirPersona(request);
         var usuario = ConstruirUsuario(request, persona);
@@ -67,6 +70,40 @@ public class UsuarioService : IUsuarioService
 
         if (await _usuarioRepository.ExisteTelefonoAsync(request.Telefono))
             throw new InvalidOperationException($"El teléfono '{request.Telefono}' ya está registrado.");
+    }
+
+    /// <summary>
+    /// Valida las reglas de negocio al crear un usuario:
+    /// 0. El valor del Rol debe ser un valor válido del enum (rechaza enteros fuera de rango).
+    /// 1. El IdTipoUsuario debe existir en la base de datos.
+    /// 2. Solo puede haber máximo 1 usuario activo para roles directivos/operativos,
+    ///    y máximo 3 para el rol Vocal. DuenoDeCasa no tiene límite.
+    /// </summary>
+    private async Task ValidarReglasNegocioAsync(RegistroUsuarioRequest request)
+    {
+        // Validación 0: El valor del Rol debe ser un valor definido en el enum
+        if (request.Rol.HasValue && !Enum.IsDefined(typeof(Rol), request.Rol.Value))
+            throw new InvalidOperationException(
+                $"El valor de Rol '{(int)request.Rol.Value}' no corresponde a ningún rol válido del sistema.");
+
+        // Validación 1: El tipo de usuario debe existir
+        if (!await _usuarioRepository.ExisteTipoUsuarioAsync(request.IdTipoUsuario))
+            throw new InvalidOperationException(
+                $"No existe un Tipo de Usuario con el ID '{request.IdTipoUsuario}'.");
+
+        // Validación 2: Límite de usuarios activos por rol operativo
+        if (request.Rol is null || request.Rol == Rol.DuenoDeCasa)
+            return; // Sin límite para residentes
+
+        int limitePermitido = request.Rol == Rol.Vocal ? 3 : 1;
+        int cantidadActivos = await _usuarioRepository.ObtenerCantidadActivosPorRolAsync(request.Rol.Value);
+
+        if (cantidadActivos >= limitePermitido)
+        {
+            string limiteMsg = limitePermitido == 1 ? "1 usuario activo" : $"{limitePermitido} usuarios activos";
+            throw new InvalidOperationException(
+                $"Ya existe el máximo permitido de {limiteMsg} para el rol '{request.Rol}'.");
+        }
     }
 
     /// <summary>Construye la entidad Persona a partir del request del cliente.</summary>

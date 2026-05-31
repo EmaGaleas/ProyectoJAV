@@ -1,4 +1,5 @@
 using JAV_API.Domain.Entities;
+using JAV_API.Domain.Enums;
 
 namespace JAV_API.Application.Interfaces;
 
@@ -28,4 +29,10 @@ public interface IUsuarioRepository
 
     /// <summary>Verifica si ya existe un usuario registrado con ese número de teléfono.</summary>
     Task<bool> ExisteTelefonoAsync(string telefono);
+
+    /// <summary>Verifica si existe un TipoUsuario con el ID especificado en la base de datos.</summary>
+    Task<bool> ExisteTipoUsuarioAsync(int idTipoUsuario);
+
+    /// <summary>Obtiene la cantidad de usuarios activos (Estado = true) que poseen un rol determinado.</summary>
+    Task<int> ObtenerCantidadActivosPorRolAsync(Rol rol);
 }
