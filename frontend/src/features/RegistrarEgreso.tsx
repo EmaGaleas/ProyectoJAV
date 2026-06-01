@@ -2,29 +2,9 @@ import React, { useState } from 'react';
 import { apiFetch } from '../services/apiClient';
 import { useAuthStore } from './auth/store/authStore';
 
-function Link() {
-  return (
-    <div className="-translate-y-1/2 absolute content-stretch flex gap-[12px] items-center left-[24px] px-[12px] py-[10px] rounded-[8px] top-[calc(50%+0.5px)] w-[208px]" data-name="Link">
-      <p className="[word-break:break-word] flex-[1_0_0] font-['Inter:Medium',sans-serif] font-medium leading-[20px] min-w-px not-italic relative text-[#8ebfa3] text-[14px] tracking-[-0.28px]">{`Tesorero `}</p>
-      <div className="relative shrink-0 size-[16px]" data-name="ep:arrow-right">
-        <div className="absolute inset-[13.73%_29.36%_13.73%_32.44%]" data-name="Vector">
-          <svg className="absolute block inset-0 size-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      </div>
-      <p className="[word-break:break-word] flex-[1_0_0] font-['Inter:Medium',sans-serif] font-medium leading-[20px] min-w-px not-italic relative text-[#308c58] text-[14px] tracking-[-0.28px]">Egresos</p>
-    </div>
-  );
-}
 
-function Topbar() {
-  return (
-    <div className="absolute content-stretch flex flex-col h-[71px] items-start left-[256px] p-[24px] top-0 w-[1664px]" data-name="Topbar">
-      <Link />
-    </div>
-  );
-}
+
+
 
 export default function RegistrarEgreso() {
   const [formData, setFormData] = useState({
@@ -98,7 +78,7 @@ export default function RegistrarEgreso() {
 
   return (
     <div className="bg-[#f2f2f2] relative size-full min-h-[900px]" data-name="Registrar Egresos">
-      <Topbar />
+      
       
       <form onSubmit={handleSubmit} className="relative w-full h-full">
         {/* Fondo blanco del formulario de Egreso */}
