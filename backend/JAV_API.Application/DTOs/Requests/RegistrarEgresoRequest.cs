@@ -1,13 +1,15 @@
-using JAV_API.Domain.Enums;
+using System.IO;
 
 namespace JAV_API.Application.DTOs.Requests;
 
 public class RegistrarEgresoRequest
 {
+    public int RegistradoPor { get; set; }
     public string Titulo { get; set; } = string.Empty;
     public string Descripcion { get; set; } = string.Empty;
     public decimal Monto { get; set; }
-    public DateTime Fecha { get; set; }
-    // URL del archivo de evidencia (PDF/imagen) a guardar en el servidor
-    public string Url { get; set; } = string.Empty;
+    
+    // Cambiado: Tipos primitivos de .NET, cero dependencias web
+    public Stream EvidenciaStream { get; set; } = Stream.Null;
+    public string EvidenciaNombre { get; set; } = string.Empty;
 }
