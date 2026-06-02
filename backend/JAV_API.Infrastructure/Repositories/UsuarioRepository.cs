@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using JAV_API.Application.Interfaces;
 using JAV_API.Domain.Entities;
+using JAV_API.Domain.Enums;
 using JAV_API.Infrastructure.Persistence;
+
 
 namespace JAV_API.Infrastructure.Repositories;
 
@@ -75,4 +77,19 @@ public class UsuarioRepository : IUsuarioRepository
         return await _context.Usuarios
             .AnyAsync(u => u.Telefono == telefono);
     }
+
+    /// <inheritdoc/>
+    public async Task<bool> ExisteTipoUsuarioAsync(int idTipoUsuario)
+    {
+        return await _context.TiposUsuario
+            .AnyAsync(t => t.IdTipo == idTipoUsuario);
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> ObtenerCantidadActivosPorRolAsync(Rol rol)
+    {
+        return await _context.Usuarios
+            .CountAsync(u => u.Estado && u.Rol == rol);
+    }
 }
+

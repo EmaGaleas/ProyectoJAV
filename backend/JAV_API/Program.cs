@@ -118,7 +118,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost",
                 "http://localhost:80",
-                "http://localhost:5173"  // Vite dev server
+                "http://localhost:5173",  // Vite dev server
+                "http://localhost:3000"
               )
               .AllowAnyMethod()
               .AllowAnyHeader();
