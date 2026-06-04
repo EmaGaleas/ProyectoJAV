@@ -29,6 +29,7 @@ export default function HistorialEgresos({ userRole = 'Tesorero' }: Props) {
     handleTabChange,
     handleApply,
     handleApprove,
+    handleReject,
   } = useEgresoHistorial()
 
   const handleApplyAndClose = () => {
@@ -37,7 +38,7 @@ export default function HistorialEgresos({ userRole = 'Tesorero' }: Props) {
   }
 
   return (
-    <div className="bg-[#f2f2f2] w-11/12 p-6 md:p-2 flex flex-col gap-5" data-name="Historial Egresos">
+    <div className="bg-[#f2f2f2] w-11/12 p-6 md:p-10 flex flex-col gap-3" data-name="Historial Egresos">
       <EgresoTabs
         tabs={TAB_META}
         active={activeTab}
@@ -45,7 +46,6 @@ export default function HistorialEgresos({ userRole = 'Tesorero' }: Props) {
         onSelect={tab => { handleTabChange(tab); setFiltersOpen(false) }}
       />
 
-      {/* Table + Filter panel */}
       <div className="flex gap-5 items-stretch">
         <EgresoTable
           records={filtered}
@@ -54,6 +54,7 @@ export default function HistorialEgresos({ userRole = 'Tesorero' }: Props) {
           onDetails={setSelected}
           isTablet={isTablet}
           onToggleFilters={() => setFiltersOpen(p => !p)}
+          filtersOpen={filtersOpen}
         />
 
         {isTablet ? (
@@ -68,9 +69,9 @@ export default function HistorialEgresos({ userRole = 'Tesorero' }: Props) {
             <div
               className="fixed top-0 right-0 h-full z-40 p-4"
               style={{
-                width:       270,
-                transform:   filtersOpen ? 'translateX(0)' : 'translateX(100%)',
-                transition:  'transform 0.25s ease',
+                width:         270,
+                transform:     filtersOpen ? 'translateX(0)' : 'translateX(100%)',
+                transition:    'transform 0.25s ease',
                 pointerEvents: filtersOpen ? 'auto' : 'none',
               }}
             >
@@ -96,6 +97,7 @@ export default function HistorialEgresos({ userRole = 'Tesorero' }: Props) {
           userRole={userRole}
           onClose={() => setSelected(null)}
           onApprove={handleApprove}
+          onReject={handleReject}
         />
       )}
     </div>

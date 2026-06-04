@@ -1,22 +1,21 @@
 import { useState } from 'react'
 import { apiFetch } from '../../../services/apiClient'
 import { useAuthStore } from '../../auth/store/authStore'
-import type { EgresoRecord, EgresoStatus } from './types'
-import type { AprobarEgresoPayload } from './types'
+import type { EgresoRecord, EgresoStatus, AprobarEgresoPayload, RechazarEgresoPayload } from './types'
 import { DEFAULT_EGRESO_FILTERS } from './EgresoFilters'
 import type { EgresoFilterValues } from './EgresoFilters'
 import { MOCK_EGRESOS } from './data/mockdata'
 
 export function useEgresoHistorial() {
   const { token, user } = useAuthStore()
-  const userName: string = user?.nombre ?? 'Presidente'
+  const userName: string = user?.nombre ?? 'Administrador'
 
-  const [records,        setRecords]        = useState<EgresoRecord[]>(MOCK_EGRESOS)
-  const [activeTab,      setActiveTab]      = useState<EgresoStatus>('Pendiente')
-  const [page,           setPage]           = useState(1)
-  const [selected,       setSelected]       = useState<EgresoRecord | null>(null)
-  const [stagedFilters,  setStagedFilters]  = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
-  const [activeFilters,  setActiveFilters]  = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
+  const [records,       setRecords]       = useState<EgresoRecord[]>(MOCK_EGRESOS)
+  const [activeTab,     setActiveTab]     = useState<EgresoStatus>('Pendiente')
+  const [page,          setPage]          = useState(1)
+  const [selected,      setSelected]      = useState<EgresoRecord | null>(null)
+  const [stagedFilters, setStagedFilters] = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
+  const [activeFilters, setActiveFilters] = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
 
   const byTab = records.filter(r => r.status === activeTab)
 
@@ -56,21 +55,24 @@ export function useEgresoHistorial() {
 
   const handleApprove = async (id: string) => {
     const payload: AprobarEgresoPayload = { Status: 'Aprobado', AprobadoPor: userName }
-
     try {
-      await apiFetch(
-        `/api/Egresos/${id}/aprobar`,
-        { method: 'PATCH', body: JSON.stringify(payload) },
-        token ?? undefined,
-      )
-    } catch {
-      // Offline / mock: update locally anyway
-    }
+      await apiFetch(`/api/Egresos/${id}/aprobar`, { method: 'PATCH', body: JSON.stringify(payload) }, token ?? undefined)
+    } catch { /* update locally anyway */ }
 
     setRecords(prev =>
-      prev.map(r =>
-        r.id === id ? { ...r, status: 'Aprobado', aprobadoPor: userName } : r,
-      )
+      prev.map(r => r.id === id ? { ...r, status: 'Aprobado', aprobadoPor: userName } : r)
+    )
+    setSelected(null)
+  }
+
+  const handleReject = async (id: string) => {
+    const payload: RechazarEgresoPayload = { Status: 'Rechazado', RechazadoPor: userName }
+    try {
+      await apiFetch(`/api/Egresos/${id}/rechazar`, { method: 'PATCH', body: JSON.stringify(payload) }, token ?? undefined)
+    } catch { /* update locally anyway */ }
+
+    setRecords(prev =>
+      prev.map(r => r.id === id ? { ...r, status: 'Rechazado', rechazadoPor: userName } : r)
     )
     setSelected(null)
   }
@@ -88,5 +90,6 @@ export function useEgresoHistorial() {
     handleTabChange,
     handleApply,
     handleApprove,
+    handleReject,
   }
 }

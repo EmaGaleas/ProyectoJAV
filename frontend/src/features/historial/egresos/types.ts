@@ -1,7 +1,7 @@
 // ─── Tipos base ───────────────────────────────────────────────────────────────
 
 export type EgresoStatus = 'Aprobado' | 'Pendiente' | 'Rechazado'
-export type UserRole     = 'Presidente' | 'Tesorero'
+export type UserRole     = 'Presidente' | 'Tesorero' | 'Administrativo'
 
 export interface EgresoRecord {
   id:            string
@@ -15,14 +15,19 @@ export interface EgresoRecord {
   facturaUrl:    string        // nombre del archivo o URL
   status:        EgresoStatus
   aprobadoPor?:  string        // se llena al aprobar
+  rechazadoPor?: string        // se llena al rechazar
 }
 
-// ─── Payload para PATCH /api/Egresos/:id/aprobar ──────────────────────────────
-// Comparte con el equipo de backend.
+// ─── Payloads para PATCH /api/Egresos/:id/aprobar|rechazar ───────────────────
 
 export interface AprobarEgresoPayload {
   Status:      'Aprobado'
   AprobadoPor: string
+}
+
+export interface RechazarEgresoPayload {
+  Status:       'Rechazado'
+  RechazadoPor: string
 }
 
 // ─── Metadatos de cada tab ────────────────────────────────────────────────────
