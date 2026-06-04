@@ -79,10 +79,7 @@ export default function RegistrarEgreso() {
   };
 
   return (
-    <div
-      className="bg-[#f2f2f2] w-11/12  p-6 md:p-10"
-      data-name="Registrar Egresos"
-    >
+    <div className="bg-[#f2f2f2] w-11/12   " data-name="Registrar Egresos">
       <form
         onSubmit={handleSubmit}
         className="flex flex-col lg:flex-row w-full gap-8 mx-auto"
