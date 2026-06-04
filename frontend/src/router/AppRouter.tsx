@@ -7,6 +7,7 @@ import { SidebarLayout } from "../layouts/SidebarLayout/SidebarLayout";
 import { PaymentRegistration } from "../features/ingresos/components/PaymentRegistration";
 import RegistrarEgresos from "../features/egresos/RegistrarEgreso";
 import {IncomeHistory} from "../features/historial/ingresos/IncomeHistory";
+import HistorialEgresos from "../features/historial/egresos/HistorialEgresos";
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -24,20 +25,10 @@ export const AppRouter = () => (
 
           {/* ── Tesorero + SuperAdministrador ── */}
           <Route element={<RoleRoute allowedRoles={["Tesorero", "SuperAdministrador"]} />}>
-            <Route
-              path={ROUTES.INGRESOS_REGISTRAR}
-              element={<PaymentRegistration />}
-            />
+            <Route path={ROUTES.INGRESOS_REGISTRAR} element={<PaymentRegistration />} />
             <Route path={ROUTES.INGRESOS_HISTORIAL} element={<IncomeHistory />} />
-            <Route
-              path={ROUTES.EGRESOS_REGISTRAR}
-              element={
-                <>
-                  <RegistrarEgresos />
-                </>
-              }
-            />
-            <Route path={ROUTES.EGRESOS_HISTORIAL} element={<></>} />
+            <Route path={ROUTES.EGRESOS_REGISTRAR}  element={<RegistrarEgresos />} />
+            <Route path={ROUTES.EGRESOS_HISTORIAL} element={<HistorialEgresos />} />
             <Route path={ROUTES.CAJA} element={<></>} />
             <Route path={ROUTES.CLIENTES_LISTADO} element={<></>} />
             <Route path={ROUTES.CLIENTES_MULTAS} element={<></>} />
@@ -61,7 +52,7 @@ export const AppRouter = () => (
             }
           >
             <Route path={ROUTES.INGRESOS_HISTORIAL} element={<IncomeHistory />} />
-            <Route path={ROUTES.EGRESOS_HISTORIAL} element={<></>} />
+            <Route path={ROUTES.EGRESOS_HISTORIAL} element={<HistorialEgresos />} />
             <Route path={ROUTES.REPORTES_FINANCIERO} element={<></>} />
             <Route path={ROUTES.REPORTES_INGRESOS} element={<></>} />
             <Route path={ROUTES.REPORTES_EGRESOS} element={<></>} />
