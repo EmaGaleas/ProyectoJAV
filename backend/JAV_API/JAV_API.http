@@ -33,3 +33,15 @@ Content-Type: application/json
 ###
 GET {{JAV_API_HostAddress}}/api/usuarios
 Authorization: Bearer TOKEN
+
+###
+
+### [TC-1] Historial completo (sin filtros)
+GET {{JAV_API_HostAddress}}/api/ingresos/historial
+Accept: application/json
+
+###
+
+### [TC-9] Combinar filtros: tipo + método de pago
+GET {{JAV_API_HostAddress}}/api/ingresos/historial?tipoIngreso=mensualidad&metodoPago=Transferencia
+Accept: application/json
