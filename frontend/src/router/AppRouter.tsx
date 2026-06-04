@@ -6,6 +6,7 @@ import LoginPage from "../features/auth/Login";
 import { SidebarLayout } from "../layouts/SidebarLayout/SidebarLayout";
 import { PaymentRegistration } from "../features/ingresos/components/PaymentRegistration";
 import RegistrarEgresos from "../features/RegistrarEgreso";
+import { IncomeHistory } from "../features/historial/ingresos/IncomeHistory";
 import Configuracion from "../features/SystemConfigPage";
 
 export const AppRouter = () => (
@@ -30,12 +31,19 @@ export const AppRouter = () => (
           />
 
           {/* ── Tesorero + SuperAdministrador ── */}
-          <Route element={<RoleRoute allowedRoles={["Tesorero"]} />}>
+          <Route
+            element={
+              <RoleRoute allowedRoles={["Tesorero", "SuperAdministrador"]} />
+            }
+          >
             <Route
               path={ROUTES.INGRESOS_REGISTRAR}
               element={<PaymentRegistration />}
             />
-            <Route path={ROUTES.INGRESOS_HISTORIAL} element={<></>} />
+            <Route
+              path={ROUTES.INGRESOS_HISTORIAL}
+              element={<IncomeHistory />}
+            />
             <Route
               path={ROUTES.EGRESOS_REGISTRAR}
               element={
@@ -67,7 +75,10 @@ export const AppRouter = () => (
               />
             }
           >
-            <Route path={ROUTES.INGRESOS_HISTORIAL} element={<></>} />
+            <Route
+              path={ROUTES.INGRESOS_HISTORIAL}
+              element={<IncomeHistory />}
+            />
             <Route path={ROUTES.EGRESOS_HISTORIAL} element={<></>} />
             <Route path={ROUTES.REPORTES_FINANCIERO} element={<></>} />
             <Route path={ROUTES.REPORTES_INGRESOS} element={<></>} />
