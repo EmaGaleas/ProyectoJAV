@@ -5,7 +5,7 @@ import { RoleRoute } from "./RoleRoute";
 import LoginPage from "../features/auth/Login";
 import { SidebarLayout } from "../layouts/SidebarLayout/SidebarLayout";
 import { PaymentRegistration } from "../features/ingresos/components/PaymentRegistration";
-import RegistrarEgresos from "../features/RegistrarEgreso";
+import RegistrarEgresos from "../features/egresos/RegistrarEgreso";
 import {IncomeHistory} from "../features/historial/ingresos/IncomeHistory";
 
 export const AppRouter = () => (
