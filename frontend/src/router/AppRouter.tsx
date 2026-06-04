@@ -6,6 +6,7 @@ import LoginPage from "../features/auth/Login";
 import { SidebarLayout } from "../layouts/SidebarLayout/SidebarLayout";
 import { PaymentRegistration } from "../features/ingresos/components/PaymentRegistration";
 import RegistrarEgresos from "../features/RegistrarEgreso";
+import Configuracion from "../features/SystemConfigPage";
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -19,7 +20,14 @@ export const AppRouter = () => (
           {/* Todos los roles autenticados */}
           <Route index element={<></>} />
           <Route path={ROUTES.PERFIL} element={<></>} />
-          <Route path={ROUTES.AYUDA} element={<></>} />
+          <Route
+            path={ROUTES.AYUDA}
+            element={
+              <>
+                <Configuracion />
+              </>
+            }
+          />
 
           {/* ── Tesorero + SuperAdministrador ── */}
           <Route element={<RoleRoute allowedRoles={["Tesorero"]} />}>
