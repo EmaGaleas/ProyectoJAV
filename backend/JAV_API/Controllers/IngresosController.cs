@@ -21,7 +21,6 @@ public class IngresosController : ControllerBase
 {
     private readonly IngresoService _ingresoService;
 
-    // CORREGIDO: El nombre del constructor ahora coincide perfectamente con la clase
     public IngresosController(IngresoService ingresoService) => _ingresoService = ingresoService;
 
     [HttpPost("mensualidad")]
@@ -42,6 +41,20 @@ public class IngresosController : ControllerBase
 
             await _ingresoService.RegistrarPagoMensualidadAsync(request);
             return StatusCode(201, new { mensaje = "Pago registrado y comprobante guardado exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("historial")]
+    public async Task<IActionResult> ObtenerHistorial([FromQuery] FiltrarIngresosRequest filtros)
+    {
+        try
+        {
+            var historial = await _ingresoService.ObtenerHistorialIngresosAsync(filtros);
+            return Ok(historial);
         }
         catch (Exception ex)
         {
