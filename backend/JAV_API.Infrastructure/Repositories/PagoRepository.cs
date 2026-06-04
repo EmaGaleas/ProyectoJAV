@@ -1,7 +1,6 @@
-using JAV_API.Application.DTOs.Requests;
+// Archivo: JAV_API.Infrastructure.Repositories.PagoRepository.cs
 using JAV_API.Application.Interfaces;
 using JAV_API.Domain.Entities;
-using JAV_API.Domain.Enums;
 using JAV_API.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,24 +10,34 @@ public class PagoRepository : IPagoRepository
 {
     private readonly ApplicationDbContext _context;
 
-    public PagoRepository(ApplicationDbContext context)
-    {
-        _context = context;
-    }
+    public PagoRepository(ApplicationDbContext context) => _context = context;
 
-    public async Task RegistrarPagoAsync(Pago pago, PagoMensualidad pagoMensualidad, Mensualidad mensualidad, Comprobante comprobante)
+    public async Task RegistrarPagoMasivoAsync(
+        Pago pago, 
+        Comprobante comprobante, 
+        List<PagoMensualidad> pagoMensualidades, 
+        List<PagoMulta> pagoMultas, 
+        List<PagoConexion> pagoConexiones,
+        List<Mensualidad> mensualidades,
+        List<Multa> multas,
+        List<Conexion> conexiones)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
-            // Añadimos todas las entidades al contexto
             _context.Pagos.Add(pago);
-            _context.Comprobantes.Add(comprobante); // Guardamos el comprobante
-            _context.PagoMensualidades.Add(pagoMensualidad);
-            _context.Mensualidades.Update(mensualidad);
+            _context.Comprobantes.Add(comprobante);
+            
+            if (pagoMensualidades.Any()) _context.PagoMensualidades.AddRange(pagoMensualidades);
+            if (pagoMultas.Any()) _context.PagoMultas.AddRange(pagoMultas);
+            if (pagoConexiones.Any()) _context.PagoConexiones.AddRange(pagoConexiones);
 
-            // Un solo SaveChanges impacta las 4 operaciones a la vez
+            // Actualizamos los estados de las entidades cobradas
+            if (mensualidades.Any()) _context.Mensualidades.UpdateRange(mensualidades);
+            if (multas.Any()) _context.Multas.UpdateRange(multas);
+            if (conexiones.Any()) _context.Conexiones.UpdateRange(conexiones);
+
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
         }
@@ -39,75 +48,13 @@ public class PagoRepository : IPagoRepository
         }
     }
 
-    public async Task<IEnumerable<Pago>> ObtenerHistorialIngresosAsync(
-        FiltrarIngresosRequest? filtros = null)
+    public async Task<IEnumerable<Pago>> ObtenerHistorialPagosAsync()
     {
-        var query = ConsultaConRelaciones();
-        query = AplicarFiltros(query, filtros);
-
-        return await query
+        return await _context.Pagos
+            .Include(p => p.PagoMensualidades).ThenInclude(pm => pm.Mensualidad)
+            .Include(p => p.PagoMultas).ThenInclude(pm => pm.Multa)
+            .Include(p => p.PagoConexiones).ThenInclude(pc => pc.Conexion)
             .OrderByDescending(p => p.FechaPago)
             .ToListAsync();
     }
-
-    // ─────────────────────────────────────────────────────────
-    // Métodos privados
-    // ─────────────────────────────────────────────────────────
-
-    private IQueryable<Pago> ConsultaConRelaciones() =>
-        _context.Pagos
-            .Include(p => p.Comprobante)
-            .Include(p => p.PagoMensualidades)
-                .ThenInclude(pm => pm.Mensualidad)
-                    .ThenInclude(m => m.Usuario)
-                        .ThenInclude(u => u.Persona)
-            .Include(p => p.PagoMultas)
-                .ThenInclude(pm => pm.Multa)
-                    .ThenInclude(m => m.Usuario)
-                        .ThenInclude(u => u.Persona)
-            .Include(p => p.PagoConexiones)
-                .ThenInclude(pc => pc.Conexion)
-                    .ThenInclude(c => c.Usuario)
-                        .ThenInclude(u => u.Persona);
-
-    private static IQueryable<Pago> AplicarFiltros(IQueryable<Pago> query, FiltrarIngresosRequest? filtros)
-    {
-        if (filtros is null) return query;
-
-        if (filtros.Desde.HasValue)
-        {
-            var desde = DateTime.SpecifyKind(filtros.Desde.Value, DateTimeKind.Utc);
-            query = query.Where(p => p.FechaPago >= desde);
-        }
-
-        if (filtros.Hasta.HasValue)
-        {
-            // Incluye todo el día "hasta" sumando 1 día y usando <
-            var hasta = DateTime.SpecifyKind(filtros.Hasta.Value.Date.AddDays(1), DateTimeKind.Utc);
-            query = query.Where(p => p.FechaPago < hasta);
-        }
-
-        if (filtros.TipoPago.HasValue)
-            query = FiltrarPorTipo(query, filtros.TipoPago.Value);
-
-        if (!string.IsNullOrWhiteSpace(filtros.Estado) && Enum.TryParse<Estado>(filtros.Estado, true, out var estadoEnum))
-        {
-            query = query.Where(p =>
-                p.PagoMensualidades.Any(pm => pm.Mensualidad.Estado == estadoEnum) ||
-                p.PagoMultas.Any(pm => pm.Multa.Estado == estadoEnum) ||
-                p.PagoConexiones.Any(pc => pc.Conexion.Estado == estadoEnum)
-            );
-        }
-
-        return query;
-    }
-
-    private static IQueryable<Pago> FiltrarPorTipo(IQueryable<Pago> query, TipoCobroEnum tipo) =>
-        tipo switch
-        {
-            TipoCobroEnum.Mensualidad => query.Where(p => p.PagoMensualidades.Any()),
-            TipoCobroEnum.Multa       => query.Where(p => p.PagoMultas.Any()),
-            TipoCobroEnum.Pegue       => query.Where(p => p.PagoConexiones.Any()),
-            _                         => query
-        };
 }
