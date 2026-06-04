@@ -3,6 +3,8 @@ using JAV_API.Domain.Entities;
 using JAV_API.Domain.Enums;
 using JAV_API.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace JAV_API.Infrastructure.Repositories;
 
@@ -15,12 +17,15 @@ public class MensualidadRepository : IMensualidadRepository
         _context = context;
     }
 
-    public async Task<Mensualidad?> ObtenerPorIdAsync(int idMensualidad)
+    public async Task<IEnumerable<Mensualidad>> ObtenerPorIdsAsync(IEnumerable<int> ids)
     {
-        // Usamos Include para traer también la información del usuario asociada a la mensualidad
+        if (ids == null || !ids.Any())
+            return new List<Mensualidad>();
+
         return await _context.Mensualidades
-            .Include(m => m.Usuario) 
-            .FirstOrDefaultAsync(m => m.IdMensualidad == idMensualidad);
+            .Include(m => m.Usuario) // Incluimos el usuario por si el servicio necesita validar datos del propietario
+            .Where(m => ids.Contains(m.IdMensualidad))
+            .ToListAsync();
     }
 
     public async Task<IEnumerable<Mensualidad>> ObtenerPendientesPorUsuarioAsync(int idUsuario)

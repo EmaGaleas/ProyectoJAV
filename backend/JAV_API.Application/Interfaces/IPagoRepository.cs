@@ -1,10 +1,20 @@
+// Archivo: JAV_API.Application.Interfaces.IPagoRepository.cs
 using JAV_API.Domain.Entities;
-using JAV_API.Application.DTOs.Requests;
 
 namespace JAV_API.Application.Interfaces;
 
 public interface IPagoRepository
 {
-    Task RegistrarPagoAsync(Pago pago, PagoMensualidad pagoMensualidad, Mensualidad mensualidad, Comprobante comprobante);
-    Task<IEnumerable<Pago>> ObtenerHistorialIngresosAsync(FiltrarIngresosRequest? filtros = null);
+    Task RegistrarPagoMasivoAsync(
+        Pago pago, 
+        Comprobante comprobante,
+        List<PagoMensualidad> pagoMensualidades,
+        List<PagoMulta> pagoMultas,
+        List<PagoConexion> pagoConexiones,
+        List<Mensualidad> mensualidades,
+        List<Multa> multas,
+        List<Conexion> conexiones
+    );
+    
+    Task<IEnumerable<Pago>> ObtenerHistorialPagosAsync();
 }

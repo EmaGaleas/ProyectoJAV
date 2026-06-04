@@ -76,7 +76,7 @@ builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>(); // I
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<EgresoService>(); // Integrado
-builder.Services.AddScoped<IngresoService>(); // Integrado
+builder.Services.AddScoped<PagoService>(); // Integrado
 
 
 // ─────────────────────────────────────────────────────────
