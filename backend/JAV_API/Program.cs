@@ -67,6 +67,8 @@ builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IEgresoRepository, EgresoRepository>(); 
 builder.Services.AddScoped<IPagoRepository, PagoRepository>();
 builder.Services.AddScoped<IMensualidadRepository, MensualidadRepository>();
+builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+builder.Services.AddScoped<IDeudaRepository, DeudaRepository>();
 
 // Servicios de seguridad e infraestructura general (capa Infrastructure)
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -77,6 +79,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<EgresoService>(); // Integrado
 builder.Services.AddScoped<PagoService>(); // Integrado
+builder.Services.AddScoped<ClienteService>();
+builder.Services.AddScoped<DeudaService>();
 
 
 // ─────────────────────────────────────────────────────────
