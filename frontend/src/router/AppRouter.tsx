@@ -8,6 +8,8 @@ import { PaymentRegistration } from "../features/ingresos/components/PaymentRegi
 import RegistrarEgresos from "../features/egresos/RegistrarEgreso";
 import {IncomeHistory} from "../features/historial/ingresos/IncomeHistory";
 import HistorialEgresos from "../features/historial/egresos/HistorialEgresos";
+import Create_user_form from "../features/create_user_form";
+import SystemConfigPage from "../features/SystemConfigPage";
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -66,13 +68,13 @@ export const AppRouter = () => (
               />
             }
           >
-            <Route path={ROUTES.USUARIOS} element={<></>} />
+            <Route path={ROUTES.USUARIOS} element={<Create_user_form />} />
             <Route path={ROUTES.CLIENTES_LISTADO} element={<></>} />
           </Route>
 
           {/* ── Solo SuperAdministrador ── */}
           <Route element={<RoleRoute allowedRoles={["SuperAdministrador"]} />}>
-            <Route path={ROUTES.AJUSTES_TARIFA_ING} element={<></>} />
+            <Route path={ROUTES.AJUSTES_TARIFA_ING} element={<SystemConfigPage/>} />
             <Route path={ROUTES.AJUSTES_TARIFA_EGR} element={<></>} />
             <Route path={ROUTES.SUPERVISION_EGRESOS} element={<></>} />
             <Route path={ROUTES.SUPERVISION_CIERRES} element={<></>} />
