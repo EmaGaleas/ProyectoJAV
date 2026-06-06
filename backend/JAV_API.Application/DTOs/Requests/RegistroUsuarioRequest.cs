@@ -17,4 +17,11 @@ public class RegistroUsuarioRequest
     public string Password { get; set; } = string.Empty;
     public Rol? Rol { get; set; }
     public int IdTipoUsuario { get; set; }
+
+    // Datos de Domicilio (obligatorio solo si Rol == DuenoDeCasa)
+    /// <summary>
+    /// Domicilio que se asignará al cliente. Solo aplica cuando <see cref="Rol"/> es <c>DuenoDeCasa</c>.
+    /// Debe ser null para cualquier otro rol.
+    /// </summary>
+    public DomicilioRequest? Domicilio { get; set; }
 }
