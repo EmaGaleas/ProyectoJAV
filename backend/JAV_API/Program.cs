@@ -133,7 +133,11 @@ builder.Services.AddCors(options =>
 // ─────────────────────────────────────────────────────────
 // Controladores y documentación
 // ─────────────────────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        // Permite enviar/recibir enums como strings ("DuenoDeCasa") en lugar de números (0)
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -154,12 +158,21 @@ if (app.Environment.IsDevelopment())
     {
         context.Database.Migrate();
 
-        // ── Semilla: Roles (TipoUsuario) ─────────────────────
+        // ── Semilla: Tipos de Usuario ─────────────────────────
+        // Cada TipoUsuario agrupa uno o más Roles:
+        //   SuperAdministrador → Presidente
+        //   Administrador      → Vocal, Secretario, Vicepresidente
+        //   Fiscal             → Fiscal
+        //   Tesorero           → Tesorero
+        //   Cliente            → DuenoDeCasa
         if (!context.Set<TipoUsuario>().Any())
         {
             context.Set<TipoUsuario>().AddRange(
-                new TipoUsuario { Nombre = "Administrativo" },
-                new TipoUsuario { Nombre = "Cliente" }
+                new TipoUsuario { Nombre = "SuperAdministrador" },  // IdTipo = 1
+                new TipoUsuario { Nombre = "Administrador" },       // IdTipo = 2
+                new TipoUsuario { Nombre = "Fiscal" },              // IdTipo = 3
+                new TipoUsuario { Nombre = "Tesorero" },            // IdTipo = 4
+                new TipoUsuario { Nombre = "Cliente" }              // IdTipo = 5
             );
             context.SaveChanges();
         }
@@ -178,8 +191,8 @@ if (app.Environment.IsDevelopment())
         // ── Semilla: Admin + Usuarios cliente de prueba ───────
         if (!context.Usuarios.Any(u => u.Correo == "maria@test.com"))
         {
-            var tipoAdmin   = context.Set<TipoUsuario>().First(t => t.Nombre == "Administrativo");
-            var tipoCliente = context.Set<TipoUsuario>().First(t => t.Nombre == "Cliente");
+            var tipoSuperAdmin = context.Set<TipoUsuario>().First(t => t.Nombre == "SuperAdministrador");
+            var tipoCliente    = context.Set<TipoUsuario>().First(t => t.Nombre == "Cliente");
 
             var admin = new Usuario
             {
@@ -191,7 +204,7 @@ if (app.Environment.IsDevelopment())
                 FechaCreacion = DateTime.UtcNow,
                 UltimoAcceso  = DateTime.UtcNow,
                 Rol           = Rol.Presidente,
-                IdTipoUsuario = tipoAdmin.IdTipo
+                IdTipoUsuario = tipoSuperAdmin.IdTipo
             };
             var cliente1 = new Usuario
             {

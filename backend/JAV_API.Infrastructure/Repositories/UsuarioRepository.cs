@@ -130,4 +130,11 @@ public class UsuarioRepository : IUsuarioRepository
                         && d.LoteCasa    == loteCasa
                         && d.Calle       == calle);
     }
+
+    /// <inheritdoc/>
+    public async Task<TipoUsuario?> ObtenerTipoUsuarioPorNombreAsync(string nombre)
+    {
+        return await _context.TiposUsuario
+            .FirstOrDefaultAsync(t => t.Nombre == nombre);
+    }
 }
