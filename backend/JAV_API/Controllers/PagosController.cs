@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using JAV_API.Application.DTOs.Requests;
+using JAV_API.Application.DTOs.Responses;
 using JAV_API.Application.Services;
 using JAV_API.Domain.Enums;
 
@@ -55,6 +56,23 @@ public class PagosController : ControllerBase
         {
             // Para excepciones no controladas o de base de datos
             return StatusCode(500, new { error = "Ocurrió un error interno al procesar el pago.", detalle = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/detalle")]
+    public async Task<ActionResult<DetallePagoResponse>> ObtenerDetalleModal(int id)
+    {
+        try
+        {
+            return Ok(await _pagoService.ObtenerDetallePagoModalAsync(id));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { mensaje = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
         }
     }
 }

@@ -57,4 +57,18 @@ public class PagoRepository : IPagoRepository
             .OrderByDescending(p => p.FechaPago)
             .ToListAsync();
     }
+
+    public Task<Pago?> ObtenerPagoPorIdConDetallesAsync(int idPago)
+    {
+        // Traemos el pago con todas sus posibles relaciones navegacionales para determinar el tipo y titular
+        return _context.Pagos
+            .Include(p => p.Comprobante)
+            .Include(p => p.PagoMensualidades!).ThenInclude(pm => pm.Mensualidad!).ThenInclude(m => m.Usuario!).ThenInclude(u => u.Persona)
+            .Include(p => p.PagoMensualidades!).ThenInclude(pm => pm.Mensualidad!).ThenInclude(m => m.Usuario!).ThenInclude(u => u.DomicilioUsuarios!).ThenInclude(du => du.Domicilio)
+            .Include(p => p.PagoMultas!).ThenInclude(pm => pm.Multa!).ThenInclude(m => m.Usuario!).ThenInclude(u => u.Persona)
+            .Include(p => p.PagoMultas!).ThenInclude(pm => pm.Multa!).ThenInclude(m => m.Usuario!).ThenInclude(u => u.DomicilioUsuarios!).ThenInclude(du => du.Domicilio)
+            .Include(p => p.PagoConexiones!).ThenInclude(pc => pc.Conexion!).ThenInclude(c => c.Usuario!).ThenInclude(u => u.Persona)
+            .Include(p => p.PagoConexiones!).ThenInclude(pc => pc.Conexion!).ThenInclude(c => c.Domicilio)
+            .FirstOrDefaultAsync(p => p.IdPago == idPago);
+    }
 }

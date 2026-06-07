@@ -17,4 +17,6 @@ public interface IPagoRepository
     );
     
     Task<IEnumerable<Pago>> ObtenerHistorialPagosAsync();
+
+    Task<Pago?> ObtenerPagoPorIdConDetallesAsync(int idPago);
 }

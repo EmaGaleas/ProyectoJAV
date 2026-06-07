@@ -1,6 +1,7 @@
 using System.IO;
 using JAV_API.Application.Interfaces;
 using JAV_API.Application.DTOs.Requests;
+using JAV_API.Application.DTOs.Responses;
 using JAV_API.Domain.Entities;
 using JAV_API.Domain.Enums;
 
@@ -89,5 +90,58 @@ public class PagoService
             new List<Multa>(),
             new List<Conexion>()
         );
+    }
+
+    public async Task<DetallePagoResponse> ObtenerDetallePagoModalAsync(int idPago)
+    {
+        var pago = await _pagoRepository.ObtenerPagoPorIdConDetallesAsync(idPago) 
+            ?? throw new KeyNotFoundException($"No se encontró el pago con ID {idPago}");
+
+        Usuario? usuario = null;
+        Domicilio? domicilio = null;
+        string tipoPago = string.Empty;
+        string estado = string.Empty;
+
+        // Determinar el origen del pago para extraer el titular y el estado
+        if (pago.PagoMensualidades?.Count > 0)
+        {
+            usuario = pago.PagoMensualidades.First().Mensualidad.Usuario;
+            domicilio = usuario?.DomicilioUsuarios?.FirstOrDefault()?.Domicilio;
+            tipoPago = "Mensualidad";
+            estado = pago.PagoMensualidades.First().Mensualidad.Estado.ToString();
+        }
+        else if (pago.PagoMultas?.Count > 0)
+        {
+            usuario = pago.PagoMultas.First().Multa.Usuario;
+            domicilio = usuario?.DomicilioUsuarios?.FirstOrDefault()?.Domicilio;
+            tipoPago = "Multa";
+            estado = pago.PagoMultas.First().Multa.Estado.ToString();
+        }
+        else if (pago.PagoConexiones?.Count > 0)
+        {
+            usuario = pago.PagoConexiones.First().Conexion.Usuario;
+            domicilio = pago.PagoConexiones.First().Conexion.Domicilio;
+            tipoPago = "Conexión";
+            estado = pago.PagoConexiones.First().Conexion.Estado.ToString();
+        }
+
+        if (usuario?.Persona == null)
+            throw new InvalidOperationException("El pago no está asociado a un titular válido.");
+
+        return new DetallePagoResponse
+        {
+            Titular = $"{usuario.Persona.PrimerNombre} {usuario.Persona.PrimerApellido}",
+            Dni = usuario.Persona.Dni,
+            NumeroComprobante = pago.Comprobante?.Codigo.ToString() ?? $"PGO-{pago.IdPago}",
+            Calle = domicilio?.Calle.ToString() ?? "N/A",
+            Bloque = domicilio?.CodigoBloque.ToString() ?? "N/A",
+            Lote = domicilio?.LoteCasa ?? 0,
+            MetodoPago = pago.MetodoPago.ToString(),
+            CodigoTransferencia = pago.MetodoPago == MetodoPago.Transferencia ? pago.Comprobante?.Codigo.ToString() : null,
+            Fecha = pago.FechaPago,
+            TipoPago = tipoPago,
+            Estado = estado,
+            MontoTotal = pago.Monto
+        };
     }
 }
