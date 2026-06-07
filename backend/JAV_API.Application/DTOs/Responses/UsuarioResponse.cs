@@ -19,4 +19,8 @@ public class UsuarioResponse
     public string TipoUsuario { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
     public DateTime UltimoAcceso { get; set; }
+
+    /// <summary>Domicilios asignados al usuario. Solo aplica para clientes (Rol = DuenoDeCasa).</summary>
+    public List<DomicilioAsignadoResponse> Domicilios { get; set; } = new();
 }
+

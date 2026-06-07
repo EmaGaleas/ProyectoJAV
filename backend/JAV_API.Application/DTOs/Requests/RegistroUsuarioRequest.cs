@@ -17,4 +17,7 @@ public class RegistroUsuarioRequest
     public string Password { get; set; } = string.Empty;
     public Rol? Rol { get; set; }
     public int IdTipoUsuario { get; set; }
+
+    // Datos de Domicilio cuando sea dueno de casa
+    public DomicilioRequest? Domicilio { get; set; }
 }

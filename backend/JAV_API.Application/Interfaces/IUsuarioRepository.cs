@@ -9,7 +9,7 @@ namespace JAV_API.Application.Interfaces;
 /// </summary>
 public interface IUsuarioRepository
 {
-    /// <summary>Obtiene un usuario por su ID, incluyendo los datos de su Persona y TipoUsuario.</summary>
+    /// <summary>Obtiene un usuario por su ID, incluyendo los datos de su Persona, TipoUsuario y Domicilios.</summary>
     Task<Usuario?> ObtenerPorIdAsync(int id);
 
     /// <summary>Obtiene un usuario por su correo. Usado principalmente en el proceso de autenticación.</summary>
@@ -21,6 +21,12 @@ public interface IUsuarioRepository
     /// <summary>Crea una nueva Persona y su Usuario asociado en una sola operación atómica.</summary>
     Task<bool> CrearAsync(Usuario usuario);
 
+    /// <summary>
+    /// Crea una nueva Persona, su Usuario y su DomicilioUsuario de forma atómica.
+    /// Si <paramref name="nuevoDomicilio"/> no es null, también persiste ese Domicilio antes de crear la asignación.
+    /// </summary>
+    Task<bool> CrearConDomicilioAsync(Usuario usuario, DomicilioUsuario domicilioUsuario, Domicilio? nuevoDomicilio);
+
     /// <summary>Verifica si ya existe un usuario registrado con ese correo electrónico.</summary>
     Task<bool> ExisteCorreoAsync(string correo);
 
@@ -30,9 +36,21 @@ public interface IUsuarioRepository
     /// <summary>Verifica si ya existe un usuario registrado con ese número de teléfono.</summary>
     Task<bool> ExisteTelefonoAsync(string telefono);
 
-    /// <summary>Verifica si existe un TipoUsuario con el ID especificado en la base de datos.</summary>
-    Task<bool> ExisteTipoUsuarioAsync(int idTipoUsuario);
-
     /// <summary>Obtiene la cantidad de usuarios activos (Estado = true) que poseen un rol determinado.</summary>
     Task<int> ObtenerCantidadActivosPorRolAsync(Rol rol);
+
+    /// <summary>Obtiene un Domicilio por su ID. Devuelve null si no existe.</summary>
+    Task<Domicilio?> ObtenerDomicilioPorIdAsync(int idDomicilio);
+
+    /// <summary>
+    /// Verifica si ya existe un Domicilio con la combinación exacta de Bloque, LoteCasa y Calle.
+    /// Usado para evitar duplicados al crear un domicilio nuevo.
+    /// </summary>
+    Task<bool> ExisteDomicilioAsync(Bloque bloque, int loteCasa, Calle calle);
+
+    /// <summary>
+    /// Obtiene un TipoUsuario por su nombre exacto (ej. "Cliente", "Administrador").
+    /// Usado para asignar automáticamente el TipoUsuario a partir del Rol.
+    /// </summary>
+    Task<TipoUsuario?> ObtenerTipoUsuarioPorNombreAsync(string nombre);
 }

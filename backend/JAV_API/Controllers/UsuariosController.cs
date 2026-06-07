@@ -59,7 +59,7 @@ public class UsuariosController : ControllerBase
     /// <response code="201">Usuario creado exitosamente.</response>
     /// <response code="400">Los datos de entrada son inválidos o ya existen duplicados.</response>
     [HttpPost]
-    [Authorize(Roles = "Presidente,Secretario,Tesorero")]
+    [Authorize(Roles = "Presidente,Vicepresidente,Secretario,Vocal,Tesorero,Fiscal")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Crear([FromBody] RegistroUsuarioRequest request)
