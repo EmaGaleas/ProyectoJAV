@@ -1,101 +1,66 @@
-import { useState, useMemo, useEffect } from 'react'
-import type { Income, PaymentType, IncomeStatus, InvoiceLine } from './data/mockdata'
+import { useState, useEffect, useMemo } from 'react'
+import { fetchHistorialIngresos } from './services/historialService'
+import type { IngresoApi } from './services/historialService'
+import { useAuthStore } from '../../auth/store/authStore'
 import { IncomeTable } from './IncomeTable'
 import { IncomeFilters, DEFAULT_FILTERS } from './IncomeFilters'
 import type { Filters } from './IncomeFilters'
 import { IncomeDetailModal } from './IncomeDetailModal'
 import { useIsTablet } from './useBreakpoint'
-import { apiFetch } from '../../../services/apiClient'
-import { useAuthStore } from '../../auth/store/authStore'
-
-// Forma en que llega la respuesta del backend
-interface PagoHistorialAPI {
-  id:                  number
-  codigo:              string
-  titular:             string
-  dni:                 string
-  tipoIngreso:         string
-  fecha:               string
-  total:               number
-  estado:              string
-  metodoPago:          string
-  codigoTransferencia: string | null
-  lineas: {
-    concepto:   string
-    fechaVence: string
-    monto:      number
-    mora:       number
-    tipo:       string
-  }[]
-}
-
-function mapToIncome(e: PagoHistorialAPI): Income {
-  const lines: InvoiceLine[] = e.lineas.map((l, i) => ({
-    id:         `${e.id}-${i}`,
-    concept:    l.concepto,
-    dueDate:    l.fechaVence || '',
-    baseAmount: l.monto,
-    mora:       l.mora,
-    type:       l.tipo as 'mensualidad' | 'multa',
-  }))
-
-  return {
-    id:            String(e.id),
-    receiptNumber: e.codigo,
-    holderName:    e.titular,
-    dni:           e.dni,
-    paymentType:   e.tipoIngreso as PaymentType,
-    date:          e.fecha,
-    total:         e.total,
-    status:        e.estado as IncomeStatus,
-    payMethod:     e.metodoPago as 'Efectivo' | 'Transferencia',
-    transferCode:  e.codigoTransferencia ?? undefined,
-    street:        '',
-    block:         '',
-    lot:           '',
-    lines,
-  }
-}
 
 export function IncomeHistory() {
-  const isTablet       = useIsTablet()
-  const { token }      = useAuthStore()
+  const { token } = useAuthStore()
+  const isTablet  = useIsTablet()
 
-  const [incomes,       setIncomes]       = useState<Income[]>([])
-  const [loading,       setLoading]       = useState(true)
+  const [incomes,       setIncomes]       = useState<IngresoApi[]>([])
+  const [isLoading,     setIsLoading]     = useState(true)
+  const [fetchError,    setFetchError]    = useState<string | null>(null)
   const [search,        setSearch]        = useState('')
   const [filters,       setFilters]       = useState<Filters>(DEFAULT_FILTERS)
   const [activeFilters, setActiveFilters] = useState<Filters>(DEFAULT_FILTERS)
-  const [selected,      setSelected]      = useState<Income | null>(null)
+  const [selected,      setSelected]      = useState<IngresoApi | null>(null)
   const [filtersOpen,   setFiltersOpen]   = useState(false)
 
   useEffect(() => {
-    if (!token) return
-    setLoading(true)
-    apiFetch<PagoHistorialAPI[]>('/api/pagos/historial', {}, token)
-      .then(data => setIncomes(data.map(mapToIncome)))
-      .catch(console.error)
-      .finally(() => setLoading(false))
+    let cancelled = false
+    setIsLoading(true)
+    setFetchError(null)
+
+    fetchHistorialIngresos(token ?? '')
+      .then(data  => { if (!cancelled) setIncomes(data) })
+      .catch(()   => { if (!cancelled) setFetchError('No se pudo cargar el historial de ingresos') })
+      .finally(() => { if (!cancelled) setIsLoading(false) })
+
+    return () => { cancelled = true }
   }, [token])
 
   const filtered = useMemo(() =>
     incomes.filter(inc => {
-      const q = search.toLowerCase()
-      const matchSearch = !search || inc.holderName.toLowerCase().includes(q) || inc.dni.toLowerCase().includes(q)
-      const matchType   = !activeFilters.paymentType || inc.paymentType === activeFilters.paymentType
-      const matchStatus = !activeFilters.status      || inc.status      === activeFilters.status
-      const matchFrom   = !activeFilters.dateFrom || inc.date >= activeFilters.dateFrom
-      const matchTo     = !activeFilters.dateTo   || inc.date <= activeFilters.dateTo
+      const q           = search.toLowerCase()
+      const matchSearch = !search || inc.titular.toLowerCase().includes(q) || inc.dni.toLowerCase().includes(q)
+      const matchType   = !activeFilters.tipoIngreso || inc.tipoIngreso === activeFilters.tipoIngreso
+      const matchStatus = !activeFilters.estado      || inc.estado      === activeFilters.estado
+      const incDate     = inc.fecha.split('T')[0]
+      const matchFrom   = !activeFilters.dateFrom || incDate >= activeFilters.dateFrom
+      const matchTo     = !activeFilters.dateTo   || incDate <= activeFilters.dateTo
       return matchSearch && matchType && matchStatus && matchFrom && matchTo
     }),
   [incomes, search, activeFilters])
 
   const handleApply = () => { setActiveFilters(filters); setFiltersOpen(false) }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <span style={{ fontSize: 14, color: '#8EBFA3' }}>Cargando historial…</span>
+        <span style={{ fontSize: 14, color: '#8EBFA3' }}>Cargando historial...</span>
+      </div>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <span style={{ fontSize: 14, color: '#EF4444' }}>{fetchError}</span>
       </div>
     )
   }
@@ -127,7 +92,9 @@ export function IncomeHistory() {
         <IncomeFilters filters={filters} onChange={setFilters} onApply={handleApply} />
       )}
 
-      {selected && <IncomeDetailModal income={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <IncomeDetailModal income={selected} onClose={() => setSelected(null)} />
+      )}
     </div>
   )
 }

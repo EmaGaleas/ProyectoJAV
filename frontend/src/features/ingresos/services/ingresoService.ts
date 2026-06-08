@@ -1,53 +1,78 @@
 import { apiFetch } from '../../../services/apiClient'
-import type { ClienteAPI, DeudasClienteAPI } from '../types'
+import type { ClienteApi, DeudaItemApi } from '../types'
 
 export async function buscarClientes(
+  calle: string,
+  bloque: string,
   token: string,
-  calle?: string,
-  bloque?: string,
-  lote?: number
-): Promise<ClienteAPI[]> {
-  const params = new URLSearchParams()
-  if (calle)        params.set('Calle',  calle)
-  if (bloque)       params.set('Bloque', bloque)
-  if (lote != null) params.set('Lote',   String(lote))
+): Promise<ClienteApi[]> {
+  const params = new URLSearchParams({ Calle: calle, Bloque: bloque })
+  return apiFetch<ClienteApi[]>(`/api/clientes/buscar?${params}`, {}, token)
+}
 
-  const query = params.toString() ? `?${params.toString()}` : ''
-  return apiFetch<ClienteAPI[]>(`/api/clientes/buscar${query}`, {}, token)
+interface RawDeuda {
+  idReal:           number
+  concepto:         string
+  monto:            number
+  fechaVencimiento: string | null
+  estado:           string
+  vencida:          boolean
+  mora:             number
+}
+
+interface DeudasResponse {
+  mensualidades: DeudaItemApi[]
+  multas:        DeudaItemApi[]
 }
 
 export async function obtenerDeudas(
+  idUsuario: number,
   token: string,
-  idUsuario: number
-): Promise<DeudasClienteAPI> {
-  return apiFetch<DeudasClienteAPI>(`/api/deudas/usuario/${idUsuario}`, {}, token)
+): Promise<DeudasResponse> {
+  const raw = await apiFetch<{ mensualidades: RawDeuda[]; multas: RawDeuda[] }>(
+    `/api/deudas/usuario/${idUsuario}`, {}, token,
+  )
+  const map = (d: RawDeuda, tipo: 'mensualidad' | 'multa'): DeudaItemApi => ({
+    idReal:           d.idReal,
+    idVirtual:        `${tipo}-${d.idReal}`,
+    concepto:         d.concepto,
+    monto:            d.monto,
+    fechaVencimiento: d.fechaVencimiento,
+    estado:           d.estado,
+    vencida:          d.vencida,
+    mora:             d.mora,
+    tipo,
+  })
+  return {
+    mensualidades: raw.mensualidades.map(d => map(d, 'mensualidad')),
+    multas:        raw.multas.map(d => map(d, 'multa')),
+  }
+}
+
+export interface RegistrarPagoPayload {
+  registradoPor:      number
+  metodoPago:         'Efectivo' | 'Transferencia'
+  monto:              number
+  selMensualidades:   DeudaItemApi[]
+  selMultas:          DeudaItemApi[]
+  comprobanteArchivo?: File | null
 }
 
 export async function registrarPago(
+  payload: RegistrarPagoPayload,
   token: string,
-  form: {
-    registradoPor:    number
-    metodoPago:       number   // 0 = Efectivo, 1 = Transferencia
-    monto:            number
-    codigoComprobante: number
-    comprobanteArchivo?: File
-    mensualidadesIds: number[]
-    multasIds:        number[]
-    conexionesIds:    number[]
-  }
 ): Promise<void> {
   const fd = new FormData()
-  fd.append('RegistradoPor',     String(form.registradoPor))
-  fd.append('MetodoPago',        String(form.metodoPago))
-  fd.append('Monto',             String(form.monto))
-  fd.append('CodigoComprobante', String(form.codigoComprobante))
+  fd.append('RegistradoPor',     String(payload.registradoPor))
+  fd.append('MetodoPago',        payload.metodoPago)
+  fd.append('Monto',             String(payload.monto))
+  fd.append('CodigoComprobante', String(Date.now() % 1000000))
 
-  form.mensualidadesIds.forEach(id => fd.append('MensualidadesIds', String(id)))
-  form.multasIds.forEach(id        => fd.append('MultasIds',         String(id)))
-  form.conexionesIds.forEach(id    => fd.append('ConexionesIds',      String(id)))
+  payload.selMensualidades.forEach(m => fd.append('MensualidadesIds', String(m.idReal)))
+  payload.selMultas.forEach(m        => fd.append('MultasIds',         String(m.idReal)))
 
-  if (form.comprobanteArchivo)
-    fd.append('ComprobanteArchivo', form.comprobanteArchivo)
+  if (payload.comprobanteArchivo)
+    fd.append('ComprobanteArchivo', payload.comprobanteArchivo)
 
   await apiFetch<void>('/api/pagos', { method: 'POST', body: fd }, token)
 }

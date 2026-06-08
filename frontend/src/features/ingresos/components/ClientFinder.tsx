@@ -1,63 +1,60 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
-import { useAuthStore } from '../../auth/store/authStore'
 import { buscarClientes } from '../services/ingresoService'
-import type { ClienteAPI } from '../types'
-import { CALLE_LABEL, BLOQUE_LABEL } from '../types'
+import { useAuthStore } from '../../auth/store/authStore'
+import type { ClienteApi } from '../types'
 import { Step, SectionLabel } from './shared'
 
+const CALLES  = ['Calle1A', 'Calle1B', 'Calle2A', 'Calle2B', 'Calle3A', 'Calle3B', 'Calle4A']
+const BLOQUES = ['FGAD', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
 const PER_PAGE = 3
 
 interface Props {
-  selectedClient: ClienteAPI | null
-  onSelectClient: (c: ClienteAPI | null) => void
+  selectedClient: ClienteApi | null
+  onSelectClient: (c: ClienteApi | null) => void
+}
+
+function initials(nombre: string): string {
+  return nombre.split(' ').slice(0, 2).map(p => p[0] ?? '').join('').toUpperCase()
 }
 
 export function ClientFinder({ selectedClient, onSelectClient }: Props) {
   const { token } = useAuthStore()
 
-  const [allClients, setAllClients] = useState<ClienteAPI[]>([])
-  const [loading,    setLoading]    = useState(false)
+  const [calle,      setCalle]      = useState('')
+  const [bloque,     setBloque]     = useState('')
+  const [lote,       setLote]       = useState('')
+  const [page,       setPage]       = useState(0)
+  const [clientes,   setClientes]   = useState<ClienteApi[]>([])
+  const [isLoading,  setIsLoading]  = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
-  const [calle, setCalle] = useState('')
-  const [bloque, setBloque] = useState('')
-  const [lote,  setLote]  = useState('')
-  const [page,  setPage]  = useState(0)
-
-  // Cargar todos los clientes al montar (sin filtros)
   useEffect(() => {
-    if (!token) return
-    setLoading(true)
-    buscarClientes(token)
-      .then(setAllClients)
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [token])
+    if (!calle || !bloque) { setClientes([]); return }
 
-  const calles  = useMemo(() => [...new Set(allClients.map(c => c.calle))].sort(), [allClients])
-  const bloques = useMemo(() =>
-    calle ? [...new Set(allClients.filter(c => c.calle === calle).map(c => c.bloque))].sort() : [],
-  [allClients, calle])
-  const lotes = useMemo(() =>
-    bloque ? [...new Set(allClients.filter(c => c.calle === calle && c.bloque === bloque).map(c => String(c.lote)))].sort((a, b) => Number(a) - Number(b)) : [],
-  [allClients, calle, bloque])
+    let cancelled = false
+    setIsLoading(true)
+    setFetchError(null)
 
-  const found = useMemo(() =>
-    (!calle || !bloque) ? [] :
-    allClients.filter(c =>
-      c.calle === calle &&
-      c.bloque === bloque &&
-      (lote ? String(c.lote) === lote : true)
-    ),
-  [allClients, calle, bloque, lote])
+    buscarClientes(calle, bloque, token ?? '')
+      .then(data => { if (!cancelled) setClientes(data) })
+      .catch(() => { if (!cancelled) setFetchError('Error al buscar clientes') })
+      .finally(() => { if (!cancelled) setIsLoading(false) })
 
-  const pages   = Math.ceil(found.length / PER_PAGE)
-  const visible = found.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
+    return () => { cancelled = true }
+  }, [calle, bloque, token])
+
+  const filtered = lote
+    ? clientes.filter(c => c.lote === parseInt(lote))
+    : clientes
+
+  const pages   = Math.ceil(filtered.length / PER_PAGE)
+  const visible = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
 
   const onCalle  = (v: string) => { setCalle(v); setBloque(''); setLote(''); setPage(0); onSelectClient(null) }
-  const onBloque = (v: string) => { setBloque(v); setLote('');  setPage(0); onSelectClient(null) }
-  const onLote   = (v: string) => { setLote(v);   setPage(0);  onSelectClient(null) }
-  const toggle   = (c: ClienteAPI) => onSelectClient(selectedClient?.idUsuario === c.idUsuario ? null : c)
+  const onBloque = (v: string) => { setBloque(v); setLote(''); setPage(0); onSelectClient(null) }
+  const onLote   = (v: string) => { setLote(v); setPage(0); onSelectClient(null) }
+  const toggle   = (c: ClienteApi) => onSelectClient(selectedClient?.idUsuario === c.idUsuario ? null : c)
 
   const selectClass = "w-full h-10 px-3 text-sm rounded-xl border border-[rgba(0,0,0,0.12)] bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-[#308C58] focus:ring-opacity-30 disabled:opacity-40 disabled:cursor-not-allowed"
 
@@ -81,9 +78,9 @@ export function ClientFinder({ selectedClient, onSelectClient }: Props) {
         <div>
           <Step n={1} label="Calle" />
           <div className="relative">
-            <select value={calle} onChange={e => onCalle(e.target.value)} disabled={loading} className={selectClass}>
-              <option value="">{loading ? 'Cargando…' : 'Seleccionar calle'}</option>
-              {calles.map(c => <option key={c} value={c}>{CALLE_LABEL[c] ?? c}</option>)}
+            <select value={calle} onChange={e => onCalle(e.target.value)} className={selectClass}>
+              <option value="">Seleccionar calle</option>
+              {CALLES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <ChevronDown />
           </div>
@@ -95,7 +92,7 @@ export function ClientFinder({ selectedClient, onSelectClient }: Props) {
           <div className="relative">
             <select value={bloque} onChange={e => onBloque(e.target.value)} disabled={!calle} className={selectClass}>
               <option value="">Seleccionar bloque</option>
-              {bloques.map(b => <option key={b} value={b}>{BLOQUE_LABEL[b] ?? `Bloque ${b}`}</option>)}
+              {BLOQUES.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
             <ChevronDown />
           </div>
@@ -103,18 +100,20 @@ export function ClientFinder({ selectedClient, onSelectClient }: Props) {
 
         {/* Lote */}
         <div>
-          <Step n={3} label="Lote" />
-          <div className="relative">
-            <select value={lote} onChange={e => onLote(e.target.value)} disabled={!bloque} className={selectClass}>
-              <option value="">Todos los lotes</option>
-              {lotes.map(l => <option key={l} value={l}>Lote {l}</option>)}
-            </select>
-            <ChevronDown />
-          </div>
+          <Step n={3} label="Lote (opcional)" />
+          <input
+            type="number"
+            min={1}
+            value={lote}
+            onChange={e => onLote(e.target.value)}
+            disabled={!bloque}
+            placeholder="Todos los lotes"
+            className={`${selectClass} appearance-auto`}
+          />
         </div>
       </div>
 
-      {/* Grid de clientes */}
+      {/* Resultados */}
       {calle && bloque && (
         <div className="border-t border-[rgba(0,0,0,0.06)] px-6 py-5">
           <div className="flex items-center justify-between mb-4">
@@ -128,17 +127,25 @@ export function ClientFinder({ selectedClient, onSelectClient }: Props) {
             )}
           </div>
 
-          {found.length === 0
-            ? <p style={{ fontSize: 13, color: '#B0C8BA', textAlign: 'center' }}>Sin clientes para esta ubicación</p>
-            : <div className="grid grid-cols-3 gap-3">
-                {Array.from({ length: PER_PAGE }).map((_, i) => {
-                  const c = visible[i]
-                  return c
-                    ? <ClientCard key={c.idUsuario} c={c} selected={selectedClient?.idUsuario === c.idUsuario} onClick={() => toggle(c)} />
-                    : <div key={`e${i}`} className="rounded-xl border-2 border-dashed border-[rgba(0,0,0,0.06)]" style={{ minHeight: 110 }} />
-                })}
-              </div>
-          }
+          {isLoading && (
+            <p style={{ fontSize: 13, color: '#B0C8BA', textAlign: 'center' }}>Buscando...</p>
+          )}
+          {fetchError && !isLoading && (
+            <p style={{ fontSize: 13, color: '#EF4444', textAlign: 'center' }}>{fetchError}</p>
+          )}
+          {!isLoading && !fetchError && filtered.length === 0 && (
+            <p style={{ fontSize: 13, color: '#B0C8BA', textAlign: 'center' }}>Sin clientes para esta ubicación</p>
+          )}
+          {!isLoading && !fetchError && filtered.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {Array.from({ length: PER_PAGE }).map((_, i) => {
+                const c = visible[i]
+                return c
+                  ? <ClientCard key={c.idUsuario} c={c} selected={selectedClient?.idUsuario === c.idUsuario} onClick={() => toggle(c)} />
+                  : <div key={`e${i}`} className="rounded-xl border-2 border-dashed border-[rgba(0,0,0,0.06)]" style={{ minHeight: 110 }} />
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -165,8 +172,7 @@ function NavBtn({ onClick, disabled, children }: { onClick: () => void; disabled
   )
 }
 
-function ClientCard({ c, selected, onClick }: { c: ClienteAPI; selected: boolean; onClick: () => void }) {
-  const initials = c.nombreCompleto.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+function ClientCard({ c, selected, onClick }: { c: ClienteApi; selected: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick}
       className="relative flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all w-full cursor-pointer"
@@ -181,7 +187,7 @@ function ClientCard({ c, selected, onClick }: { c: ClienteAPI; selected: boolean
       )}
       <div className="flex items-center justify-center rounded-full"
         style={{ width: 40, height: 40, background: selected ? '#308C58' : '#D5EDDF', color: selected ? '#fff' : '#308C58', fontSize: 14, fontWeight: 700 }}>
-        {initials}
+        {initials(c.nombreCompleto)}
       </div>
       <span style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, textAlign: 'center' }}>{c.nombreCompleto}</span>
       <span style={{ fontSize: 11, color: '#8EBFA3' }}>Lote {c.lote}</span>
