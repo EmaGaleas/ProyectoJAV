@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { apiFetch } from '../../services/apiClient'          // ajusta la ruta según tu proyecto
-import { useAuthStore } from '../auth/store/authStore'       // ajusta la ruta según tu proyecto
-import type { EgresoFormData, EgresoPayload } from './types'
+import { apiFetch } from '../../services/apiClient'
+import { useAuthStore } from '../auth/store/authStore'
+import type { EgresoFormData } from './types'
 import { MAX_FILE_SIZE_BYTES } from './types'
-
-// ─── Estado inicial ───────────────────────────────────────────────────────────
 
 const EMPTY_FORM: EgresoFormData = {
   cliente:     '',
@@ -13,13 +11,8 @@ const EMPTY_FORM: EgresoFormData = {
   factura:     null,
 }
 
-const todayISO = () => new Date().toISOString()
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
 export function useEgresoForm() {
   const { token, user } = useAuthStore()
-  // Ajusta "user?.name" al campo que use tu authStore para el nombre del usuario
   const registradoPor: string = user?.nombre ?? 'Usuario desconocido'
 
   const [formData,  setFormData]  = useState<EgresoFormData>(EMPTY_FORM)
@@ -27,7 +20,6 @@ export function useEgresoForm() {
   const [error,     setError]     = useState<string | null>(null)
   const [success,   setSuccess]   = useState(false)
 
-  // Todos los campos obligatorios están completos
   const isFormComplete =
     formData.cliente.trim()     !== '' &&
     formData.descripcion.trim() !== '' &&
@@ -54,14 +46,15 @@ export function useEgresoForm() {
     setFormData(prev => ({ ...prev, factura: file }))
   }
 
-  const buildPayload = (): EgresoPayload => ({
-    Cliente:       formData.cliente.trim(),
-    Descripcion:   formData.descripcion.trim(),
-    Monto:         parseFloat(formData.monto),
-    Fecha:         todayISO(),
-    RegistradoPor: registradoPor,
-    FacturaUrl:    formData.factura?.name ?? '',
-  })
+  const buildFormData = (): FormData => {
+    const fd = new FormData()
+    fd.append('Titulo',        formData.cliente.trim())
+    fd.append('Descripcion',   formData.descripcion.trim())
+    fd.append('Monto',         String(parseFloat(formData.monto)))
+    fd.append('RegistradoPor', String(parseInt(user!.id)))
+    fd.append('Evidencia',     formData.factura!)
+    return fd
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,12 +65,9 @@ export function useEgresoForm() {
     setSuccess(false)
 
     try {
-      const payload = buildPayload()
-
-      // POST /api/Egresos — el backend recibe EgresoPayload (ver types.ts)
       await apiFetch(
         '/api/Egresos',
-        { method: 'POST', body: JSON.stringify(payload) },
+        { method: 'POST', body: buildFormData() },
         token ?? undefined,
       )
 

@@ -59,6 +59,13 @@ public class PagosController : ControllerBase
         }
     }
 
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<IngresoResponse>>> ObtenerHistorial([FromQuery] FiltrarIngresosRequest filtros)
+    {
+        var historial = await _pagoService.ObtenerHistorialIngresosAsync(filtros);
+        return Ok(historial);
+    }
+
     [HttpGet("{id}/detalle")]
     public async Task<ActionResult<DetallePagoResponse>> ObtenerDetalleModal(int id)
     {

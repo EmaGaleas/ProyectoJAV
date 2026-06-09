@@ -1,21 +1,24 @@
-import { useState } from 'react'
-import { apiFetch } from '../../../services/apiClient'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../auth/store/authStore'
-import type { EgresoRecord, EgresoStatus, AprobarEgresoPayload, RechazarEgresoPayload } from './types'
+import { fetchEgresos, aprobarEgreso, rechazarEgreso } from './egresoHistorialService'
+import type { EgresoRecord, EgresoStatus } from './types'
 import { DEFAULT_EGRESO_FILTERS } from './EgresoFilters'
 import type { EgresoFilterValues } from './EgresoFilters'
-import { MOCK_EGRESOS } from './data/mockdata'
 
 export function useEgresoHistorial() {
   const { token, user } = useAuthStore()
-  const userName: string = user?.nombre ?? 'Administrador'
 
-  const [records,       setRecords]       = useState<EgresoRecord[]>(MOCK_EGRESOS)
+  const [records,       setRecords]       = useState<EgresoRecord[]>([])
   const [activeTab,     setActiveTab]     = useState<EgresoStatus>('Pendiente')
   const [page,          setPage]          = useState(1)
   const [selected,      setSelected]      = useState<EgresoRecord | null>(null)
   const [stagedFilters, setStagedFilters] = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
   const [activeFilters, setActiveFilters] = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
+
+  useEffect(() => {
+    if (!token) return
+    fetchEgresos(token).then(setRecords).catch(console.error)
+  }, [token])
 
   const byTab = records.filter(r => r.status === activeTab)
 
@@ -54,26 +57,27 @@ export function useEgresoHistorial() {
   }
 
   const handleApprove = async (id: string) => {
-    const payload: AprobarEgresoPayload = { Status: 'Aprobado', AprobadoPor: userName }
+    const aprobadoPorId = parseInt(user!.id)
     try {
-      await apiFetch(`/api/Egresos/${id}/aprobar`, { method: 'PATCH', body: JSON.stringify(payload) }, token ?? undefined)
-    } catch { /* update locally anyway */ }
-
-    setRecords(prev =>
-      prev.map(r => r.id === id ? { ...r, status: 'Aprobado', aprobadoPor: userName } : r)
-    )
+      await aprobarEgreso(parseInt(id), aprobadoPorId, token!)
+      setRecords(prev =>
+        prev.map(r => r.id === id ? { ...r, status: 'Aprobado', aprobadoPor: user!.nombre } : r)
+      )
+    } catch (err) {
+      console.error('Error al aprobar egreso:', err)
+    }
     setSelected(null)
   }
 
   const handleReject = async (id: string) => {
-    const payload: RechazarEgresoPayload = { Status: 'Rechazado', RechazadoPor: userName }
     try {
-      await apiFetch(`/api/Egresos/${id}/rechazar`, { method: 'PATCH', body: JSON.stringify(payload) }, token ?? undefined)
-    } catch { /* update locally anyway */ }
-
-    setRecords(prev =>
-      prev.map(r => r.id === id ? { ...r, status: 'Rechazado', rechazadoPor: userName } : r)
-    )
+      await rechazarEgreso(parseInt(id), token!)
+      setRecords(prev =>
+        prev.map(r => r.id === id ? { ...r, status: 'Rechazado' } : r)
+      )
+    } catch (err) {
+      console.error('Error al rechazar egreso:', err)
+    }
     setSelected(null)
   }
 

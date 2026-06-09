@@ -1,4 +1,5 @@
 using JAV_API.Application.DTOs.Requests;
+using JAV_API.Application.DTOs.Responses;
 using JAV_API.Application.Interfaces;
 using JAV_API.Domain.Entities;
 using JAV_API.Domain.Enums;
@@ -10,7 +11,6 @@ public class EgresoService
     private readonly IEgresoRepository _egresoRepository;
     private readonly IFileStorageService _fileStorageService;
 
-    // Inyección de dependencias (Cumple con la 'D' de SOLID)
     public EgresoService(IEgresoRepository egresoRepository, IFileStorageService fileStorageService)
     {
         _egresoRepository = egresoRepository;
@@ -19,27 +19,61 @@ public class EgresoService
 
     public async Task RegistrarEgresoAsync(RegistrarEgresoRequest request)
     {
-        // Dentro de RegistrarEgresoAsync...
         if (request.EvidenciaStream == Stream.Null || request.EvidenciaStream.Length == 0)
-        {
             throw new ArgumentException("La evidencia del gasto es obligatoria.");
-        }
 
-        // Se pasan ambos parámetros limpios a la infraestructura
         string urlEvidencia = await _fileStorageService.GuardarArchivoAsync(request.EvidenciaStream, request.EvidenciaNombre);
 
-        // 3. Mapear los datos hacia la Entidad de Dominio
         var nuevoEgreso = new Egreso
         {
             RegistradoPor = request.RegistradoPor,
-            Titulo = request.Titulo,
-            Descripcion = request.Descripcion,
-            Monto = request.Monto,
-            Url = urlEvidencia,
-            Fecha = DateTime.UtcNow,
-            Estado = EstadoAprobacion.EnRevision
+            Titulo        = request.Titulo,
+            Descripcion   = request.Descripcion,
+            Monto         = request.Monto,
+            Url           = urlEvidencia,
+            Fecha         = DateTime.UtcNow,
+            Estado        = EstadoAprobacion.EnRevision
         };
-        // 4. Delegar el guardado a la base de datos mediante el repositorio
+
         await _egresoRepository.RegistrarEgresoAsync(nuevoEgreso);
+    }
+
+    public async Task<IEnumerable<EgresoResponse>> ObtenerHistorialEgresosAsync()
+    {
+        var egresos = await _egresoRepository.ObtenerHistorialEgresosAsync();
+        return egresos.Select(MapToResponse);
+    }
+
+    public async Task AprobarEgresoAsync(int id, int aprobadoPor)
+    {
+        await _egresoRepository.AprobarEgresoAsync(id, aprobadoPor);
+    }
+
+    public async Task RechazarEgresoAsync(int id)
+    {
+        await _egresoRepository.RechazarEgresoAsync(id);
+    }
+
+    private static EgresoResponse MapToResponse(Egreso e)
+    {
+        var nombreRegistrador = $"{e.Registrador.Persona.PrimerNombre} {e.Registrador.Persona.PrimerApellido}";
+        string? nombreAprobador = e.Aprobador is not null
+            ? $"{e.Aprobador.Persona.PrimerNombre} {e.Aprobador.Persona.PrimerApellido}"
+            : null;
+
+        return new EgresoResponse
+        {
+            Id            = e.IdEgreso,
+            CodigoEgreso  = $"EG-{e.IdEgreso:D3}",
+            RegistradoPor = nombreRegistrador,
+            Dni           = e.Registrador.Persona.Dni,
+            Titulo        = e.Titulo,
+            Descripcion   = e.Descripcion,
+            Monto         = e.Monto,
+            Fecha         = e.Fecha,
+            FacturaUrl    = e.Url,
+            Estado        = e.Estado.ToString(),
+            AprobadoPor   = nombreAprobador,
+        };
     }
 }

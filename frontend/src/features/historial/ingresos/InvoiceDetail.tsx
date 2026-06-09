@@ -1,12 +1,12 @@
-import type { Income, InvoiceLine } from './data/mockdata'
-import { L, fmtDate } from './data/mockdata'
+import type { IncomeDetail, InvoiceLine } from './types'
+import { L, fmtDate } from './types'
 
 interface Props {
-  income: Income
+  detail: IncomeDetail
   onBack: () => void
 }
 
-export function InvoiceDetail({ income, onBack }: Props) {
+export function InvoiceDetail({ detail: income, onBack }: Props) {
   const mensualidades = income.lines.filter(l => l.type === 'mensualidad')
   const multas        = income.lines.filter(l => l.type === 'multa')
 

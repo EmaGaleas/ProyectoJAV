@@ -92,9 +92,26 @@ public class PagoService
         );
     }
 
+    public async Task<IEnumerable<IngresoResponse>> ObtenerHistorialIngresosAsync(FiltrarIngresosRequest filtros)
+    {
+        var pagos = await _pagoRepository.ObtenerHistorialPagosAsync();
+        IEnumerable<IngresoResponse> result = pagos.Select(MapToIngresoResponse);
+
+        if (filtros.TipoPago.HasValue)
+            result = result.Where(r => r.TipoIngreso == filtros.TipoPago.Value.ToString());
+        if (!string.IsNullOrWhiteSpace(filtros.Estado))
+            result = result.Where(r => r.Estado == filtros.Estado);
+        if (filtros.Desde.HasValue)
+            result = result.Where(r => r.Fecha >= filtros.Desde.Value);
+        if (filtros.Hasta.HasValue)
+            result = result.Where(r => r.Fecha <= filtros.Hasta.Value);
+
+        return result;
+    }
+
     public async Task<DetallePagoResponse> ObtenerDetallePagoModalAsync(int idPago)
     {
-        var pago = await _pagoRepository.ObtenerPagoPorIdConDetallesAsync(idPago) 
+        var pago = await _pagoRepository.ObtenerPagoPorIdConDetallesAsync(idPago)
             ?? throw new KeyNotFoundException($"No se encontró el pago con ID {idPago}");
 
         Usuario? usuario = null;
@@ -102,7 +119,6 @@ public class PagoService
         string tipoPago = string.Empty;
         string estado = string.Empty;
 
-        // Determinar el origen del pago para extraer el titular y el estado
         if (pago.PagoMensualidades?.Count > 0)
         {
             usuario = pago.PagoMensualidades.First().Mensualidad.Usuario;
@@ -128,20 +144,89 @@ public class PagoService
         if (usuario?.Persona == null)
             throw new InvalidOperationException("El pago no está asociado a un titular válido.");
 
+        var lineas = new List<LineaPagoResponse>();
+
+        foreach (var pm in pago.PagoMensualidades ?? [])
+        {
+            lineas.Add(new LineaPagoResponse
+            {
+                Concepto         = pm.Mensualidad.PeriodoPago.HasValue
+                                     ? $"Mensualidad {pm.Mensualidad.PeriodoPago.Value:MMMM yyyy}"
+                                     : "Mensualidad",
+                FechaVencimiento = pm.Mensualidad.FechaVencimiento,
+                MontoBase        = pm.Mensualidad.Monto,
+                Mora             = 0m,
+                Tipo             = "mensualidad",
+            });
+        }
+
+        foreach (var pm in pago.PagoMultas ?? [])
+        {
+            lineas.Add(new LineaPagoResponse
+            {
+                Concepto         = pm.Multa.TipoMulta?.Descripcion ?? "Multa",
+                FechaVencimiento = null,
+                MontoBase        = pm.Multa.Monto,
+                Mora             = 0m,
+                Tipo             = "multa",
+            });
+        }
+
         return new DetallePagoResponse
         {
-            Titular = $"{usuario.Persona.PrimerNombre} {usuario.Persona.PrimerApellido}",
-            Dni = usuario.Persona.Dni,
-            NumeroComprobante = pago.Comprobante?.Codigo.ToString() ?? $"PGO-{pago.IdPago}",
-            Calle = domicilio?.Calle.ToString() ?? "N/A",
-            Bloque = domicilio?.CodigoBloque.ToString() ?? "N/A",
-            Lote = domicilio?.LoteCasa ?? 0,
-            MetodoPago = pago.MetodoPago.ToString(),
+            Titular            = $"{usuario.Persona.PrimerNombre} {usuario.Persona.PrimerApellido}",
+            Dni                = usuario.Persona.Dni,
+            NumeroComprobante  = pago.Comprobante?.Codigo.ToString() ?? $"PGO-{pago.IdPago}",
+            Calle              = domicilio?.Calle.ToString() ?? "N/A",
+            Bloque             = domicilio?.CodigoBloque.ToString() ?? "N/A",
+            Lote               = domicilio?.LoteCasa ?? 0,
+            MetodoPago         = pago.MetodoPago.ToString(),
             CodigoTransferencia = pago.MetodoPago == MetodoPago.Transferencia ? pago.Comprobante?.Codigo.ToString() : null,
-            Fecha = pago.FechaPago,
-            TipoPago = tipoPago,
-            Estado = estado,
-            MontoTotal = pago.Monto
+            Fecha              = pago.FechaPago,
+            TipoPago           = tipoPago,
+            Estado             = estado,
+            MontoTotal         = pago.Monto,
+            Lineas             = lineas,
+        };
+    }
+
+    private static IngresoResponse MapToIngresoResponse(Pago p)
+    {
+        Usuario? usuario = null;
+        string tipoPago = string.Empty;
+        string estado = string.Empty;
+
+        if (p.PagoMensualidades?.Count > 0)
+        {
+            usuario = p.PagoMensualidades.First().Mensualidad?.Usuario;
+            tipoPago = "Mensualidad";
+            estado = p.PagoMensualidades.First().Mensualidad?.Estado.ToString() ?? "Pagado";
+        }
+        else if (p.PagoMultas?.Count > 0)
+        {
+            usuario = p.PagoMultas.First().Multa?.Usuario;
+            tipoPago = "Multa";
+            estado = p.PagoMultas.First().Multa?.Estado.ToString() ?? "Pagado";
+        }
+        else if (p.PagoConexiones?.Count > 0)
+        {
+            usuario = p.PagoConexiones.First().Conexion?.Usuario;
+            tipoPago = "Conexión";
+            estado = p.PagoConexiones.First().Conexion?.Estado.ToString() ?? "Pagado";
+        }
+
+        return new IngresoResponse
+        {
+            Id          = p.IdPago,
+            Codigo      = p.Comprobante?.Codigo.ToString() ?? $"PGO-{p.IdPago}",
+            TipoIngreso = tipoPago,
+            Titular     = usuario?.Persona != null
+                            ? $"{usuario.Persona.PrimerNombre} {usuario.Persona.PrimerApellido}"
+                            : "N/A",
+            Dni         = usuario?.Persona?.Dni ?? "N/A",
+            Fecha       = p.FechaPago,
+            Monto       = p.Monto,
+            Estado      = estado,
         };
     }
 }
