@@ -1,40 +1,39 @@
 import { useState } from 'react'
-import type { Income } from './data/mockdata'
-import { L, fmtDate } from './data/mockdata'
+import type { IncomeDetail } from './types'
+import { L, fmtDate } from './types'
 import { InvoiceDetail } from './InvoiceDetail'
 
 interface Props {
-  income: Income
-  onClose: () => void
+  receiptNumber: string
+  detail:        IncomeDetail | null
+  isLoading:     boolean
+  onClose:       () => void
 }
 
-export function IncomeDetailModal({ income, onClose }: Props) {
+export function IncomeDetailModal({ receiptNumber, detail, isLoading, onClose }: Props) {
   const [showInvoice, setShowInvoice] = useState(false)
 
   return (
-    /* Overlay */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-6"
       style={{ background: 'rgba(0,0,0,0.35)' }}
       onClick={onClose}
     >
-      {/* Panel */}
       <div
         className="bg-white rounded-2xl shadow-xl w-full overflow-hidden flex flex-col"
         style={{ maxWidth: 560, maxHeight: '90vh' }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Cabecera del modal */}
+        {/* Cabecera */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[rgba(0,0,0,0.06)] shrink-0">
           <div className="flex items-center gap-3">
-            {/* Placeholder icono */}
             <div style={{ width: 36, height: 36, background: '#308C58', borderRadius: 10 }} />
             <div>
               <span style={{ fontSize: 10, fontWeight: 600, color: '#8EBFA3', letterSpacing: '0.07em', textTransform: 'uppercase', display: 'block' }}>
                 {showInvoice ? 'Factura' : 'Detalle de ingreso'}
               </span>
               <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A' }}>
-                {income.receiptNumber}
+                {receiptNumber}
               </span>
             </div>
           </div>
@@ -47,12 +46,16 @@ export function IncomeDetailModal({ income, onClose }: Props) {
           </button>
         </div>
 
-        {/* Cuerpo con scroll */}
+        {/* Cuerpo */}
         <div className="overflow-y-auto flex-1 px-6 py-5">
-          {showInvoice ? (
-            <InvoiceDetail income={income} onBack={() => setShowInvoice(false)} />
+          {isLoading || !detail ? (
+            <div className="flex items-center justify-center py-10">
+              <span style={{ fontSize: 13, color: '#8EBFA3' }}>Cargando detalle…</span>
+            </div>
+          ) : showInvoice ? (
+            <InvoiceDetail detail={detail} onBack={() => setShowInvoice(false)} />
           ) : (
-            <IncomeDetail income={income} onViewInvoice={() => setShowInvoice(true)} />
+            <IncomeDetailBody detail={detail} onViewInvoice={() => setShowInvoice(true)} />
           )}
         </div>
       </div>
@@ -60,44 +63,39 @@ export function IncomeDetailModal({ income, onClose }: Props) {
   )
 }
 
-// ─── Vista de detalle de ingreso ──────────────────────────────────────────────
+// ─── Vista de detalle ─────────────────────────────────────────────────────────
 
-function IncomeDetail({ income, onViewInvoice }: { income: Income; onViewInvoice: () => void }) {
+function IncomeDetailBody({ detail, onViewInvoice }: { detail: IncomeDetail; onViewInvoice: () => void }) {
   return (
     <div className="flex flex-col gap-4">
 
-      {/* Titular */}
       <DetailSection title="Titular de la cuenta">
-        <DetailRow label="Nombre"         value={income.holderName} />
-        <DetailRow label="DNI"            value={income.dni} />
-        <DetailRow label="N° Comprobante" value={income.receiptNumber} />
+        <DetailRow label="Nombre"         value={detail.holderName} />
+        <DetailRow label="DNI"            value={detail.dni} />
+        <DetailRow label="N° Comprobante" value={detail.receiptNumber} />
       </DetailSection>
 
-      {/* Dirección */}
       <DetailSection title="Dirección">
         <div className="grid grid-cols-3 gap-3">
-          <AddressField label="Calle"  value={income.street} />
-          <AddressField label="Bloque" value={income.block}  />
-          <AddressField label="Lote"   value={income.lot}    />
+          <AddressField label="Calle"  value={detail.street} />
+          <AddressField label="Bloque" value={detail.block}  />
+          <AddressField label="Lote"   value={detail.lot}    />
         </div>
       </DetailSection>
 
-      {/* Pago */}
       <DetailSection title="Información de pago">
-        <DetailRow label="Método"      value={income.payMethod} />
-        {income.transferCode && <DetailRow label="Comprobante" value={income.transferCode} />}
-        <DetailRow label="Fecha"       value={fmtDate(income.date)} />
-        <DetailRow label="Tipo"        value={income.paymentType} />
-        <DetailRow label="Estado"      value={income.status} />
+        <DetailRow label="Método"      value={detail.payMethod} />
+        {detail.transferCode && <DetailRow label="Comprobante" value={detail.transferCode} />}
+        <DetailRow label="Fecha"       value={fmtDate(detail.date)} />
+        <DetailRow label="Tipo"        value={detail.paymentType} />
+        <DetailRow label="Estado"      value={detail.status} />
       </DetailSection>
 
-      {/* Monto */}
       <div className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: '#F0FAF4', border: '1px solid #D5EDDF' }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>Monto Total</span>
-        <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>{L(income.total)}</span>
+        <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>{L(detail.total)}</span>
       </div>
 
-      {/* CTA */}
       <button
         onClick={onViewInvoice}
         className="w-full py-3 rounded-xl transition-colors"

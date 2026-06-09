@@ -1,7 +1,6 @@
-// CORREGIDO: Añadido el using necesario para que reconozca ControllerBase y los Atributos Web
-using Microsoft.AspNetCore.Mvc; 
-using System.IO;
+using Microsoft.AspNetCore.Mvc;
 using JAV_API.Application.DTOs.Requests;
+using JAV_API.Application.DTOs.Responses;
 using JAV_API.Application.Services;
 
 namespace JAV_API.Controllers;
@@ -28,22 +27,57 @@ public class EgresosController : ControllerBase
     {
         try
         {
-            var applicationRequest = new RegistrarEgresoRequest
+            var request = new RegistrarEgresoRequest
             {
-                RegistradoPor = form.RegistradoPor,
-                Titulo = form.Titulo,
-                Descripcion = form.Descripcion,
-                Monto = form.Monto,
+                RegistradoPor   = form.RegistradoPor,
+                Titulo          = form.Titulo,
+                Descripcion     = form.Descripcion,
+                Monto           = form.Monto,
                 EvidenciaStream = form.Evidencia.OpenReadStream(),
                 EvidenciaNombre = form.Evidencia.FileName
             };
 
-            await _egresoService.RegistrarEgresoAsync(applicationRequest);
+            await _egresoService.RegistrarEgresoAsync(request);
             return StatusCode(201, new { mensaje = "Egreso registrado exitosamente." });
         }
         catch (Exception ex)
         {
             return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<EgresoResponse>>> ObtenerHistorial()
+    {
+        var historial = await _egresoService.ObtenerHistorialEgresosAsync();
+        return Ok(historial);
+    }
+
+    [HttpPatch("{id}/aprobar")]
+    public async Task<IActionResult> Aprobar(int id, [FromBody] AprobarEgresoRequest req)
+    {
+        try
+        {
+            await _egresoService.AprobarEgresoAsync(id, req.AprobadoPor);
+            return Ok(new { mensaje = "Egreso aprobado." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id}/rechazar")]
+    public async Task<IActionResult> Rechazar(int id)
+    {
+        try
+        {
+            await _egresoService.RechazarEgresoAsync(id);
+            return Ok(new { mensaje = "Egreso rechazado." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
         }
     }
 }

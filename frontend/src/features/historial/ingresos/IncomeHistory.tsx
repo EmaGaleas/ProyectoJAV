@@ -1,34 +1,27 @@
-import { useState, useMemo } from 'react'
-import { MOCK_INCOMES } from './data/mockdata'
-import type { Income } from './data/mockdata'
+import { useIncomeHistorial } from './useIncomeHistorial'
 import { IncomeTable } from './IncomeTable'
-import { IncomeFilters, DEFAULT_FILTERS } from './IncomeFilters'
-import type { Filters } from './IncomeFilters'
+import { IncomeFilters } from './IncomeFilters'
 import { IncomeDetailModal } from './IncomeDetailModal'
 import { useIsTablet } from './useBreakpoint'
 
 export function IncomeHistory() {
   const isTablet = useIsTablet()
 
-  const [search,        setSearch]        = useState('')
-  const [filters,       setFilters]       = useState<Filters>(DEFAULT_FILTERS)
-  const [activeFilters, setActiveFilters] = useState<Filters>(DEFAULT_FILTERS)
-  const [selected,      setSelected]      = useState<Income | null>(null)
-  const [filtersOpen,   setFiltersOpen]   = useState(false)
-
-  const filtered = useMemo(() =>
-    MOCK_INCOMES.filter(inc => {
-      const q = search.toLowerCase()
-      const matchSearch = !search || inc.holderName.toLowerCase().includes(q) || inc.dni.toLowerCase().includes(q)
-      const matchType   = !activeFilters.paymentType || inc.paymentType === activeFilters.paymentType
-      const matchStatus = !activeFilters.status      || inc.status      === activeFilters.status
-      const matchFrom   = !activeFilters.dateFrom || inc.date >= activeFilters.dateFrom
-      const matchTo     = !activeFilters.dateTo   || inc.date <= activeFilters.dateTo
-      return matchSearch && matchType && matchStatus && matchFrom && matchTo
-    }),
-  [search, activeFilters])
-
-  const handleApply = () => { setActiveFilters(filters); setFiltersOpen(false) }
+  const {
+    filtered,
+    selected,
+    detail,
+    detailLoading,
+    search,
+    setSearch,
+    filters,
+    setFilters,
+    filtersOpen,
+    setFiltersOpen,
+    setSelected,
+    handleApply,
+    handleClose,
+  } = useIncomeHistorial()
 
   return (
     <div className="flex gap-5 items-stretch">
@@ -57,7 +50,14 @@ export function IncomeHistory() {
         <IncomeFilters filters={filters} onChange={setFilters} onApply={handleApply} />
       )}
 
-      {selected && <IncomeDetailModal income={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <IncomeDetailModal
+          receiptNumber={selected.receiptNumber}
+          detail={detail}
+          isLoading={detailLoading}
+          onClose={handleClose}
+        />
+      )}
     </div>
   )
 }

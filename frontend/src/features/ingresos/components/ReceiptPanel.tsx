@@ -1,13 +1,18 @@
-import { FileText } from 'lucide-react'
-import { PAYMENTS, L, fmtDate } from '../data/mock-data'
-import type { Client, Payment } from '../data/mock-data'
+import { FileText, CheckCircle } from 'lucide-react'
+import type { Client, Payment } from '../types'
+import { L, fmtDate } from '../types'
 import type { Method } from './PaymentMethodPanel'
 
 interface Props {
   client: Client | null
-  selectedIds: string[]
+  selectedPayments: Payment[]
   method: Method
   code: string
+  submitting: boolean
+  submitError: string | null
+  submitSuccess: boolean
+  onSubmit: () => void
+  onReset: () => void
 }
 
 const today = () => {
@@ -16,12 +21,30 @@ const today = () => {
   return `${d.getDate()} de ${m[d.getMonth()]} de ${d.getFullYear()}`
 }
 
-export function ReceiptPanel({ client, selectedIds, method, code }: Props) {
-  const items   = PAYMENTS.filter(p => selectedIds.includes(p.id))
-  const mensual = items.filter(p => p.type === 'mensualidad')
-  const multas  = items.filter(p => p.type === 'multa')
-  const total   = items.reduce((a, p) => a + p.amount + p.mora, 0)
-  const hasData = client && items.length > 0
+export function ReceiptPanel({ client, selectedPayments, method, code, submitting, submitError, submitSuccess, onSubmit, onReset }: Props) {
+  const mensual = selectedPayments.filter(p => p.type === 'mensualidad')
+  const multas  = selectedPayments.filter(p => p.type === 'multa')
+  const total   = selectedPayments.reduce((a, p) => a + p.amount + p.mora, 0)
+  const hasData = client && selectedPayments.length > 0
+
+  if (submitSuccess) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-[rgba(0,0,0,0.07)] flex flex-col items-center justify-center gap-4 px-5 py-10">
+        <CheckCircle size={40} style={{ color: '#308C58' }} />
+        <div className="text-center flex flex-col gap-1">
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#1A1A1A' }}>Ingreso registrado</span>
+          <span style={{ fontSize: 13, color: '#8EBFA3' }}>El pago fue procesado correctamente.</span>
+        </div>
+        <button
+          onClick={onReset}
+          className="mt-2 px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+          style={{ background: '#308C58', color: '#fff', fontSize: 13, fontWeight: 600 }}
+        >
+          Nuevo registro
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-[rgba(0,0,0,0.07)] flex flex-col overflow-hidden">
@@ -50,11 +73,11 @@ export function ReceiptPanel({ client, selectedIds, method, code }: Props) {
             <div>
               <ReceiptLabel text="Cliente" />
               <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', display: 'block' }}>{client.name}</span>
-              <span style={{ fontSize: 12, color: '#8EBFA3' }}>{client.lot}</span>
+              <span style={{ fontSize: 12, color: '#8EBFA3' }}>Lote {client.lot}</span>
             </div>
 
             {mensual.length > 0 && <ReceiptGroup title="Mensualidades" items={mensual} />}
-            {multas.length  > 0 && <ReceiptGroup title="Multas"         items={multas} />}
+            {multas.length  > 0 && <ReceiptGroup title="Multas"         items={multas}  />}
 
             <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.1)' }} />
 
@@ -80,6 +103,23 @@ export function ReceiptPanel({ client, selectedIds, method, code }: Props) {
           </div>
         )}
       </div>
+
+      {/* Botón de envío */}
+      {hasData && (
+        <div className="px-5 py-4 border-t border-[rgba(0,0,0,0.06)] flex flex-col gap-2 shrink-0">
+          {submitError && (
+            <span style={{ fontSize: 12, color: '#EF4444' }}>{submitError}</span>
+          )}
+          <button
+            onClick={onSubmit}
+            disabled={submitting}
+            className="w-full py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60"
+            style={{ background: '#308C58', color: '#fff', fontSize: 14, fontWeight: 600 }}
+          >
+            {submitting ? 'Registrando…' : 'Registrar ingreso'}
+          </button>
+        </div>
+      )}
 
     </div>
   )

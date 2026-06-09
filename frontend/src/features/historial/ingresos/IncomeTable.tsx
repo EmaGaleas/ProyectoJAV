@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { Income } from './data/mockdata'
-import { L, fmtDate } from './data/mockdata'
+import type { Income } from './types'
+import { L, fmtDate } from './types'
 
 const PAGE_SIZE = 9
 const ROW_H     = 49

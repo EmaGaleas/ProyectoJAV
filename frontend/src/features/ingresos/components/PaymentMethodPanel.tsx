@@ -8,9 +8,11 @@ interface Props {
   code: string
   onCodeChange: (v: string) => void
   codeError: boolean
+  file: File | null
+  onFileChange: (f: File | null) => void
 }
 
-export function PaymentMethodPanel({ method, onMethodChange, code, onCodeChange, codeError }: Props) {
+export function PaymentMethodPanel({ method, onMethodChange, code, onCodeChange, codeError, file, onFileChange }: Props) {
   const change = (m: Method) => { onMethodChange(m); if (m === 'cash') onCodeChange('') }
 
   return (
@@ -34,21 +36,45 @@ export function PaymentMethodPanel({ method, onMethodChange, code, onCodeChange,
       </div>
 
       {method === 'transfer' && (
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="code" style={{ fontSize: 12, color: '#555', fontWeight: 500 }}>
-            Número de comprobante <span style={{ color: '#EF4444' }}>*</span>
-          </label>
-          <input
-            id="code"
-            type="text"
-            value={code}
-            placeholder="Ej. TRF-2025-00123"
-            onChange={e => onCodeChange(e.target.value)}
-            className="h-9 px-3 text-sm rounded-xl border w-full focus:outline-none focus:ring-2 focus:ring-[#308C58] focus:ring-opacity-30"
-            style={{ borderColor: codeError ? '#EF4444' : 'rgba(0,0,0,0.12)' }}
-          />
-          {codeError && <span style={{ fontSize: 11, color: '#EF4444' }}>El comprobante es obligatorio</span>}
-        </div>
+        <>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="code" style={{ fontSize: 12, color: '#555', fontWeight: 500 }}>
+              Número de comprobante <span style={{ color: '#EF4444' }}>*</span>
+            </label>
+            <input
+              id="code"
+              type="number"
+              min="0"
+              value={code}
+              placeholder="Ej. 20250400123"
+              onChange={e => onCodeChange(e.target.value)}
+              className="h-9 px-3 text-sm rounded-xl border w-full focus:outline-none focus:ring-2 focus:ring-[#308C58] focus:ring-opacity-30"
+              style={{ borderColor: codeError ? '#EF4444' : 'rgba(0,0,0,0.12)' }}
+            />
+            {codeError && <span style={{ fontSize: 11, color: '#EF4444' }}>El comprobante es obligatorio</span>}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label style={{ fontSize: 12, color: '#555', fontWeight: 500 }}>
+              Captura del comprobante <span style={{ color: '#EF4444' }}>*</span>
+            </label>
+            <label className="flex items-center gap-2 h-9 px-3 rounded-xl border border-dashed cursor-pointer hover:bg-[#F8FDFB] transition-colors"
+              style={{ borderColor: 'rgba(0,0,0,0.12)', fontSize: 12 }}>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={e => onFileChange(e.target.files?.[0] ?? null)}
+              />
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1v8M4 4l3-3 3 3M2 11h10" stroke="#8EBFA3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span style={{ color: file ? '#308C58' : '#B0C8BA', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {file ? file.name : 'Subir archivo…'}
+              </span>
+            </label>
+          </div>
+        </>
       )}
     </div>
   )

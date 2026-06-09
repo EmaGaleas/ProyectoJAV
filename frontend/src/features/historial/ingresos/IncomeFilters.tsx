@@ -1,4 +1,4 @@
-import type { PaymentType, IncomeStatus } from './data/mockdata'
+import type { PaymentType, IncomeStatus } from './types'
 
 export interface Filters {
   paymentType: PaymentType | ''

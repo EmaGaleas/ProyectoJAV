@@ -18,17 +18,6 @@ export interface EgresoRecord {
   rechazadoPor?: string        // se llena al rechazar
 }
 
-// ─── Payloads para PATCH /api/Egresos/:id/aprobar|rechazar ───────────────────
-
-export interface AprobarEgresoPayload {
-  Status:      'Aprobado'
-  AprobadoPor: string
-}
-
-export interface RechazarEgresoPayload {
-  Status:       'Rechazado'
-  RechazadoPor: string
-}
 
 // ─── Metadatos de cada tab ────────────────────────────────────────────────────
 
