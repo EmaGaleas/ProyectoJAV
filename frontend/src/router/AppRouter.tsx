@@ -6,10 +6,10 @@ import LoginPage from "../features/auth/Login";
 import { SidebarLayout } from "../layouts/SidebarLayout/SidebarLayout";
 import { PaymentRegistration } from "../features/ingresos/components/PaymentRegistration";
 import RegistrarEgresos from "../features/egresos/RegistrarEgreso";
-import {IncomeHistory} from "../features/historial/ingresos/IncomeHistory";
+import { IncomeHistory } from "../features/historial/ingresos/IncomeHistory";
 import HistorialEgresos from "../features/historial/egresos/HistorialEgresos";
-import Create_user_form from "../features/create_user_form";
 import { ConfiguracionCobros } from "../features/configuracion/ConfiguracionCobros";
+import GestionarUsuarios from "../features/gestionUsuarios/GestionarUsuarios";
 export const AppRouter = () => (
   <BrowserRouter>
     <Routes>
@@ -25,17 +25,39 @@ export const AppRouter = () => (
           <Route path={ROUTES.AYUDA} element={<></>} />
 
           {/* ── Tesorero + SuperAdministrador ── */}
-          <Route element={<RoleRoute allowedRoles={["Tesorero", "SuperAdministrador"]} />}>
-            <Route path={ROUTES.INGRESOS_REGISTRAR} element={<PaymentRegistration />} />
-            <Route path={ROUTES.INGRESOS_HISTORIAL} element={<IncomeHistory />} />
-            <Route path={ROUTES.EGRESOS_REGISTRAR}  element={<RegistrarEgresos />} />
-            <Route path={ROUTES.EGRESOS_HISTORIAL} element={<HistorialEgresos />} />
+          <Route
+            element={
+              <RoleRoute allowedRoles={["Tesorero", "SuperAdministrador"]} />
+            }
+          >
+            <Route
+              path={ROUTES.INGRESOS_REGISTRAR}
+              element={<PaymentRegistration />}
+            />
+            <Route
+              path={ROUTES.INGRESOS_HISTORIAL}
+              element={<IncomeHistory />}
+            />
+            <Route
+              path={ROUTES.EGRESOS_REGISTRAR}
+              element={<RegistrarEgresos />}
+            />
+            <Route
+              path={ROUTES.EGRESOS_HISTORIAL}
+              element={<HistorialEgresos />}
+            />
             <Route path={ROUTES.CAJA} element={<></>} />
             <Route path={ROUTES.CLIENTES_LISTADO} element={<></>} />
             <Route path={ROUTES.CLIENTES_MULTAS} element={<></>} />
             <Route path={ROUTES.REPORTES_FINANCIERO} element={<></>} />
-            <Route path={ROUTES.REPORTES_INGRESOS} element={<PaymentRegistration/>} />
-            <Route path={ROUTES.REPORTES_EGRESOS} element={<RegistrarEgresos/>} />
+            <Route
+              path={ROUTES.REPORTES_INGRESOS}
+              element={<PaymentRegistration />}
+            />
+            <Route
+              path={ROUTES.REPORTES_EGRESOS}
+              element={<RegistrarEgresos />}
+            />
           </Route>
 
           {/*Fiscal */}
@@ -52,8 +74,14 @@ export const AppRouter = () => (
               />
             }
           >
-            <Route path={ROUTES.INGRESOS_HISTORIAL} element={<IncomeHistory />} />
-            <Route path={ROUTES.EGRESOS_HISTORIAL} element={<HistorialEgresos />} />
+            <Route
+              path={ROUTES.INGRESOS_HISTORIAL}
+              element={<IncomeHistory />}
+            />
+            <Route
+              path={ROUTES.EGRESOS_HISTORIAL}
+              element={<HistorialEgresos />}
+            />
             <Route path={ROUTES.REPORTES_FINANCIERO} element={<></>} />
             <Route path={ROUTES.REPORTES_INGRESOS} element={<></>} />
             <Route path={ROUTES.REPORTES_EGRESOS} element={<></>} />
@@ -67,13 +95,16 @@ export const AppRouter = () => (
               />
             }
           >
-            <Route path={ROUTES.USUARIOS} element={<Create_user_form />} />
+            <Route path={ROUTES.USUARIOS} element={<GestionarUsuarios />} />
             <Route path={ROUTES.CLIENTES_LISTADO} element={<></>} />
           </Route>
 
           {/* ── Solo SuperAdministrador ── */}
           <Route element={<RoleRoute allowedRoles={["SuperAdministrador"]} />}>
-            <Route path={ROUTES.AJUSTES_TARIFA_ING} element={<ConfiguracionCobros />} />
+            <Route
+              path={ROUTES.AJUSTES_TARIFA_ING}
+              element={<ConfiguracionCobros />}
+            />
             <Route path={ROUTES.AJUSTES_TARIFA_EGR} element={<></>} />
             <Route path={ROUTES.SUPERVISION_EGRESOS} element={<></>} />
             <Route path={ROUTES.SUPERVISION_CIERRES} element={<></>} />
