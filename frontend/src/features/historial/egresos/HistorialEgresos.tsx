@@ -7,12 +7,12 @@ import { EgresoDetailModal }   from './EgresoDetailModal'
 import { useIsTablet }         from './useBreakpoint'
 import { TAB_META }            from './types'
 import type { UserRole }       from './types'
+import { useAuthStore } from '../../auth/store/authStore'
 
-interface Props {
-  userRole?: UserRole
-}
+export default function HistorialEgresos() {
+  const { user } = useAuthStore()
+  const userRole = (user?.rol ?? 'Tesorero') as UserRole
 
-export default function HistorialEgresos({ userRole = 'Tesorero' }: Props) {
   const isTablet = useIsTablet()
   const [filtersOpen, setFiltersOpen] = useState(false)
 

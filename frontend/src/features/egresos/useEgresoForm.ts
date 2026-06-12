@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { apiFetch } from '../../services/apiClient'          // ajusta la ruta según tu proyecto
-import { useAuthStore } from '../auth/store/authStore'       // ajusta la ruta según tu proyecto
-import type { EgresoFormData, EgresoPayload } from './types'
+import { toast } from 'react-toastify'
+import { apiFetch } from '../../services/apiClient'
+import { useAuthStore } from '../auth/store/authStore'
+import type { EgresoFormData } from './types'
 import { MAX_FILE_SIZE_BYTES } from './types'
-
-// ─── Estado inicial ───────────────────────────────────────────────────────────
 
 const EMPTY_FORM: EgresoFormData = {
   cliente:     '',
@@ -13,21 +12,15 @@ const EMPTY_FORM: EgresoFormData = {
   factura:     null,
 }
 
-const todayISO = () => new Date().toISOString()
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
 export function useEgresoForm() {
   const { token, user } = useAuthStore()
-  // Ajusta "user?.name" al campo que use tu authStore para el nombre del usuario
-  const registradoPor: string = user?.nombre ?? 'Usuario desconocido'
+
+  const registradoPor: number = parseInt(user?.id ?? '0', 10)
+  const nombreUsuario: string = user?.nombre ?? 'Usuario desconocido'
 
   const [formData,  setFormData]  = useState<EgresoFormData>(EMPTY_FORM)
   const [isLoading, setIsLoading] = useState(false)
-  const [error,     setError]     = useState<string | null>(null)
-  const [success,   setSuccess]   = useState(false)
 
-  // Todos los campos obligatorios están completos
   const isFormComplete =
     formData.cliente.trim()     !== '' &&
     formData.descripcion.trim() !== '' &&
@@ -45,47 +38,35 @@ export function useEgresoForm() {
     if (!file) return
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setError('El archivo excede el tamaño máximo permitido de 5 MB.')
+      toast.error('El archivo excede el tamaño máximo permitido de 5 MB.')
       e.target.value = ''
       return
     }
 
-    setError(null)
     setFormData(prev => ({ ...prev, factura: file }))
   }
-
-  const buildPayload = (): EgresoPayload => ({
-    Cliente:       formData.cliente.trim(),
-    Descripcion:   formData.descripcion.trim(),
-    Monto:         parseFloat(formData.monto),
-    Fecha:         todayISO(),
-    RegistradoPor: registradoPor,
-    FacturaUrl:    formData.factura?.name ?? '',
-  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!isFormComplete) return
 
     setIsLoading(true)
-    setError(null)
-    setSuccess(false)
 
     try {
-      const payload = buildPayload()
+      const body = new FormData()
+      body.append('RegistradoPor', String(registradoPor))
+      body.append('Titulo',        formData.cliente.trim())
+      body.append('Descripcion',   formData.descripcion.trim())
+      body.append('Monto',         formData.monto)
+      body.append('Evidencia',     formData.factura!)
 
-      // POST /api/Egresos — el backend recibe EgresoPayload (ver types.ts)
-      await apiFetch(
-        '/api/Egresos',
-        { method: 'POST', body: JSON.stringify(payload) },
-        token ?? undefined,
-      )
+      await apiFetch('/api/Egresos', { method: 'POST', body }, token ?? undefined)
 
-      setSuccess(true)
+      toast.success('Egreso registrado exitosamente.')
       setFormData(EMPTY_FORM)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ocurrió un error al registrar el egreso.'
-      setError(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
@@ -93,11 +74,9 @@ export function useEgresoForm() {
 
   return {
     formData,
-    registradoPor,
+    registradoPor: nombreUsuario,
     isLoading,
     isFormComplete,
-    error,
-    success,
     handleFieldChange,
     handleFileChange,
     handleSubmit,

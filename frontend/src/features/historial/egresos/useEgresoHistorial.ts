@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'react-toastify'
 import { apiFetch } from '../../../services/apiClient'
 import { useAuthStore } from '../../auth/store/authStore'
 import type { EgresoRecord, EgresoStatus, AprobarEgresoPayload, RechazarEgresoPayload } from './types'
@@ -57,7 +58,10 @@ export function useEgresoHistorial() {
     const payload: AprobarEgresoPayload = { Status: 'Aprobado', AprobadoPor: userName }
     try {
       await apiFetch(`/api/Egresos/${id}/aprobar`, { method: 'PATCH', body: JSON.stringify(payload) }, token ?? undefined)
-    } catch { /* update locally anyway */ }
+      toast.success('Egreso aprobado exitosamente.')
+    } catch {
+      toast.error('No se pudo aprobar el egreso. Intenta de nuevo más tarde.')
+    }
 
     setRecords(prev =>
       prev.map(r => r.id === id ? { ...r, status: 'Aprobado', aprobadoPor: userName } : r)
@@ -69,7 +73,10 @@ export function useEgresoHistorial() {
     const payload: RechazarEgresoPayload = { Status: 'Rechazado', RechazadoPor: userName }
     try {
       await apiFetch(`/api/Egresos/${id}/rechazar`, { method: 'PATCH', body: JSON.stringify(payload) }, token ?? undefined)
-    } catch { /* update locally anyway */ }
+      toast.success('Egreso rechazado.')
+    } catch {
+      toast.error('No se pudo rechazar el egreso. Intenta de nuevo más tarde.')
+    }
 
     setRecords(prev =>
       prev.map(r => r.id === id ? { ...r, status: 'Rechazado', rechazadoPor: userName } : r)
