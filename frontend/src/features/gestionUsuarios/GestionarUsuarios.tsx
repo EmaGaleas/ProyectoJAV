@@ -5,6 +5,7 @@ import { UserFilters, DEFAULT_FILTERS } from "./UserFilters";
 import type { Filters } from "./UserFilters";
 import { useIsTablet } from "../historial/ingresos/useBreakpoint";
 import CreateUserForm from "../create_user_form";
+import { useAuthStore } from "../auth/store/authStore";
 
 const CARDS_PER_PAGE = 4;
 
@@ -16,7 +17,9 @@ export default function GestionarUsuarios() {
   const [activeFilters, setActiveFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  
+  const {user} = useAuthStore();
+  const isSuperAdmin = user?.rol === "SuperAdministrador";
+  console.log(user);
 
   const filtered = useMemo(
     () =>
@@ -219,11 +222,11 @@ export default function GestionarUsuarios() {
         />
       )}
       {
-        /*Validar que sea superAdmin*/
+       
         showCreateUser && (
           <CreateUserForm
             onClose={() => setShowCreateUser(false)}
-            isSuperAdmin={true}
+            isSuperAdmin={isSuperAdmin}
           />
         )
       }
