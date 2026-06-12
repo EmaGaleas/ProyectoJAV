@@ -8,8 +8,7 @@ export default function RegistrarEgreso() {
     registradoPor,
     isLoading,
     isFormComplete,
-    error,
-    success,
+
     handleFieldChange,
     handleFileChange,
     handleSubmit,
@@ -35,17 +34,7 @@ export default function RegistrarEgreso() {
         <div className="flex flex-col gap-4 w-full lg:w-[300px] shrink-0">
           <FacturaUpload file={formData.factura} onChange={handleFileChange} />
 
-          {/* Error */}
-          {error && (
-            <p className="text-red-500 text-sm text-center font-medium">{error}</p>
-          )}
-
-          {/* Éxito */}
-          {success && (
-            <p className="text-[#308C58] text-sm text-center font-medium">
-              ✓ Egreso registrado exitosamente
-            </p>
-          )}
+          
 
           {/* Botón — bloqueado hasta que todos los campos estén llenos */}
           <button
