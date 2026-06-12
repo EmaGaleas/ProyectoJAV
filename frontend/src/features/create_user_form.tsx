@@ -25,7 +25,7 @@ export default function CreateUserForm({
     handleSubmit,
   } = useCreateUserForm(isSuperAdmin, onClose);
 
-  const showAddress = !isSuperAdmin || formData.rol === "0";
+  const showAddress = !isSuperAdmin;
 
   return (
     <>
@@ -80,7 +80,9 @@ export default function CreateUserForm({
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-600 text-sm font-['Arimo',sans-serif]">{error}</p>
+                <p className="text-red-600 text-sm font-['Arimo',sans-serif]">
+                  {error}
+                </p>
               </div>
             )}
 
