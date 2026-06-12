@@ -65,14 +65,15 @@ export default function CreateUserForm({
               onCelularChange={handleCelularChange}
             />
 
-            {showAddress && (
-              <SeccionDireccion
-                formData={formData}
-                onChange={handleInputChange}
-                onTipoViviendaChange={resetVivienda}
-                onCasaHabilitadaChange={(v) => setField("casaHabilitada", v)}
-              />
-            )}
+            {showAddress ||
+              (formData.rol === "0" && (
+                <SeccionDireccion
+                  formData={formData}
+                  onChange={handleInputChange}
+                  onTipoViviendaChange={resetVivienda}
+                  onCasaHabilitadaChange={(v) => setField("casaHabilitada", v)}
+                />
+              ))}
 
             {isSuperAdmin && (
               <SeccionRol formData={formData} onChange={handleInputChange} />
