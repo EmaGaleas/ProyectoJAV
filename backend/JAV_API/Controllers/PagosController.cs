@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using JAV_API.Application.DTOs.Requests;
 using JAV_API.Application.DTOs.Responses;
 using JAV_API.Application.Services;
@@ -81,5 +83,29 @@ public class PagosController : ControllerBase
         {
             return BadRequest(new { mensaje = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Devuelve el historial de pagos del usuario autenticado.
+    /// Solo retorna los pagos en los que ese usuario es el titular (mensualidad, multa o conexión).
+    /// Soporta filtro opcional por rango de fechas mediante los query params <c>desde</c> y <c>hasta</c>.
+    /// </summary>
+    /// <response code="200">Lista de pagos del usuario autenticado.</response>
+    /// <response code="401">El token JWT no está presente o es inválido.</response>
+    [HttpGet("historial")]
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<HistorialPagoUsuarioResponse>>> ObtenerMiHistorial(
+        [FromQuery] DateTime? desde,
+        [FromQuery] DateTime? hasta)
+    {
+        // El claim "sub" del JWT contiene el IdUsuario (ver AuthService.GenerarToken)
+        var subClaim = User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)
+                    ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!int.TryParse(subClaim, out var idUsuario))
+            return Unauthorized(new { mensaje = "Token inválido: no se pudo identificar al usuario." });
+
+        var historial = await _pagoService.ObtenerHistorialPorUsuarioAsync(idUsuario, desde, hasta);
+        return Ok(historial);
     }
 }

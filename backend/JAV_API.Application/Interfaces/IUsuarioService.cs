@@ -19,5 +19,7 @@ public interface IUsuarioService
     /// Registra un nuevo usuario en el sistema. Valida que no existan duplicados de correo, DNI o teléfono,
     /// aplica el hash a la contraseña y persiste la Persona y el Usuario de forma atómica.
     /// </summary>
-    Task<UsuarioResponse> CrearUsuarioAsync(RegistroUsuarioRequest request);
+    /// <param name="request">Datos del nuevo usuario.</param>
+    /// <param name="rolSolicitante">Rol del usuario autenticado que hace la solicitud (extraído del JWT).</param>
+    Task<UsuarioResponse> CrearUsuarioAsync(RegistroUsuarioRequest request, string rolSolicitante);
 }

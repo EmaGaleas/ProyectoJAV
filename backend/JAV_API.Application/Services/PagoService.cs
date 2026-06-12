@@ -109,6 +109,20 @@ public class PagoService
         return result;
     }
 
+    /// <summary>
+    /// Devuelve el historial de pagos del usuario autenticado (identificado por su IdUsuario),
+    /// con filtro opcional por rango de fechas.
+    /// Solo devuelve pagos donde ese usuario sea el titular (mensualidad/multa/conexión).
+    /// </summary>
+    public async Task<IEnumerable<HistorialPagoUsuarioResponse>> ObtenerHistorialPorUsuarioAsync(
+        int idUsuario,
+        DateTime? desde,
+        DateTime? hasta)
+    {
+        var pagos = await _pagoRepository.ObtenerHistorialPorUsuarioAsync(idUsuario, desde, hasta);
+        return pagos.Select(MapToHistorialUsuarioResponse);
+    }
+
     public async Task<DetallePagoResponse> ObtenerDetallePagoModalAsync(int idPago)
     {
         var pago = await _pagoRepository.ObtenerPagoPorIdConDetallesAsync(idPago)
@@ -226,6 +240,44 @@ public class PagoService
             Dni         = usuario?.Persona?.Dni ?? "N/A",
             Fecha       = p.FechaPago,
             Monto       = p.Monto,
+            Estado      = estado,
+        };
+    }
+
+    private static HistorialPagoUsuarioResponse MapToHistorialUsuarioResponse(Pago p)
+    {
+        string tipoPago = string.Empty;
+        string estado   = string.Empty;
+
+        if (p.PagoMensualidades?.Count > 0)
+        {
+            tipoPago = "Mensualidad";
+            estado   = p.PagoMensualidades.First().Mensualidad?.Estado.ToString() ?? "Pagado";
+        }
+        else if (p.PagoMultas?.Count > 0)
+        {
+            tipoPago = "Multa";
+            estado   = p.PagoMultas.First().Multa?.Estado.ToString() ?? "Pagado";
+        }
+        else if (p.PagoConexiones?.Count > 0)
+        {
+            tipoPago = "Conexión";
+            estado   = p.PagoConexiones.First().Conexion?.Estado.ToString() ?? "Pagado";
+        }
+
+        var responsable = p.Registrador?.Persona != null
+            ? $"{p.Registrador.Persona.PrimerNombre} {p.Registrador.Persona.PrimerApellido}"
+            : "N/A";
+
+        return new HistorialPagoUsuarioResponse
+        {
+            Id          = p.IdPago,
+            Codigo      = p.Comprobante?.Codigo.ToString() ?? $"PGO-{p.IdPago}",
+            Fecha       = p.FechaPago,
+            Monto       = p.Monto,
+            TipoPago    = tipoPago,
+            MetodoPago  = p.MetodoPago.ToString(),
+            Responsable = responsable,
             Estado      = estado,
         };
     }

@@ -81,4 +81,52 @@ public class PagoRepository : IPagoRepository
             .Include(p => p.PagoConexiones!).ThenInclude(pc => pc.Conexion!).ThenInclude(c => c.Domicilio)
             .FirstOrDefaultAsync(p => p.IdPago == idPago);
     }
+
+    public async Task<IEnumerable<Pago>> ObtenerHistorialPorUsuarioAsync(
+        int idUsuario,
+        DateTime? desde,
+        DateTime? hasta)
+    {
+        // Npgsql requiere DateTimeKind.Utc para columnas 'timestamp with time zone'.
+        // Los query params llegan como Kind=Unspecified, así que los normalizamos.
+        var desdeUtc = desde.HasValue
+            ? DateTime.SpecifyKind(desde.Value, DateTimeKind.Utc)
+            : (DateTime?)null;
+
+        var hastaUtc = hasta.HasValue
+            ? DateTime.SpecifyKind(hasta.Value, DateTimeKind.Utc)
+            : (DateTime?)null;
+
+        var query = _context.Pagos
+            .Include(p => p.Comprobante)
+            .Include(p => p.Registrador).ThenInclude(r => r!.Persona)
+            // Mensualidades del usuario
+            .Include(p => p.PagoMensualidades)
+                .ThenInclude(pm => pm.Mensualidad)
+                    .ThenInclude(m => m.Usuario)
+            // Multas del usuario
+            .Include(p => p.PagoMultas)
+                .ThenInclude(pm => pm.Multa)
+                    .ThenInclude(m => m.Usuario)
+            // Conexiones del usuario
+            .Include(p => p.PagoConexiones)
+                .ThenInclude(pc => pc.Conexion)
+                    .ThenInclude(c => c.Usuario)
+            // Solo pagos donde el titular sea el usuario autenticado
+            .Where(p =>
+                p.PagoMensualidades.Any(pm => pm.Mensualidad.IdUsuario == idUsuario) ||
+                p.PagoMultas.Any(pm => pm.Multa.IdUsuario == idUsuario) ||
+                p.PagoConexiones.Any(pc => pc.Conexion.IdUsuario == idUsuario))
+            .AsQueryable();
+
+        if (desdeUtc.HasValue)
+            query = query.Where(p => p.FechaPago >= desdeUtc.Value);
+
+        if (hastaUtc.HasValue)
+            query = query.Where(p => p.FechaPago <= hastaUtc.Value);
+
+        return await query
+            .OrderByDescending(p => p.FechaPago)
+            .ToListAsync();
+    }
 }
