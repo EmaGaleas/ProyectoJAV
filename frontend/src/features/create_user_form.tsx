@@ -25,7 +25,8 @@ export default function CreateUserForm({
     handleSubmit,
   } = useCreateUserForm(isSuperAdmin, onClose);
 
-  const showAddress = !isSuperAdmin;
+const isDueñoDeCasa = formData.rol === "0";
+const showAddress = isDueñoDeCasa; 
 
   return (
     <>
@@ -65,6 +66,10 @@ export default function CreateUserForm({
               onCelularChange={handleCelularChange}
             />
 
+            {isSuperAdmin && (
+              <SeccionRol formData={formData} onChange={handleInputChange} isSuperAdmin={isSuperAdmin} />
+            )}
+
             {showAddress && (
               <SeccionDireccion
                 formData={formData}
@@ -72,10 +77,6 @@ export default function CreateUserForm({
                 onTipoViviendaChange={resetVivienda}
                 onCasaHabilitadaChange={(v) => setField("casaHabilitada", v)}
               />
-            )}
-
-            {isSuperAdmin && (
-              <SeccionRol formData={formData} onChange={handleInputChange} />
             )}
 
             {error && (
