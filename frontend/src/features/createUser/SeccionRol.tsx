@@ -12,19 +12,12 @@ const ROLES = [
   { value: "6", label: "Fiscal" },
 ];
 
-// Agrega isSuperAdmin al interface Props:
 interface Props {
   formData: CreateUserFormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
-  isSuperAdmin?: boolean;
 }
 
-// Y filtra los roles:
-export function SeccionRol({ formData, onChange, isSuperAdmin = false }: Props) {
-  const rolesDisponibles = isSuperAdmin
-    ? ROLES
-    : ROLES.filter((r) => r.value === "0");
-
+export function SeccionRol({ formData, onChange }: Props) {
   return (
     <div>
       <h3 className={SECTION_TITLE_CLS}>Tipo de Usuario</h3>
@@ -40,7 +33,7 @@ export function SeccionRol({ formData, onChange, isSuperAdmin = false }: Props) 
             required
             className={SELECT_CLS}
           >
-            {rolesDisponibles.map((r) => (
+            {ROLES.map((r) => (
               <option key={r.value} value={r.value}>
                 {r.label}
               </option>
@@ -51,11 +44,9 @@ export function SeccionRol({ formData, onChange, isSuperAdmin = false }: Props) 
             className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none text-[#514f4f]"
           />
         </div>
-        {isSuperAdmin && (
-          <p className="text-[#6b7280] text-[13px] font-['Arimo',sans-serif]">
-            Como Presidente puedes crear cualquier rol
-          </p>
-        )}
+        <p className="text-[#6b7280] text-[13px] font-['Arimo',sans-serif]">
+          Como SuperAdministrador puedes asignar cualquier rol
+        </p>
       </div>
     </div>
   );

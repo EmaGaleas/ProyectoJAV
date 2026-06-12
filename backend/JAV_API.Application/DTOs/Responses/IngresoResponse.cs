@@ -6,8 +6,6 @@ namespace JAV_API.Application.DTOs.Responses;
 /// </summary>
 public class IngresoResponse
 {
-    public int Id { get; set; }
-
     public string Codigo      { get; set; } = string.Empty;
     public string TipoIngreso { get; set; } = string.Empty;
     public string Titular     { get; set; } = string.Empty;

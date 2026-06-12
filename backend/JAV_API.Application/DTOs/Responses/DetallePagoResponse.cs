@@ -14,6 +14,4 @@ public class DetallePagoResponse
     public string TipoPago { get; set; } = string.Empty;
     public string Estado { get; set; } = string.Empty;
     public decimal MontoTotal { get; set; }
-
-    public List<LineaPagoResponse> Lineas { get; set; } = new();
 }
