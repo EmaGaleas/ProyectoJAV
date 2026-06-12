@@ -51,7 +51,7 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
     const celularDigits = formData.celular.replace(/\D/g, "");
     if (celularDigits.length !== 11) return "El celular debe tener 8 dígitos después de +504";
 
-    const needsAddress = !isSuperAdmin || formData.rol === "0";
+    const needsAddress =  formData.rol === "0";
     if (needsAddress) {
       if (!formData.calle) return "La calle es obligatoria";
       if (!formData.bloque) return "El bloque es obligatorio";
@@ -74,6 +74,7 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Token al enviar:", token);
     setIsLoading(true);
     setError(null);
 
@@ -85,8 +86,11 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
     }
 
     try {
+      const isDueñoDeCasa = formData.rol === "0";
+
       const tieneApts =
-        formData.tipoVivienda === "Apartamentos" || formData.tipoVivienda === "Ambos";
+        isDueñoDeCasa &&
+        (formData.tipoVivienda === "Apartamentos" || formData.tipoVivienda === "Ambos");
 
       const payload = {
         PrimerNombre: formData.primerNombre.trim(),
@@ -99,15 +103,17 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
         Password: formData.contrasena,
         Rol: parseInt(formData.rol),
         IdTipoUsuario: 1,
-        Calle: formData.calle,
-        Bloque: formData.bloque,
-        NumeroLote: parseInt(formData.numerolote) || 0,
-        TipoVivienda: formData.tipoVivienda,
-        CasaHabilitada:
-          formData.tipoVivienda !== "Apartamentos" ? formData.casaHabilitada : null,
+        Calle: isDueñoDeCasa ? formData.calle : null,
+        Bloque: isDueñoDeCasa ? formData.bloque : null,
+        NumeroLote: isDueñoDeCasa ? (parseInt(formData.numerolote) || 0) : 0,
+        TipoVivienda: isDueñoDeCasa ? formData.tipoVivienda : null,
+        CasaHabilitada: isDueñoDeCasa && formData.tipoVivienda !== "Apartamentos"
+          ? formData.casaHabilitada
+          : null,
         CantidadApartamentos: tieneApts ? parseInt(formData.cantidadApartamentos) : 0,
         ApartamentosHabitados: tieneApts ? parseInt(formData.apartamentosHabitados) : 0,
       };
+     
 
       await apiFetch("/api/usuarios", { method: "POST", body: JSON.stringify(payload) }, token || undefined);
       alert("Usuario creado exitosamente");
