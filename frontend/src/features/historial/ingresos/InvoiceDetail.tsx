@@ -1,14 +1,39 @@
 import type { Income, InvoiceLine } from './data/mockdata'
 import { L, fmtDate } from './data/mockdata'
+import { useAuthStore } from '../../auth/store/authStore';
+import { useState } from 'react';
 
 interface Props {
   income: Income
   onBack: () => void
 }
+const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  'Procesado':   { bg: '#EBF5EF', color: '#308C58' },
+  'En revisión': { bg: '#FEF9EC', color: '#B45309' },
+  'Rechazado':   { bg: '#FEF2F2', color: '#DC2626' },
+}
 
 export function InvoiceDetail({ income, onBack }: Props) {
   const mensualidades = income.lines.filter(l => l.type === 'mensualidad')
   const multas        = income.lines.filter(l => l.type === 'multa')
+  const {user} = useAuthStore();
+  const isSuperAdmin = user?.rol === "SuperAdministrador";
+  const [status, setStatus] = useState(income.status);
+  
+
+  console.log(income)
+
+
+    const handleAccept = () => {
+      console.log("Aceptar")
+      setStatus("Procesado");
+      income.status = "Procesado";
+    }
+    const handleReject = () => {
+      console.log("Rechazar")
+      setStatus("Rechazado");
+      income.status = "Rechazado";
+    }
 
   return (
     <div className="flex flex-col gap-5">
@@ -22,6 +47,8 @@ export function InvoiceDetail({ income, onBack }: Props) {
             {income.receiptNumber}
           </span>
         </div>
+        <div className='flex gap-2'>
+        <StatusBadge status={status} />
         <button
           onClick={onBack}
           className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[rgba(0,0,0,0.1)] hover:bg-[#F8FDFB] transition-colors"
@@ -29,6 +56,8 @@ export function InvoiceDetail({ income, onBack }: Props) {
         >
           ← Volver al detalle
         </button>
+        </div>
+        
       </div>
 
       {/* Titular y método */}
@@ -55,6 +84,12 @@ export function InvoiceDetail({ income, onBack }: Props) {
         <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>Total pagado</span>
         <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>{L(income.total)}</span>
       </div>
+      {isSuperAdmin && status === "En revisión" &&(
+        <div className="flex items-center justify-between px-4 py-3 " >
+          <button className='bg-green-700 text-white p-2 rounded-xl w-2/5' onClick={handleAccept}>Aceptar</button>
+          <button className='bg-red-700 text-white p-2 rounded-xl w-2/5' onClick={handleReject}>Rechazar</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -111,5 +146,15 @@ function InvoiceSection({ title, lines }: { title: string; lines: InvoiceLine[] 
         ))}
       </div>
     </div>
+  )
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const s = STATUS_STYLE[status] ?? STATUS_STYLE['En revisión']
+  return (
+    <span className="rounded-full whitespace-nowrap flex items-center"
+      style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', background: s.bg, color: s.color }}>
+      {status}
+    </span>
   )
 }
