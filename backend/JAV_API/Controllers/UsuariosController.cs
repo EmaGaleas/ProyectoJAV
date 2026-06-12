@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using JAV_API.Application.DTOs.Requests;
 using JAV_API.Application.Interfaces;
 
@@ -55,20 +56,37 @@ public class UsuariosController : ControllerBase
     /// <summary>
     /// Registra un nuevo usuario en el sistema.
     /// Solo los roles con permisos administrativos pueden crear usuarios.
+    /// <list type="bullet">
+    ///   <item><b>SuperAdministrador</b> (Presidente): puede crear cualquier rol.</item>
+    ///   <item><b>Administrador</b> (Vocal, Secretario, Vicepresidente): solo puede crear DuenoDeCasa.</item>
+    /// </list>
     /// </summary>
     /// <response code="201">Usuario creado exitosamente.</response>
     /// <response code="400">Los datos de entrada son inválidos o ya existen duplicados.</response>
+    /// <response code="401">El token JWT no está presente o es inválido.</response>
+    /// <response code="403">El rol del solicitante no tiene permiso para crear un usuario con ese rol.</response>
     [HttpPost]
     [Authorize(Roles = "Presidente,Vicepresidente,Secretario,Vocal,Tesorero,Fiscal")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Crear([FromBody] RegistroUsuarioRequest request)
     {
+        // Extraer el rol del claim del JWT
+        var rolSolicitante = User.FindFirstValue(ClaimTypes.Role);
+        if (string.IsNullOrEmpty(rolSolicitante))
+            return Unauthorized(new { mensaje = "No se pudo determinar el rol del solicitante desde el token." });
+
         try
         {
-            var usuario = await _usuarioService.CrearUsuarioAsync(request);
+            var usuario = await _usuarioService.CrearUsuarioAsync(request, rolSolicitante);
             // Retorna 201 Created con la URL del recurso recién creado y los datos del usuario
             return CreatedAtAction(nameof(ObtenerPorId), new { id = usuario.IdUsuario }, usuario);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = ex.Message });
         }
         catch (InvalidOperationException ex)
         {

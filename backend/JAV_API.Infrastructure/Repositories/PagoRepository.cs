@@ -51,24 +51,82 @@ public class PagoRepository : IPagoRepository
     public async Task<IEnumerable<Pago>> ObtenerHistorialPagosAsync()
     {
         return await _context.Pagos
-            .Include(p => p.PagoMensualidades).ThenInclude(pm => pm.Mensualidad)
-            .Include(p => p.PagoMultas).ThenInclude(pm => pm.Multa)
-            .Include(p => p.PagoConexiones).ThenInclude(pc => pc.Conexion)
+            .Include(p => p.Comprobante)
+            .Include(p => p.PagoMensualidades)
+                .ThenInclude(pm => pm.Mensualidad)
+                    .ThenInclude(m => m.Usuario)
+                        .ThenInclude(u => u.Persona)
+            .Include(p => p.PagoMultas)
+                .ThenInclude(pm => pm.Multa)
+                    .ThenInclude(m => m.Usuario)
+                        .ThenInclude(u => u.Persona)
+            .Include(p => p.PagoConexiones)
+                .ThenInclude(pc => pc.Conexion)
+                    .ThenInclude(c => c.Usuario)
+                        .ThenInclude(u => u.Persona)
             .OrderByDescending(p => p.FechaPago)
             .ToListAsync();
     }
 
     public Task<Pago?> ObtenerPagoPorIdConDetallesAsync(int idPago)
     {
-        // Traemos el pago con todas sus posibles relaciones navegacionales para determinar el tipo y titular
         return _context.Pagos
             .Include(p => p.Comprobante)
             .Include(p => p.PagoMensualidades!).ThenInclude(pm => pm.Mensualidad!).ThenInclude(m => m.Usuario!).ThenInclude(u => u.Persona)
             .Include(p => p.PagoMensualidades!).ThenInclude(pm => pm.Mensualidad!).ThenInclude(m => m.Usuario!).ThenInclude(u => u.DomicilioUsuarios!).ThenInclude(du => du.Domicilio)
             .Include(p => p.PagoMultas!).ThenInclude(pm => pm.Multa!).ThenInclude(m => m.Usuario!).ThenInclude(u => u.Persona)
             .Include(p => p.PagoMultas!).ThenInclude(pm => pm.Multa!).ThenInclude(m => m.Usuario!).ThenInclude(u => u.DomicilioUsuarios!).ThenInclude(du => du.Domicilio)
+            .Include(p => p.PagoMultas!).ThenInclude(pm => pm.Multa!).ThenInclude(m => m.TipoMulta!)
             .Include(p => p.PagoConexiones!).ThenInclude(pc => pc.Conexion!).ThenInclude(c => c.Usuario!).ThenInclude(u => u.Persona)
             .Include(p => p.PagoConexiones!).ThenInclude(pc => pc.Conexion!).ThenInclude(c => c.Domicilio)
             .FirstOrDefaultAsync(p => p.IdPago == idPago);
+    }
+
+    public async Task<IEnumerable<Pago>> ObtenerHistorialPorUsuarioAsync(
+        int idUsuario,
+        DateTime? desde,
+        DateTime? hasta)
+    {
+        // Npgsql requiere DateTimeKind.Utc para columnas 'timestamp with time zone'.
+        // Los query params llegan como Kind=Unspecified, así que los normalizamos.
+        var desdeUtc = desde.HasValue
+            ? DateTime.SpecifyKind(desde.Value, DateTimeKind.Utc)
+            : (DateTime?)null;
+
+        var hastaUtc = hasta.HasValue
+            ? DateTime.SpecifyKind(hasta.Value, DateTimeKind.Utc)
+            : (DateTime?)null;
+
+        var query = _context.Pagos
+            .Include(p => p.Comprobante)
+            .Include(p => p.Registrador).ThenInclude(r => r!.Persona)
+            // Mensualidades del usuario
+            .Include(p => p.PagoMensualidades)
+                .ThenInclude(pm => pm.Mensualidad)
+                    .ThenInclude(m => m.Usuario)
+            // Multas del usuario
+            .Include(p => p.PagoMultas)
+                .ThenInclude(pm => pm.Multa)
+                    .ThenInclude(m => m.Usuario)
+            // Conexiones del usuario
+            .Include(p => p.PagoConexiones)
+                .ThenInclude(pc => pc.Conexion)
+                    .ThenInclude(c => c.Usuario)
+            // Solo pagos donde el titular sea el usuario autenticado
+            .Where(p =>
+                p.PagoMensualidades.Any(pm => pm.Mensualidad.IdUsuario == idUsuario) ||
+                p.PagoMultas.Any(pm => pm.Multa.IdUsuario == idUsuario) ||
+                p.PagoConexiones.Any(pc => pc.Conexion.IdUsuario == idUsuario))
+            .AsQueryable();
+
+        if (desdeUtc.HasValue)
+            query = query.Where(p => p.FechaPago >= desdeUtc.Value);
+
+        if (hastaUtc.HasValue)
+            query = query.Where(p => p.FechaPago <= hastaUtc.Value);
+
+        return await query
+            .OrderByDescending(p => p.FechaPago)
+            .ToListAsync();
     }
 }
