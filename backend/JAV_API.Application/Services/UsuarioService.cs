@@ -37,8 +37,10 @@ public class UsuarioService : IUsuarioService
     }
 
     /// <inheritdoc/>
-    public async Task<UsuarioResponse> CrearUsuarioAsync(RegistroUsuarioRequest request)
+    public async Task<UsuarioResponse> CrearUsuarioAsync(RegistroUsuarioRequest request, string rolSolicitante)
     {
+        ValidarPermisoCreacion(rolSolicitante, request.Rol);
+
         await ValidarDuplicadosAsync(request);
         await ValidarReglasNegocioAsync(request);
 
@@ -69,9 +71,40 @@ public class UsuarioService : IUsuarioService
     // ─────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Valida que no existan duplicados de correo, DNI o teléfono antes de continuar.
-    /// Si se encuentra un duplicado, lanza una excepción con un mensaje claro.
+    /// Valida que el solicitante tenga permiso para crear un usuario con el rol solicitado.
+    /// <list type="bullet">
+    ///   <item><b>SuperAdministrador</b> (Presidente): puede crear cualquier rol.</item>
+    ///   <item><b>Administrador</b> (Vocal, Secretario, Vicepresidente): solo puede crear DuenoDeCasa.</item>
+    ///   <item><b>Cualquier otro rol</b>: acceso denegado (el controlador ya filtra con [Authorize(Roles=...)],
+    ///     pero esta validación agrega una segunda capa de seguridad en la capa de servicio).</item>
+    /// </list>
     /// </summary>
+    /// <exception cref="UnauthorizedAccessException">El solicitante no tiene permiso para crear ese rol.</exception>
+    private static void ValidarPermisoCreacion(string rolSolicitante, Rol? rolNuevoUsuario)
+    {
+        // SuperAdministrador (Presidente) puede crear cualquier rol sin restricción
+        if (rolSolicitante == nameof(Rol.Presidente))
+            return;
+
+        // Administrador (Vocal, Secretario, Vicepresidente) solo puede crear DuenoDeCasa
+        bool esAdministrador = rolSolicitante is
+            nameof(Rol.Vocal) or nameof(Rol.Secretario) or nameof(Rol.Vicepresidente);
+
+        if (esAdministrador)
+        {
+            if (rolNuevoUsuario == Rol.DuenoDeCasa || rolNuevoUsuario is null)
+                return;
+
+            throw new UnauthorizedAccessException(
+                $"El rol '{rolSolicitante}' solo puede crear usuarios con rol '{nameof(Rol.DuenoDeCasa)}'. " +
+                $"Para crear un usuario con rol '{rolNuevoUsuario}' se requiere ser Presidente.");
+        }
+
+        // Cualquier otro rol autenticado (Fiscal, Tesorero, etc.) no tiene permiso de creación
+        throw new UnauthorizedAccessException(
+            $"El rol '{rolSolicitante}' no tiene permisos para crear usuarios.");
+    }
+
     private async Task ValidarDuplicadosAsync(RegistroUsuarioRequest request)
     {
         if (await _usuarioRepository.ExisteCorreoAsync(request.Correo))
