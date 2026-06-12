@@ -1,5 +1,6 @@
 import type { Income, InvoiceLine } from './data/mockdata'
 import { L, fmtDate } from './data/mockdata'
+import { useAuthStore } from '../../auth/store/authStore';
 
 interface Props {
   income: Income
@@ -9,6 +10,23 @@ interface Props {
 export function InvoiceDetail({ income, onBack }: Props) {
   const mensualidades = income.lines.filter(l => l.type === 'mensualidad')
   const multas        = income.lines.filter(l => l.type === 'multa')
+  const {user} = useAuthStore();
+  const isSuperAdmin = user?.rol === "SuperAdministrador";
+  const pending = income.status === "En revisión";
+
+  console.log(income)
+
+
+    const handleAccept = () => {
+      console.log("Aceptar")
+      income.status = "Procesado";
+      onBack();
+    }
+    const handleReject = () => {
+      console.log("Rechazar")
+      income.status = "Rechazado";
+      onBack();
+    }
 
   return (
     <div className="flex flex-col gap-5">
@@ -55,6 +73,12 @@ export function InvoiceDetail({ income, onBack }: Props) {
         <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>Total pagado</span>
         <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>{L(income.total)}</span>
       </div>
+      {isSuperAdmin && pending &&(
+        <div className="flex items-center justify-between px-4 py-3 " >
+          <button className='bg-green-700 text-white p-2 rounded-xl w-2/5' onClick={handleAccept}>Aceptar</button>
+          <button className='bg-red-700 text-white p-2 rounded-xl w-2/5' onClick={handleReject}>Rechazar</button>
+        </div>
+      )}
     </div>
   )
 }
