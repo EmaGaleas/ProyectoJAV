@@ -24,7 +24,7 @@ export function IncomeFilters({ filters, onChange, onApply }: Props) {
 
       {/* Tipo de pago */}
       <FilterGroup label="Tipo de pago">
-        {(['Multa', 'Mensualidad'] as PaymentType[]).map(type => (
+        {(['Multa', 'Mensualidad', 'Conexión'] as PaymentType[]).map(type => (
           <CheckRow key={type} label={type} checked={filters.paymentType === type}
             onChange={() => set('paymentType', filters.paymentType === type ? '' : type)} />
         ))}

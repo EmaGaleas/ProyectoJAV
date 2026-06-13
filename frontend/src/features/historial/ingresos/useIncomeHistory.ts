@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { toast } from 'react-toastify'
 import { apiFetch } from '../../../services/apiClient'
 import { useAuthStore } from '../../auth/store/authStore'
-import type { Income, IncomeFilters, IncomeStatus } from './types'
+import type { Income, IncomeFilters } from './types'
 
 export const DEFAULT_FILTERS: IncomeFilters = {
   paymentType: '',
@@ -11,7 +11,6 @@ export const DEFAULT_FILTERS: IncomeFilters = {
   dateTo:      '',
 }
 
-// ─── Mapper: IngresoResponse del back → Income del front ─────────────────────
 // Ajusta los campos cuando tengas el DTO exacto del back
 function mapIncome(raw: any): Income {
   return {

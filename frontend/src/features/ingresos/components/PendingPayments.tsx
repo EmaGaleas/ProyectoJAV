@@ -1,18 +1,20 @@
 import { CalendarDays } from 'lucide-react'
-import { PAYMENTS, L, fmtDate } from '../data/mock-data'
-import type { Client, Payment } from '../data/mock-data'
+import { L, fmtDate } from './types'
+import type { Client, Payment } from './types'
 import { SectionLabel } from './shared'
 
 interface Props {
-  client: Client | null
+  client:      Client | null
+  payments:    Payment[]       
   selectedIds: string[]
-  onToggle: (id: string) => void
+  onToggle:    (id: string) => void
+  isLoading:   boolean
 }
 
-export function PendingPayments({ client, selectedIds, onToggle }: Props) {
-  const payments = client ? PAYMENTS.filter(p => p.clientId === client.id) : []
-  const mensual  = payments.filter(p => p.type === 'mensualidad')
-  const multas   = payments.filter(p => p.type === 'multa')
+export function PendingPayments({ client, payments, selectedIds, onToggle, isLoading }: Props) {
+  const mensual = payments.filter(p => p.type === 'mensualidad')
+  const multas  = payments.filter(p => p.type === 'multa')
+  const conexiones = payments.filter(p => p.type === 'conexion')
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-[rgba(0,0,0,0.07)]">
@@ -30,11 +32,15 @@ export function PendingPayments({ client, selectedIds, onToggle }: Props) {
             <span style={{ fontSize: 13, color: '#B0C8BA' }}>Selecciona un cliente para continuar</span>
           </div>
         )}
-        {client && payments.length === 0 && (
+        {client && isLoading && (
+          <p style={{ fontSize: 13, color: '#B0C8BA', textAlign: 'center', padding: '24px 0' }}>Cargando deudas...</p>
+        )}
+        {client && !isLoading && payments.length === 0 && (
           <p style={{ fontSize: 13, color: '#B0C8BA', textAlign: 'center', padding: '24px 0' }}>Sin cuentas pendientes</p>
         )}
-        {mensual.length > 0 && <PaymentGroup title="Mensualidades pendientes" items={mensual} selectedIds={selectedIds} onToggle={onToggle} />}
-        {multas.length  > 0 && <PaymentGroup title="Multas"                   items={multas}  selectedIds={selectedIds} onToggle={onToggle} />}
+        {mensual.length   > 0 && <PaymentGroup title="Mensualidades pendientes" items={mensual}    selectedIds={selectedIds} onToggle={onToggle} />}
+        {multas.length    > 0 && <PaymentGroup title="Multas"                   items={multas}     selectedIds={selectedIds} onToggle={onToggle} />}
+        {conexiones.length > 0 && <PaymentGroup title="Conexiones"              items={conexiones} selectedIds={selectedIds} onToggle={onToggle} />}
       </div>
     </div>
   )
@@ -57,17 +63,10 @@ function PaymentRow({ p, selected, onToggle }: { p: Payment; selected: boolean; 
     <div onClick={onToggle}
       className="flex items-start gap-3 py-3 px-2 -mx-2 cursor-pointer hover:bg-[#F8FDFB] rounded-lg transition-colors"
       style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-
-      {/* Checkbox nativo estilizado */}
       <div className="mt-0.5 shrink-0" onClick={e => e.stopPropagation()}>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggle}
-          className="w-4 h-4 rounded cursor-pointer accent-[#308C58]"
-        />
+        <input type="checkbox" checked={selected} onChange={onToggle}
+          className="w-4 h-4 rounded cursor-pointer accent-[#308C58]" />
       </div>
-
       <div className="flex-1 min-w-0">
         <span style={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A', display: 'block' }}>{p.concept}</span>
         <span style={{ fontSize: 12, color: '#8EBFA3' }}>Vence: {fmtDate(p.dueDate)}</span>
@@ -78,7 +77,6 @@ function PaymentRow({ p, selected, onToggle }: { p: Payment; selected: boolean; 
           </span>
         )}
       </div>
-
       <div className="flex flex-col items-end shrink-0">
         <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>{L(p.amount)}</span>
         {p.mora > 0 && <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 500 }}>+{L(p.mora)} mora</span>}

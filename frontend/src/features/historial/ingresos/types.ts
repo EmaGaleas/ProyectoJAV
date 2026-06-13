@@ -10,7 +10,7 @@ export interface InvoiceLine {
   dueDate:    string
   baseAmount: number
   mora:       number
-  type:       'mensualidad' | 'multa'
+  type:       'mensualidad' | 'multa' | 'conexion'
 }
 
 
