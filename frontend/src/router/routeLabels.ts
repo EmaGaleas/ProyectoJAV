@@ -27,7 +27,6 @@ export const ROUTE_LABELS: Record<string, string> = {
   [ROUTES.VALIDACIONES_HISTORIAL]:    'Historial de cierres',
 
   [ROUTES.SUPERVISION]:               'Supervisión',
-  [ROUTES.SUPERVISION_EGRESOS]:       'Egresos',
   [ROUTES.SUPERVISION_CIERRES]:       'Cierres de caja',
 
   [ROUTES.AJUSTES]:                   'Ajustes',

@@ -193,13 +193,12 @@ export const SIDEBAR_CONFIG: SidebarConfig = {
           label: 'Ajustes financieros', path: ROUTES.AJUSTES, icon: null,
           children: [
             { label: 'Tarifa de ingresos', path: ROUTES.AJUSTES_TARIFA_ING, icon: null },
-            { label: 'Tarifa de egresos',  path: ROUTES.AJUSTES_TARIFA_EGR, icon: null },
+            { label: 'Tipos de egresos',  path: ROUTES.AJUSTES_TARIFA_EGR, icon: null },
           ],
         },
         {
           label: 'Supervisión', path: ROUTES.SUPERVISION, icon: null,
           children: [
-            { label: 'Egresos',         path: ROUTES.SUPERVISION_EGRESOS, icon: null },
             { label: 'Cierres de caja', path: ROUTES.SUPERVISION_CIERRES, icon: null },
           ],
         },

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { SIDEBAR_CONFIG } from './sidebarItems';
+import { resolveIcon } from './sidebarIcons'; 
 
 interface SidebarFooterProps {
   rol: keyof typeof SIDEBAR_CONFIG;
@@ -17,11 +18,13 @@ export const SidebarFooter = ({ rol, onLogout }: SidebarFooterProps) => {
       className="flex flex-col w-full"
       style={{ gap: '8px', fontFamily: "'Inter', sans-serif" }}
     >
-    <div className="w-full h-px bg-[#8EBFA3] opacity-35 rounded-full mb-2" />
+      <div className="w-full h-px bg-[#8EBFA3] opacity-35 rounded-full mb-2" />
 
       {footerSection.items.map((item) => {
 
         if (item.label === 'Cerrar Sesión') {
+          const Icon = resolveIcon(item.label, rol);  // ← resuelve
+
           return (
             <button
               key="logout"
@@ -30,11 +33,18 @@ export const SidebarFooter = ({ rol, onLogout }: SidebarFooterProps) => {
                          text-sm font-semibold text-red-500
                          hover:bg-red-50 transition-all duration-200"
             >
-              <div className="w-5 h-5 rounded-md bg-red-400 opacity-80 flex-shrink-0" />
+              <Icon
+                width={20}
+                height={20}
+                className="flex-shrink-0"
+                style={{ color: '#f87171', opacity: 0.8 }}
+              />
               <span className="flex-1 text-left">{item.label}</span>
             </button>
           );
         }
+
+        const Icon = resolveIcon(item.label, rol);  // ← resuelve
 
         return (
           <NavLink
@@ -50,8 +60,17 @@ export const SidebarFooter = ({ rol, onLogout }: SidebarFooterProps) => {
               ].join(' ')
             }
           >
-            <div className="w-5 h-5 rounded-md bg-[#8EBFA3] opacity-60 flex-shrink-0" />
-            <span className="flex-1 text-left">{item.label}</span>
+            {({ isActive }) => (
+              <>
+                <Icon
+                  width={20}
+                  height={20}
+                  className="flex-shrink-0"
+                  style={{ color: isActive ? '#308C58' : '#8EBFA3', opacity: isActive ? 1 : 0.6 }}
+                />
+                <span className="flex-1 text-left">{item.label}</span>
+              </>
+            )}
           </NavLink>
         );
       })}

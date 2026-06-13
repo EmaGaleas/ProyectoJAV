@@ -35,13 +35,12 @@ export const ROUTES = {
 
   // Supervisión (SuperAdministrador)
   SUPERVISION:            '/supervision',
-  SUPERVISION_EGRESOS:    '/supervision/egresos',
   SUPERVISION_CIERRES:    '/supervision/cierres-caja',
 
   // Ajustes financieros (SuperAdministrador)
   AJUSTES:                '/ajustes',
   AJUSTES_TARIFA_ING:     '/ajustes/tarifa-ingresos',
-  AJUSTES_TARIFA_EGR:     '/ajustes/tarifa-egresos',
+  AJUSTES_TARIFA_EGR:     '/ajustes/tipos-de-egresos',
 
   // Otros
   USUARIOS:               '/usuarios',
