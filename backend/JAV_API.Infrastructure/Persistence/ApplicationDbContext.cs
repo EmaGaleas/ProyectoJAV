@@ -279,10 +279,19 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.MetodoPago).HasColumnName("metodo_Pago").HasConversion<string>().IsRequired();
             entity.Property(e => e.Monto).HasColumnName("monto").HasPrecision(18, 2).IsRequired();
             entity.Property(e => e.FechaPago).HasColumnName("fecha_Pago").IsRequired();
+            entity.Property(e => e.Estado).HasColumnName("estado").HasConversion<string>()
+                  .HasDefaultValue(JAV_API.Domain.Enums.EstadoAprobacion.EnRevision);
+            entity.Property(e => e.AprobadoPor).HasColumnName("aprobado_Por");
 
             entity.HasOne(p => p.Registrador)
                   .WithMany(u => u.PagosRegistrados)
                   .HasForeignKey(p => p.RegistradoPor)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Aprobador)
+                  .WithMany(u => u.PagosAprobados)
+                  .HasForeignKey(p => p.AprobadoPor)
+                  .IsRequired(false)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 

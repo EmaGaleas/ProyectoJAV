@@ -12,6 +12,11 @@ public class Pago
     public decimal Monto { get; set; }
     public DateTime FechaPago { get; set; }
 
+    // Estado de aprobación del ingreso
+    public EstadoAprobacion Estado { get; set; } = EstadoAprobacion.EnRevision;
+    public int? AprobadoPor { get; set; }
+    public Usuario? Aprobador { get; set; }
+
     // Relaciones
     public Comprobante? Comprobante { get; set; }
     public ICollection<PagoMensualidad> PagoMensualidades { get; set; } = new List<PagoMensualidad>();

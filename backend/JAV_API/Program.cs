@@ -318,6 +318,86 @@ if (app.Environment.IsDevelopment())
             context.Set<Conexion>().Add(conexionVencida);
             context.SaveChanges();
         }
+
+        // ── Semilla: Egresos de prueba ────────────────────────
+        if (!context.Egresos.Any())
+        {
+            var admin = context.Usuarios.First(u => u.Rol == Rol.Presidente);
+
+            var egresos = new List<Egreso>
+            {
+                // Pendientes (en revisión)
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Compra de herramientas",
+                    Descripcion   = "Compra de palas, picos y guantes para mantenimiento de zonas verdes.",
+                    Monto         = 1500.00m,
+                    Fecha         = new DateTime(2026, 6, 1, 10, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.EnRevision,
+                },
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Reparación bomba de agua",
+                    Descripcion   = "Servicio técnico para reparación de la bomba principal del pozo comunitario.",
+                    Monto         = 3200.00m,
+                    Fecha         = new DateTime(2026, 6, 5, 14, 30, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.EnRevision,
+                },
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Papelería y útiles de oficina",
+                    Descripcion   = "Compra de resmas de papel, bolígrafos, sellos y archivadores para la tesorería.",
+                    Monto         = 420.50m,
+                    Fecha         = new DateTime(2026, 6, 8, 9, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.EnRevision,
+                },
+
+                // Aprobados
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Pintura de entrada principal",
+                    Descripcion   = "Contratación de pintor para renovación de la fachada y portón de entrada.",
+                    Monto         = 2800.00m,
+                    Fecha         = new DateTime(2026, 5, 12, 8, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.Aprobado,
+                    AprobadoPor   = admin.IdUsuario,
+                },
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Mantenimiento de jardines",
+                    Descripcion   = "Poda de árboles y corte de césped en todas las áreas comunes. Servicio mensual.",
+                    Monto         = 950.00m,
+                    Fecha         = new DateTime(2026, 5, 20, 11, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.Aprobado,
+                    AprobadoPor   = admin.IdUsuario,
+                },
+
+                // Rechazado
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Compra de sillas de patio",
+                    Descripcion   = "Adquisición de 20 sillas plásticas para el área de reuniones exteriores. Factura no presentada.",
+                    Monto         = 1800.00m,
+                    Fecha         = new DateTime(2026, 5, 28, 16, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.Rechazado,
+                },
+            };
+
+            context.Egresos.AddRange(egresos);
+            context.SaveChanges();
+        }
     }
     catch (Exception ex)
     {
