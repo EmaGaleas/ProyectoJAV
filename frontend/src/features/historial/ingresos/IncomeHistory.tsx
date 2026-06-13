@@ -1,33 +1,44 @@
-import { useIncomeHistory }  from './useIncomeHistory'
+import { useMemo, useState } from 'react'
+import { useIncomeHistorial } from './useIncomeHistorial'
+import { useAuthStore } from '../../auth/store/authStore'
 import { IncomeTable }       from './IncomeTable'
-import { IncomeFilters }     from './IncomeFilters'
+import { IncomeFilters, DEFAULT_FILTERS } from './IncomeFilters'
+import type { Filters } from './IncomeFilters'
 import { IncomeDetailModal } from './IncomeDetailModal'
 import { useIsTablet }       from './useBreakpoint'
 
 export function IncomeHistory() {
   const isTablet = useIsTablet()
+  const { user } = useAuthStore()
+  const userRole = user?.rol ?? 'Tesorero'
 
   const {
-    filtered,
-    isLoading,
-    search,
-    setSearch,
-    filters,
-    setFilters,
+    records,
+    loading,
     selected,
     setSelected,
-    filtersOpen,
-    setFiltersOpen,
-    handleApply,
     handleApprove,
     handleReject,
-  } = useIncomeHistory()
+  } = useIncomeHistorial()
 
-  if (isLoading) return (
-    <div className="flex items-center justify-center w-full py-20">
-      <span className="text-sm text-[#8EBFA3]">Cargando historial...</span>
-    </div>
-  )
+  const [search,        setSearch]        = useState('')
+  const [filters,       setFilters]       = useState<Filters>(DEFAULT_FILTERS)
+  const [activeFilters, setActiveFilters] = useState<Filters>(DEFAULT_FILTERS)
+  const [filtersOpen,   setFiltersOpen]   = useState(false)
+
+  const filtered = useMemo(() =>
+    records.filter(inc => {
+      const q = search.toLowerCase()
+      const matchSearch = !search || inc.holderName.toLowerCase().includes(q) || inc.dni.toLowerCase().includes(q)
+      const matchType   = !activeFilters.paymentType || inc.paymentType === activeFilters.paymentType
+      const matchStatus = !activeFilters.status      || inc.status      === activeFilters.status
+      const matchFrom   = !activeFilters.dateFrom || inc.date >= activeFilters.dateFrom
+      const matchTo     = !activeFilters.dateTo   || inc.date <= activeFilters.dateTo
+      return matchSearch && matchType && matchStatus && matchFrom && matchTo
+    }),
+  [records, search, activeFilters])
+
+  const handleApply = () => { setActiveFilters(filters); setFiltersOpen(false) }
 
   return (
     <div className="flex gap-5 items-stretch">
@@ -39,6 +50,7 @@ export function IncomeHistory() {
         isTablet={isTablet}
         onToggleFilters={() => setFiltersOpen(p => !p)}
         filtersOpen={filtersOpen}
+        loading={loading}
       />
 
       {isTablet ? (
@@ -59,6 +71,7 @@ export function IncomeHistory() {
       {selected && (
         <IncomeDetailModal
           income={selected}
+          userRole={userRole}
           onClose={() => setSelected(null)}
           onApprove={handleApprove}
           onReject={handleReject}
