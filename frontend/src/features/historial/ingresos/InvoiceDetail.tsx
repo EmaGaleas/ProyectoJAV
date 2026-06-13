@@ -18,7 +18,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 
 export function InvoiceDetail({ income, onBack, onApprove, onReject }: Props) {
   const { user } = useAuthStore()
-  const canAct = ['SuperAdministrador', 'Administrador'].includes(user?.rol ?? '')
+  const canAct = user?.rol === 'SuperAdministrador'
   const [isLoading, setIsLoading] = useState(false)
 
   const mensualidades = income.lines.filter(l => l.type === 'mensualidad')

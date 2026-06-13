@@ -27,7 +27,7 @@ export function EgresoDetailModal({ record, userRole, onClose, onApprove, onReje
   const [pendingAction, setPendingAction] = useState<Action>(null)
   const [isLoading,     setIsLoading]     = useState(false)
 
-  const canAct = ['SuperAdministrador', 'Administrador'].includes(userRole) && record.status === 'Pendiente'
+  const canAct = userRole === 'SuperAdministrador' && record.status === 'Pendiente'
 
   const handleConfirm = async () => {
     if (!pendingAction) return

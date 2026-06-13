@@ -19,7 +19,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
   const [pendingAction, setPendingAction] = useState<Action>(null)
   const [isLoading,     setIsLoading]     = useState(false)
 
-  const canAct = ['SuperAdministrador', 'Administrador'].includes(userRole) && income.status === 'En revisión'
+  const canAct = userRole === 'SuperAdministrador' && income.status === 'En revisión'
 
   const handleConfirm = async () => {
     if (!pendingAction) return
