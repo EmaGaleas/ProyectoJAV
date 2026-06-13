@@ -4,123 +4,260 @@ Sistema web para la gestión financiera y administrativa de una organización de
 
 ## Módulos principales
 
-- Gestión de mensualidades, multas y recargos por cliente
-- Pagos en línea y consulta de historial
-- Registro de ingresos y egresos con evidencia documental
-- Aprobación de egresos por presidente y validación de cierres por fiscal
-- Generación de comprobantes únicos de pago
-- Reportes financieros y auditoría de registros
-- Notificaciones automáticas de cobro (correo)
-- Control de usuarios y permisos por rol
+- **Gestión de mensualidades** — Generación automática de cobros mensuales por cliente, con cálculo de recargos y multas según días de pago.
+- **Control de ingresos y egresos** — Registro de movimientos financieros con carga de evidencia documental adjunta.
+- **Flujo de aprobación** — Los egresos requieren aprobación del Presidente; los cierres de caja, validación del Fiscal.
+- **Reportes financieros** — Generación de estados de cuenta, balances y reportes de auditoría exportables.
+- **Notificaciones automáticas** — Envío de alertas de cobro y recordatorios de pago por correo electrónico.
+- **Control de usuarios y roles** — Gestión de acceso con permisos diferenciados por rol de sistema.
 
-## Stack tecnológico
+## Roles del Sistema
+ 
 
-| Área               | Tecnología                  |
-| ------------------ | --------------------------- |
-| Frontend           | React + TypeScript + Vite   |
-| Gestor de paquetes | pnpm v11                  |
-| Backend            | ASP.NET Core Web API (C#)   |
-| Base de datos      | PostgreSQL                  |
-| Auth               | JWT + ASP.NET Identity      |
-| Contenedores       | Docker + Docker Compose     |
-| CI/CD              | GitHub Actions              |
-| Documentación API  | Swagger                     |
-| Gestión de tareas  | Trello                      |
-| Diseño UI          | Figma                       |
+| Rol | Responsabilidad | Accesos principales | Capacidades futuras |
+|-----|-----------------|---------------------|---------------------|
+| **Presidente** | Supervisar operaciones generales de la Junta | Reportes financieros, aprobación de egresos, administración de usuarios | Asignar montos/tipos de egresos y fechas de cobro |
+| **Tesorero** | Gestión financiera diaria | Registrar ingresos, egresos con evidencia y pagos de residentes | Asignar multas a residentes |
+| **Secretario** | Gestión de cobranza y contacto con residentes | Reportes de mora, generación de hojas de cobro | Notificaciones automáticas por correo |
+| **Fiscal** | Supervisión y control de caja | - | Revisión de movimientos (solo lectura), validación y cierre contable mensual |
+| **Dueño de Casa** | Beneficiario del servicio de agua potable | *(Previsto para fase posterior al MVP)* | Consulta de estado de cuenta e historial de pagos |
+| **Administrador** | Gestión técnica de la plataforma | Gestión de usuarios tipo Dueño de Casa | Acceso a reportes del sistema |
+> **Nota:** El rol Dueño de Casa está definido en el modelo de datos desde el MVP para incorporarse en la siguiente fase sin cambios de arquitectura.
+---
 
-## Requisitos previos
+## Stack Tecnológico y Decisiones de Diseño
+ 
+| Capa | Tecnología | Versión | 
+|------|------------|---------|
+| Lenguaje Backend | **C#** | .NET 8 | 
+| Lenguaje Frontend | **TypeScript** | 5.x |
+| Backend Framework | **ASP.NET Core Web API** | 9.x |
+| Frontend Framework | **React + Vite** | 
+| Estilos | **Tailwind CSS** | 3.x | 
+| Base de datos | **PostgreSQL** | 16 |
+| ORM | **Entity Framework Core** | 9.0.0 |
+| Autenticación | **JWT + ASP.NET Identity** | — | 
+| Contenedores | **Docker + Docker Compose** | Docker 25+ |
+| Gestor de paquetes | **pnpm** | v11 | 
+| Pruebas Backend | **xUnit** | — | 
+| Pruebas Frontend | **Vitest** | — | 
+| CI | **GitHub Actions** | — | 
+| Seguridad de deps | **Dependabot** | — |
+| Documentación API | **Swagger / OpenAPI** | — |
+ 
 
-| Herramienta   | Versión mínima | Para qué se usa                        |
-|---------------|----------------|----------------------------------------|
-| Docker Desktop | Última estable | Levantar todos los servicios           |
-| Node.js       | 22             | Necesario para instalar pnpm           |
-| pnpm          | 11             | Gestor de paquetes del frontend        |
-| .NET SDK      | 8              | Desarrollo del backend sin Docker      |
+## Arquitectura del Sistema
+ 
+El backend sigue los principios de **Clean Architecture** con separación estricta de capas y orientación al dominio (DDD). Las dependencias fluyen siempre hacia adentro: las capas externas dependen de las internas, nunca al revés.
+```
+ProyectoJAV/
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml              # Pipeline CI: build, lint y pruebas en cada PR
+│   │   └── dependabot.yml      # Actualización automática de dependencias
+│   └── PULL_REQUEST_TEMPLATE.md
+│
+├── backend/
+│   |── JAV.API/             # Controllers, middlewares y punto de entrada
+│   │   ├── Controllers/           
+│   │   ├── obj/               
+│   │   └── Properties/ 
+│   ├── JAV.Application/        # Casos de uso y DTOs
+│   │   ├── DTos/           
+│   │   ├── Interfaces/  
+│   │   ├── Services/               
+│   │   └── obj/ 
+│   ├── JAV.Domain/             # Entidades y lógica de negocio pura
+│   │   ├── Entities/           
+│   │   ├── Enums/               
+│   │   └── obj/ 
+│   └── JAV.Infrastructure/     # Persistencia, identidad y servicios externos
+│   │   ├── Migrations/           
+│   │   ├── obj/           
+│   │   ├── Persistence/  
+│   │   ├── Repositories/               
+│   │   └── Services/ 
+│   ├── .dockerignore
+│   ├── Dockerfile
+│   └── JAV_API.sln
+│
+├── frontend/
+│   ├── .vscode/
+│   ├── dist/
+│   ├── node_modules/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/   
+│   │   ├── features/           # Módulos por dominio (pagos, clientes, etc.)
+│   │   ├── layouts/           
+│   │   ├── lib/           
+│   │   ├── pages/           
+│   │   ├── router/             # Rutas con guards por rol
+│   │   ├── services/           
+│   │   ├── types/               
+│   │   └── utils/ 
+│   ├── .dockerignore
+│   ├── .gitignore
+│   ├── Dockerfile
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── pnpm-lock.yaml
+│   ├── tscongif.app.json
+│   ├── tscongif.json
+│   ├── tscongif.node.json
+│   └── vite.config.ts
+│
+├── docker-compose.yml          # Orquestación de servicios
+├── .env.example                # Plantilla de variables de entorno
+├── .gitignore
+└── README.md 
+```
+---
 
-> **Nota:** Con Docker no necesita instalar Node, pnpm ni .NET en su máquina para correr el proyecto. Solo son necesarios si desea desarrollar sin Docker.
+## Requisitos Previos
+ 
+### Con Docker (recomendado)
+ 
+Solo necesitas **Docker Desktop** instalado. No es necesario tener Node.js, pnpm ni .NET en tu máquina.
+ 
+| Herramienta | Versión mínima | Instalación |
+|-------------|----------------|-------------|
+| Docker Desktop | 25.0+ | [docs.docker.com/get-docker](https://docs.docker.com/get-docker/) |
+ 
+### Sin Docker (desarrollo local)
+ 
+| Herramienta | Versión mínima | Instalación |
+|-------------|----------------|-------------|
+| Node.js | 22 LTS | [nodejs.org](https://nodejs.org/) — Requerido para instalar pnpm |
+| pnpm | 11 | `npm install -g pnpm@11` |
+| .NET SDK | 8.0 | [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/8.0) |
+| PostgreSQL | 16 | [postgresql.org/download](https://www.postgresql.org/download/) |
+ 
+> **Nota:** La herramienta `dotnet-ef` se instala por separado si necesitas ejecutar migraciones manualmente:
+> ```bash
+> dotnet tool install --global dotnet-ef
+> ```
+ 
+---
+## ¿Cómo ejecutar el proyecto?
 
-## Instalación y ejecución local
 ### 1. Clonar el repositorio
  
 ```bash
-git clone <https://github.com/EmaGaleas/ProyectoJAV >
-cd <nombre-del-proyecto>
+git clone https://github.com/EmaGaleas/ProyectoJAV.git
+cd ProyectoJAV
+```
+### 2. Configurar variables de entorno
+ 
+Copia el archivo de ejemplo y ajusta los valores para tu entorno local:
+ 
+```bash
+cp .env.example .env
 ```
  
-### 2. Configurar variables de entorno
-Usar el `.env` compartido en la documentación y complete los valores. Nunca subir el `.env` al repositorio.
-
-### 3. Instalar dependencias del frontend (solo primera vez)
+Edita `.env` con tus valores (ver sección [Variables de Entorno](#variables-de-entorno) más abajo).
+ 
+>  **Nunca subir el archivo `.env` al repositorio.** Está incluido en `.gitignore` por seguridad.
+ 
+### 3. Instalar dependencias del frontend
  
 ```bash
 cd frontend
 pnpm install
 cd ..
 ```
-## Ejecución del proyecto
-
-### Con Docker(recomendado)
-
+> Solo necesario para desarrollo sin Docker, o si quieres ejecutar tests/lint del frontend.
+---
+ 
+## Ejecución del Proyecto
+ 
+### Con Docker (recomendado)
+ 
 Desde la raíz del proyecto:
  
 ```bash
-# Primera vez o cuando cambia el Dockerfile
+# Primera vez o cuando se modifican los Dockerfiles
 docker compose up --build
- 
-# Las siguientes veces (más rápido)
+# Siguientes ejecuciones (más rápido, sin rebuild)
 docker compose up
-```
- 
+``` 
 Los servicios estarán disponibles en:
  
-| Servicio    | URL                                        |
-|-------------|--------------------------------------------|
-| Frontend    | http://localhost:`80`        |
-| Backend API | http://localhost:`5000`         |
-| Swagger     | http://localhost:`${BACKEND_PORT}`/swagger |
-
-Para detener todos los servicios:
+| Servicio | URL | Descripción |
+|----------|-----|-------------|
+| Frontend | http://localhost:80 | Aplicación React |
+| Backend API | http://localhost:5000 | API RESTful ASP.NET Core |
+| Swagger UI | http://localhost:5000/swagger | Documentación interactiva de la API |
+| PostgreSQL | localhost:5432 | Base de datos (acceso interno entre contenedores) |
  
 ```bash
+# Detener todos los servicios (preserva datos)
 docker compose down
-```
- 
-Para detener y eliminar los datos de la base de datos:
- 
-```bash
+# Detener y eliminar volúmenes (BORRA la base de datos)
 docker compose down -v
 ```
-
+---
 ### Sin Docker
-
-**Frontend**
+ 
+#### Backend
+ 
 ```bash
-#pendiente por definir
+cd backend/JAV.WebAPI
+# Restaurar dependencias NuGet
+dotnet restore
+# Aplicar migraciones de base de datos (requiere PostgreSQL corriendo)
+dotnet ef database update --project ../JAV.Infrastructure
+# Iniciar el servidor de desarrollo
+dotnet run
 ```
-
-**Backend**
+ 
+El backend estará disponible en `http://localhost:5000` y Swagger en `http://localhost:5000/swagger`.
+ 
+#### Frontend
+ 
 ```bash
-#pendiente por definir
-
+cd frontend
+# Instalar dependencias (solo primera vez)
+pnpm install
+# Iniciar servidor de desarrollo con HMR
+pnpm dev
 ```
-## Comandos del frontend (pnpm)
  
-Este proyecto usa **pnpm v11** como gestor de paquetes. No usar `npm install` directamente.
+El frontend estará disponible en `http://localhost:5173`.
  
-| Acción                        | Comando                  |
-|-------------------------------|--------------------------|
-| Instalar dependencias         | `pnpm install`           |
-| Iniciar servidor de desarrollo| `pnpm dev`               |
-| Build de producción           | `pnpm run build`         |
-| Correr tests                  | `pnpm run test`          |
-| Agregar una dependencia       | `pnpm add <paquete>`     |
-| Agregar dependencia de dev    | `pnpm add -D <paquete>`  |
-| Eliminar una dependencia      | `pnpm remove <paquete>`  |
+---
+## Comandos del Frontend (pnpm)
  
-
+> **No uses `npm install`** en este proyecto. El archivo `pnpm-lock.yaml` y la configuración estricta de pnpm pueden generar incompatibilidades si se mezclan gestores de paquetes.
+ 
+| Acción | Comando |
+|--------|---------|
+| Instalar dependencias | `pnpm install` |
+| Iniciar servidor de desarrollo | `pnpm dev` |
+| Build de producción | `pnpm run build` |
+| Vista previa del build | `pnpm run preview` |
+| Ejecutar pruebas unitarias | `pnpm run test` |
+| Ejecutar pruebas en modo watch | `pnpm run test:watch` |
+| Linting del código | `pnpm run lint` |
+| Agregar dependencia de producción | `pnpm add <paquete>` |
+| Agregar dependencia de desarrollo | `pnpm add -D <paquete>` |
+| Eliminar dependencia | `pnpm remove <paquete>` |
+| Auditar vulnerabilidades | `pnpm audit` |
+ 
+---
 ## Variables de entorno
 
-*Nunca subir el archivo `.env` al repositorio.*
+Copia el archivo de ejemplo incluido en el repositorio y edita los valores:
+ 
+```bash
+cp .env.example
+```
+ 
+> **`.env` está en `.gitignore`.** Nunca lo subas al repositorio. El archivo `.env.example` (sin valores sensibles reales) es el único que se versiona.
+
+
 | Variable                    | Descripción                                 |
 |-----------------------------|---------------------------------------------|
 | `DB_PORT`                   | Puerto externo de PostgreSQL                |
@@ -131,20 +268,6 @@ Este proyecto usa **pnpm v11** como gestor de paquetes. No usar `npm install` di
 | `FRONTEND_PORT`             | Puerto externo del frontend                 |
 | `ASPNETCORE_ENVIRONMENT`    | `Development` o `Production`                |
 | `JWT_SECRET`                | Clave secreta para firmar los JWT           |
-
-## Estructura del proyecto
-
-```
-/
-├── .github/
-│   └── workflows/          # GitHub Actions CI/CD
-├── frontend/               # React + Vite
-
-├── backend/                # ASP.NET Core Web API
-├── docker-compose.yml
-├── .gitignore
-└── README.md
-```
 
 ## Flujo de trabajo
 
@@ -177,12 +300,20 @@ fix/calculo-recargos
 hotfix/pago-en-linea-error
 refactor/servicio-pagos
 ```
+---
 
-## Roles del sistema
+## Equipo de Desarrollo
+ 
+Este sistema fue desarrollado como proyecto de vinculuación académica por el siguiente equipo:
+ 
+| Nombre | GitHub |
+|--------|--------|
+| **Ema Galeas** | [@EmaGaleas](https://github.com/EmaGaleas) |
+| **Daniel Flores** | [@MMwile](https://github.com/MMwile) |
+| **Sandro Hérnandez** | [@sandro-70](https://github.com/sandro-70) |
+| **Abrahamn Reyes** | [@AbrahamReyes08](https://github.com/AbrahamReyes08) |
+| **Armando Borjas** | [@AJBorjas03](https://github.com/AJBorjas03) |
 
-por definir
-
-| Rol       | Acceso principal                                              |
-| --------- | ------------------------------------------------------------- |
-
-#
+**Mención especial** al docente Gadi Orellana por guiarnos en el proyecto [GDriem](https://github.com/GDriem)
+ 
+> Proyecto desarrollado dentro de la asignatura de Ingeniería de Software 1 — Universidad de San Pedro Sula, Honduras 2026.
