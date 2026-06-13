@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - run: dotnet restore
+        working-directory: ./backend
+
+      - run: dotnet build --no-restore --configuration Release
+        working-directory: ./backend
+
+      - run: dotnet test --no-build --verbosity normal
+        working-directory: ./backend
