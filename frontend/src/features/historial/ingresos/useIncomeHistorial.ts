@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'react-toastify'
 import { apiFetch } from '../../../services/apiClient'
 import { useAuthStore } from '../../auth/store/authStore'
-import { MOCK_INCOMES } from './data/mockdata'
-import type { Income, IncomeStatus } from './data/mockdata'
+import type { Income, IncomeStatus } from './types'
 
 // ─── Tipos para la respuesta del backend ──────────────────────────────────────
 // GET /api/Pagos devuelve una lista de IngresoResponse del backend
@@ -46,7 +46,7 @@ export function useIncomeHistorial() {
   const { token, user } = useAuthStore()
   const userName = user?.nombre ?? 'Administrador'
 
-  const [records,   setRecords]   = useState<Income[]>(MOCK_INCOMES)
+  const [records,   setRecords]   = useState<Income[]>([])
   const [loading,   setLoading]   = useState(false)
   const [selected,  setSelected]  = useState<Income | null>(null)
 
@@ -59,8 +59,9 @@ export function useIncomeHistorial() {
         if (!cancelled) setRecords(data.map(mapBackendToIncome))
       })
       .catch(() => {
-        // Si el backend no está disponible, mantener los datos mock
-        if (!cancelled) setRecords(MOCK_INCOMES)
+        if (!cancelled) {
+          toast.error('No se pudo cargar el historial de ingresos.')
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
