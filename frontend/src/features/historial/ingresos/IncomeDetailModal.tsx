@@ -87,7 +87,12 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
           {/* Cuerpo con scroll */}
           <div className="overflow-y-auto flex-1 px-6 py-5">
             {showInvoice ? (
-              <InvoiceDetail income={income} onBack={() => setShowInvoice(false)} />
+              <InvoiceDetail
+                income={income}
+                onBack={() => setShowInvoice(false)}
+                onApprove={async () => setPendingAction('aprobar')}
+                onReject={async () => setPendingAction('rechazar')}
+              />
             ) : (
               <IncomeDetail income={income} onViewInvoice={() => setShowInvoice(true)} />
             )}
