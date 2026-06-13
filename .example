@@ -3,9 +3,9 @@
 # NUNCA subas el .env real al repositorio.                  
 
 # Base de datos
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=javdb
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
 
 # Backend
 ASPNETCORE_ENVIRONMENT=Development
@@ -16,6 +16,6 @@ ASPNETCORE_ENVIRONMENT=Development
 
 JWT_SECRET=
 # Puertos 
-BACKEND_PORT=5209
-FRONTEND_PORT=3000
-DB_PORT=5432
+BACKEND_PORT=
+FRONTEND_PORT=
+DB_PORT=
