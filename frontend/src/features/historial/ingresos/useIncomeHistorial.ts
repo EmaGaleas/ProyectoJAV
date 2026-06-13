@@ -78,14 +78,17 @@ export function useIncomeHistorial() {
         { method: 'PATCH', body: JSON.stringify(payload) },
         token ?? undefined,
       )
-    } catch { /* actualizar localmente de todas formas */ }
-
-    setRecords(prev =>
-      prev.map(r =>
-        r.id === id ? { ...r, status: 'Procesado' as IncomeStatus } : r
+      toast.success('Ingreso aprobado .')
+      setRecords(prev =>
+        prev.map(r =>
+          r.id === id ? { ...r, status: 'Procesado' as IncomeStatus } : r
+        )
       )
-    )
-    setSelected(null)
+    } catch {
+      toast.error('No se pudo aprobar el ingreso.')
+    } finally {
+      setSelected(null)
+    }
   }
 
   const handleReject = async (id: string) => {
@@ -97,14 +100,17 @@ export function useIncomeHistorial() {
         { method: 'PATCH', body: JSON.stringify(payload) },
         token ?? undefined,
       )
-    } catch { /* actualizar localmente de todas formas */ }
-
-    setRecords(prev =>
-      prev.map(r =>
-        r.id === id ? { ...r, status: 'Rechazado' as IncomeStatus } : r
+      toast.success('Ingreso rechazado .')
+      setRecords(prev =>
+        prev.map(r =>
+          r.id === id ? { ...r, status: 'Rechazado' as IncomeStatus } : r
+        )
       )
-    )
-    setSelected(null)
+    } catch {
+      toast.error('No se pudo rechazar el ingreso.')
+    } finally {
+      setSelected(null)
+    }
   }
 
   return {
