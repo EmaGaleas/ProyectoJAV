@@ -18,7 +18,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 
 export function InvoiceDetail({ income, onBack, onApprove, onReject }: Props) {
   const { user } = useAuthStore()
-  const isSuperAdmin = user?.rol === 'SuperAdministrador'
+  const canAct = user?.rol === 'SuperAdministrador'
   const [isLoading, setIsLoading] = useState(false)
 
   const mensualidades = income.lines.filter(l => l.type === 'mensualidad')
@@ -78,8 +78,8 @@ export function InvoiceDetail({ income, onBack, onApprove, onReject }: Props) {
         <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>{L(income.total)}</span>
       </div>
 
-      {/* Botones aprobar/rechazar — solo SuperAdministrador y solo si está En revisión */}
-      {isSuperAdmin && income.status === 'En revisión' && (
+      {/* Botones aprobar/rechazar — solo SuperAdministrador/Administrador y solo si está En revisión */}
+      {canAct && income.status === 'En revisión' && (
         <div className="flex items-center justify-between px-4 py-3 gap-3">
           <button
             disabled={isLoading}

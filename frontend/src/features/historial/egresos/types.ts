@@ -1,7 +1,7 @@
 // ─── Tipos base ───────────────────────────────────────────────────────────────
 
 export type EgresoStatus = 'Aprobado' | 'Pendiente' | 'Rechazado'
-export type UserRole = 'SuperAdministrador' | 'Administrador' | 'Tesorero' | 'Fiscal' 
+export type UserRole     = 'SuperAdministrador' | 'Administrador' | 'Tesorero' | 'Fiscal'
 
 export interface EgresoRecord {
   id:            string

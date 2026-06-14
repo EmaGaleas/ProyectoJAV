@@ -208,26 +208,31 @@ public class PagoService
     {
         Usuario? usuario = null;
         string tipoPago = string.Empty;
-        string estado = string.Empty;
 
         if (p.PagoMensualidades?.Count > 0)
         {
             usuario = p.PagoMensualidades.First().Mensualidad?.Usuario;
             tipoPago = "Mensualidad";
-            estado = p.PagoMensualidades.First().Mensualidad?.Estado.ToString() ?? "Pagado";
         }
         else if (p.PagoMultas?.Count > 0)
         {
             usuario = p.PagoMultas.First().Multa?.Usuario;
             tipoPago = "Multa";
-            estado = p.PagoMultas.First().Multa?.Estado.ToString() ?? "Pagado";
         }
         else if (p.PagoConexiones?.Count > 0)
         {
             usuario = p.PagoConexiones.First().Conexion?.Usuario;
             tipoPago = "Conexión";
-            estado = p.PagoConexiones.First().Conexion?.Estado.ToString() ?? "Pagado";
         }
+
+        // Mapear el estado de aprobación del Pago al string que muestra el frontend
+        var estadoDisplay = p.Estado switch
+        {
+            JAV_API.Domain.Enums.EstadoAprobacion.EnRevision => "En revisión",
+            JAV_API.Domain.Enums.EstadoAprobacion.Aprobado   => "Procesado",
+            JAV_API.Domain.Enums.EstadoAprobacion.Rechazado  => "Rechazado",
+            _ => "En revisión"
+        };
 
         return new IngresoResponse
         {
@@ -240,7 +245,7 @@ public class PagoService
             Dni         = usuario?.Persona?.Dni ?? "N/A",
             Fecha       = p.FechaPago,
             Monto       = p.Monto,
-            Estado      = estado,
+            Estado      = estadoDisplay,
         };
     }
 
@@ -281,4 +286,15 @@ public class PagoService
             Estado      = estado,
         };
     }
-}
+
+    public async Task AprobarPagoAsync(int idPago, AprobarPagoRequest request)
+    {
+        // La validación de existencia y estado la maneja el repositorio
+        await _pagoRepository.AprobarAsync(idPago, request.AprobadoPor);
+    }
+
+    public async Task RechazarPagoAsync(int idPago, RechazarPagoRequest request)
+    {
+        await _pagoRepository.RechazarAsync(idPago);
+    }
+}

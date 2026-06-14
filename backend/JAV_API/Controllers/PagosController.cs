@@ -108,4 +108,56 @@ public class PagosController : ControllerBase
         var historial = await _pagoService.ObtenerHistorialPorUsuarioAsync(idUsuario, desde, hasta);
         return Ok(historial);
     }
-}
+
+    /// <summary>Aprueba un ingreso (pago) en estado EnRevision.</summary>
+    /// <response code="200">Ingreso aprobado exitosamente.</response>
+    /// <response code="404">No existe un ingreso con ese ID.</response>
+    /// <response code="409">El ingreso ya fue procesado (aprobado o rechazado).</response>
+    [HttpPatch("{id:int}/aprobar")]
+    public async Task<IActionResult> Aprobar(int id, [FromBody] AprobarPagoRequest request)
+    {
+        try
+        {
+            await _pagoService.AprobarPagoAsync(id, request);
+            return Ok(new { mensaje = "Ingreso aprobado exitosamente." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>Rechaza un ingreso (pago) en estado EnRevision.</summary>
+    /// <response code="200">Ingreso rechazado exitosamente.</response>
+    /// <response code="404">No existe un ingreso con ese ID.</response>
+    /// <response code="409">El ingreso ya fue procesado (aprobado o rechazado).</response>
+    [HttpPatch("{id:int}/rechazar")]
+    public async Task<IActionResult> Rechazar(int id, [FromBody] RechazarPagoRequest request)
+    {
+        try
+        {
+            await _pagoService.RechazarPagoAsync(id, request);
+            return Ok(new { mensaje = "Ingreso rechazado exitosamente." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+}
