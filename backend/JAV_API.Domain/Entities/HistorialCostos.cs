@@ -8,4 +8,6 @@ public class HistorialCostos
     public decimal Monto { get; set; }
     public DateTime? FechaEmision { get; set; }
     public DateTime? FechaAnulacion { get; set; }
+    public int EditadoPor { get; set; }
+    public Usuario UsuarioEditor { get; set; } = null!;
 }
