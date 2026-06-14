@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { MOCK_USERS } from "./data/mockdata";
+import { useState, useMemo, useEffect } from "react";
 import UserCard from "./userCard";
 import { UserFilters, DEFAULT_FILTERS } from "./UserFilters";
 import type { Filters } from "./UserFilters";
@@ -9,40 +8,61 @@ import { useAuthStore } from "../auth/store/authStore";
 
 const CARDS_PER_PAGE = 4;
 
+interface User {
+  idUsuario: number;
+  primerNombre: string;
+  segundoNombre: string;
+  primerApellido: string;
+  segundoApellido: string;
+  dni: string;
+  rol: string;
+  estado: boolean;
+}
+
 export default function GestionarUsuarios() {
   const isTablet = useIsTablet();
-
+  const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [activeFilters, setActiveFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const {user} = useAuthStore();
+  const { user, token } = useAuthStore();
   const isSuperAdmin = user?.rol === "SuperAdministrador";
   console.log(user);
+  console.log(token);
 
   const filtered = useMemo(
     () =>
-      MOCK_USERS.filter((user) => {
+      users.filter((user) => {
+        const nombre = [
+          user.primerNombre,
+          user.segundoNombre,
+          user.primerApellido,
+          user.segundoApellido,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const estado = user.estado ? "Activo" : "Inactivo";
         const q = search.toLowerCase();
         const matchSearch =
           !search ||
-          user.name.toLowerCase().includes(q) ||
+          nombre.toLowerCase().includes(q) ||
           user.dni.toLowerCase().includes(q);
         const matchRole =
-          !activeFilters.role || user.role === activeFilters.role;
+          !activeFilters.role || user.rol === activeFilters.role;
         const matchStatus =
-          !activeFilters.status || user.status === activeFilters.status;
+          !activeFilters.status || estado === activeFilters.status;
 
         return matchSearch && matchRole && matchStatus;
       }),
-    [search, activeFilters],
+    [search, activeFilters, users],
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / CARDS_PER_PAGE));
 
   // Reset to page 1 when filtered results change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [filtered.length]);
 
@@ -57,6 +77,30 @@ export default function GestionarUsuarios() {
     setActiveFilters(filters);
     setFiltersOpen(false);
   };
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/Usuarios", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await response.json();
+        console.log(data);
+        setUsers(data);
+        console.log(users);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchUsers();
+  }, []);
+  useEffect(() => {
+    console.log("users actualizados:", users);
+  }, [users]);
 
   return (
     <div className="flex gap-5 items-stretch">
@@ -107,7 +151,7 @@ export default function GestionarUsuarios() {
         {/* Cards de usuarios */}
         <div className="flex flex-col gap-4">
           {paginatedUsers.map((user) => (
-            <UserCard key={user.id} user={user} />
+            <UserCard key={user.idUsuario} user={user} />
           ))}
           {filtered.length === 0 && (
             <div
@@ -129,8 +173,7 @@ export default function GestionarUsuarios() {
               style={{
                 width: 36,
                 height: 36,
-                borderColor:
-                  currentPage === 1 ? "rgba(0,0,0,0.08)" : "#308C58",
+                borderColor: currentPage === 1 ? "rgba(0,0,0,0.08)" : "#308C58",
                 color: currentPage === 1 ? "#ccc" : "#308C58",
                 background: currentPage === 1 ? "#fafafa" : "#F0FAF4",
                 cursor: currentPage === 1 ? "not-allowed" : "pointer",
@@ -174,10 +217,8 @@ export default function GestionarUsuarios() {
                 borderColor:
                   currentPage === totalPages ? "rgba(0,0,0,0.08)" : "#308C58",
                 color: currentPage === totalPages ? "#ccc" : "#308C58",
-                background:
-                  currentPage === totalPages ? "#fafafa" : "#F0FAF4",
-                cursor:
-                  currentPage === totalPages ? "not-allowed" : "pointer",
+                background: currentPage === totalPages ? "#fafafa" : "#F0FAF4",
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
                 fontWeight: 700,
                 fontSize: 18,
               }}
@@ -221,15 +262,12 @@ export default function GestionarUsuarios() {
           onApply={handleApply}
         />
       )}
-      {
-       
-        showCreateUser && (
-          <CreateUserForm
-            onClose={() => setShowCreateUser(false)}
-            isSuperAdmin={isSuperAdmin}
-          />
-        )
-      }
+      {showCreateUser && (
+        <CreateUserForm
+          onClose={() => setShowCreateUser(false)}
+          isSuperAdmin={isSuperAdmin}
+        />
+      )}
     </div>
   );
 }

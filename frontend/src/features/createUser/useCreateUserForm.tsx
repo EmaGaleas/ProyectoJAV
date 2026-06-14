@@ -5,7 +5,8 @@ import type { CreateUserFormData } from "./types";
 import { INITIAL_FORM_DATA } from "./types";
 
 export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
-  const [formData, setFormData] = useState<CreateUserFormData>(INITIAL_FORM_DATA);
+  const [formData, setFormData] =
+    useState<CreateUserFormData>(INITIAL_FORM_DATA);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuthStore();
@@ -42,14 +43,19 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
 
   const validate = (): string | null => {
     if (!formData.primerNombre.trim()) return "El primer nombre es obligatorio";
-    if (!formData.primerApellido.trim()) return "El primer apellido es obligatorio";
-    if (!formData.segundoApellido.trim()) return "El segundo apellido es obligatorio";
-    if (!formData.identificacion.trim()) return "La identificación es obligatoria";
+    if (!formData.primerApellido.trim())
+      return "El primer apellido es obligatorio";
+    if (!formData.segundoApellido.trim())
+      return "El segundo apellido es obligatorio";
+    if (!formData.identificacion.trim())
+      return "La identificación es obligatoria";
     if (!formData.contrasena.trim()) return "La contraseña es obligatoria";
-    if (formData.contrasena.length < 6) return "La contraseña debe tener al menos 6 caracteres";
+    if (formData.contrasena.length < 6)
+      return "La contraseña debe tener al menos 6 caracteres";
 
     const celularDigits = formData.celular.replace(/\D/g, "");
-    if (celularDigits.length !== 11) return "El celular debe tener 8 dígitos después de +504";
+    if (celularDigits.length !== 11)
+      return "El celular debe tener 8 dígitos después de +504";
 
     const needsAddress = !isSuperAdmin || formData.rol === "0";
     if (needsAddress) {
@@ -59,13 +65,17 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
         return "El número de lote es obligatorio";
 
       const tieneApts =
-        formData.tipoVivienda === "Apartamentos" || formData.tipoVivienda === "Ambos";
+        formData.tipoVivienda === "Apartamentos" ||
+        formData.tipoVivienda === "Ambos";
       if (tieneApts) {
         const total = parseInt(formData.cantidadApartamentos);
         const habitados = parseInt(formData.apartamentosHabitados);
-        if (!total || total <= 0) return "La cantidad de apartamentos debe ser mayor a 0";
-        if (isNaN(habitados) || habitados < 0) return "Los apartamentos habitados no pueden ser negativos";
-        if (habitados > total) return "Los apartamentos habitados no pueden exceder el total";
+        if (!total || total <= 0)
+          return "La cantidad de apartamentos debe ser mayor a 0";
+        if (isNaN(habitados) || habitados < 0)
+          return "Los apartamentos habitados no pueden ser negativos";
+        if (habitados > total)
+          return "Los apartamentos habitados no pueden exceder el total";
       }
     }
 
@@ -86,30 +96,44 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
 
     try {
       const tieneApts =
-        formData.tipoVivienda === "Apartamentos" || formData.tipoVivienda === "Ambos";
+        formData.tipoVivienda === "Apartamentos" ||
+        formData.tipoVivienda === "Ambos";
 
       const payload = {
-        PrimerNombre: formData.primerNombre.trim(),
-        SegundoNombre: formData.segundoNombre.trim() || null,
-        PrimerApellido: formData.primerApellido.trim(),
-        SegundoApellido: formData.segundoApellido.trim(),
-        Dni: formData.identificacion.trim(),
-        Correo: formData.correo.trim(),
-        Telefono: formData.celular,
-        Password: formData.contrasena,
-        Rol: parseInt(formData.rol),
-        IdTipoUsuario: 1,
-        Calle: formData.calle,
-        Bloque: formData.bloque,
-        NumeroLote: parseInt(formData.numerolote) || 0,
+        primerNombre: formData.primerNombre.trim(),
+        segundoNombre: formData.segundoNombre.trim() || null,
+        primerApellido: formData.primerApellido.trim(),
+        segundoApellido: formData.segundoApellido.trim(),
+        dni: formData.identificacion.trim(),
+        correo: formData.correo.trim(),
+        telefono: formData.celular,
+        password: formData.contrasena,
+        rol: formData.rol,
+        domicilio: {
+          calle: formData.calle,
+          codigoBloque: formData.bloque,
+          loteCasa: parseInt(formData.numerolote) || 0,
+          estructura: 1,
+        },
+
         TipoVivienda: formData.tipoVivienda,
         CasaHabilitada:
-          formData.tipoVivienda !== "Apartamentos" ? formData.casaHabilitada : null,
-        CantidadApartamentos: tieneApts ? parseInt(formData.cantidadApartamentos) : 0,
-        ApartamentosHabitados: tieneApts ? parseInt(formData.apartamentosHabitados) : 0,
+          formData.tipoVivienda !== "Apartamentos"
+            ? formData.casaHabilitada
+            : null,
+        CantidadApartamentos: tieneApts
+          ? parseInt(formData.cantidadApartamentos)
+          : 0,
+        ApartamentosHabitados: tieneApts
+          ? parseInt(formData.apartamentosHabitados)
+          : 0,
       };
-
-      await apiFetch("/api/usuarios", { method: "POST", body: JSON.stringify(payload) }, token || undefined);
+      console.log(payload);
+      await apiFetch(
+        "/api/usuarios",
+        { method: "POST", body: JSON.stringify(payload) },
+        token || undefined,
+      );
       alert("Usuario creado exitosamente");
       if (onClose) onClose();
     } catch (err: any) {

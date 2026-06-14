@@ -33,17 +33,27 @@ export const INITIAL_FORM_DATA: CreateUserFormData = {
   casaHabilitada: true,
   cantidadApartamentos: "",
   apartamentosHabitados: "",
-  rol: "0",
+  rol: "DuenoDeCasa",
 };
 
 export const CALLES = [
-  "Calle 1", "Calle 2", "Calle 3", "Calle 4",
-  "Calle 5", "Calle 6", "Calle 7", "Calle 8",
+  "Calle 1",
+  "Calle 2",
+  "Calle 3",
+  "Calle 4",
+  "Calle 5",
+  "Calle 6",
+  "Calle 7",
+  "Calle 8",
 ];
 
 export const BLOQUES = [
-  "Bloque A", "Bloque B", "Bloque C",
-  "Bloque D", "Bloque E", "Bloque F",
+  "Bloque A",
+  "Bloque B",
+  "Bloque C",
+  "Bloque D",
+  "Bloque E",
+  "Bloque F",
 ];
 
 export const INPUT_CLS =
