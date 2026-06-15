@@ -30,7 +30,6 @@ import CajaIcon from '../../assets/icons/sidebar/tesorero/caja.svg?react'
 // — Tesorero —
 import EgresosIcon from '../../assets/icons/sidebar/tesorero/egresos.svg?react'
 import IngresosIcon from '../../assets/icons/sidebar/tesorero/ingresos.svg?react'
-import ReportesTIcon from '../../assets/icons/sidebar/tesorero/reportes.svg?react'
 
 // ─── Mapas ───────────────────────────────────────────────────────────────────
 
