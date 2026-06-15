@@ -1,4 +1,4 @@
-import type { User } from "./data/mockdata";
+import type { User } from "./GestionarUsuarios";
 
 interface Props {
   user: User;

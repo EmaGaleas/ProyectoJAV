@@ -1,4 +1,5 @@
-import type { UserRole, UserStatus } from "./data/mockdata";
+import type { UserRole, UserStatus } from "./GestionarUsuarios";
+
 
 export interface Filters {
   role: UserRole | "";

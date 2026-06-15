@@ -7,8 +7,9 @@ import CreateUserForm from "../create_user_form";
 import { useAuthStore } from "../auth/store/authStore";
 
 const CARDS_PER_PAGE = 4;
-
-interface User {
+export type UserRole = "Presidente" |  "MiembroJav";
+export type UserStatus = "Activo" | "Inactivo";
+export interface User {
   idUsuario: number;
   primerNombre: string;
   segundoNombre: string;
