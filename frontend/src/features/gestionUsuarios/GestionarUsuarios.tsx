@@ -82,7 +82,7 @@ export default function GestionarUsuarios() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/Usuarios", {
+        const response = await fetch("http://localhost:5209/api/Usuarios", {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
