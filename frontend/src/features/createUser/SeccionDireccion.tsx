@@ -23,7 +23,7 @@ function SelectField({
   name: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  options: string[];
+  options: { value: string; label: string }[];
   placeholder: string;
   required?: boolean;
 }) {
@@ -42,8 +42,8 @@ function SelectField({
         >
           <option value="">{placeholder}</option>
           {options.map((o) => (
-            <option key={o} value={o}>
-              {o}
+            <option key={o.value} value={o.value}>
+              {o.label}
             </option>
           ))}
         </select>

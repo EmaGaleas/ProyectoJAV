@@ -57,7 +57,7 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
     if (celularDigits.length !== 11)
       return "El celular debe tener 8 dígitos después de +504";
 
-    const needsAddress = !isSuperAdmin || formData.rol === "0";
+    const needsAddress = !isSuperAdmin || formData.rol === "DuenoDeCasa";
     if (needsAddress) {
       if (!formData.calle) return "La calle es obligatoria";
       if (!formData.bloque) return "El bloque es obligatorio";
@@ -95,11 +95,12 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
     }
 
     try {
+      const isDuenoDeCasa = formData.rol === "DuenoDeCasa";
       const tieneApts =
         formData.tipoVivienda === "Apartamentos" ||
         formData.tipoVivienda === "Ambos";
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         primerNombre: formData.primerNombre.trim(),
         segundoNombre: formData.segundoNombre.trim() || null,
         primerApellido: formData.primerApellido.trim(),
@@ -109,12 +110,6 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
         telefono: formData.celular,
         password: formData.contrasena,
         rol: formData.rol,
-        domicilio: {
-          calle: formData.calle,
-          codigoBloque: formData.bloque,
-          loteCasa: parseInt(formData.numerolote) || 0,
-          estructura: 1,
-        },
 
         TipoVivienda: formData.tipoVivienda,
         CasaHabilitada:
@@ -128,6 +123,16 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
           ? parseInt(formData.apartamentosHabitados)
           : 0,
       };
+
+     
+      if (isDuenoDeCasa) {
+        payload.domicilio = {
+          calle: formData.calle,
+          codigoBloque: formData.bloque,
+          loteCasa: parseInt(formData.numerolote) || 0,
+          estructura: 1,
+        };
+      }
       console.log(payload);
       await apiFetch(
         "/api/usuarios",
