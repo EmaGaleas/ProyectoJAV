@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JAV_API.Application", "JAV_
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JAV_API.Infrastructure", "JAV_API.Infrastructure\JAV_API.Infrastructure.csproj", "{57EF4F1D-6DA8-4799-9F22-43AB8821332D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JAV_API.Domain.Tests", "JAV_API.Domain.Tests\JAV_API.Domain.Tests.csproj", "{C71A5B1A-35AA-4277-B52A-7848C2317852}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{57EF4F1D-6DA8-4799-9F22-43AB8821332D}.Release|x64.Build.0 = Release|Any CPU
 		{57EF4F1D-6DA8-4799-9F22-43AB8821332D}.Release|x86.ActiveCfg = Release|Any CPU
 		{57EF4F1D-6DA8-4799-9F22-43AB8821332D}.Release|x86.Build.0 = Release|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Debug|x64.Build.0 = Debug|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Debug|x86.Build.0 = Debug|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Release|x64.ActiveCfg = Release|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Release|x64.Build.0 = Release|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Release|x86.ActiveCfg = Release|Any CPU
+		{C71A5B1A-35AA-4277-B52A-7848C2317852}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
