@@ -9,4 +9,6 @@ public interface IMensualidadRepository
     
     // Método útil para que el frontend liste lo que debe un residente
     Task<IEnumerable<Mensualidad>> ObtenerPendientesPorUsuarioAsync(int idUsuario);
+
+    Task ActualizarVencimientoPorPeriodoAsync(DateTime periodoPago, DateTime nuevaFechaVencimiento);
 }

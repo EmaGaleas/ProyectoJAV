@@ -36,4 +36,12 @@ public class MensualidadRepository : IMensualidadRepository
             .OrderBy(m => m.FechaVencimiento) // Ordenamos para que las más viejas salgan primero
             .ToListAsync();
     }
+
+    public async Task ActualizarVencimientoPorPeriodoAsync(DateTime periodoPago, DateTime nuevaFechaVencimiento)
+    {
+        // Realiza un UPDATE masivo en SQL sin cargar entidades a la memoria
+        await _context.Mensualidades
+            .Where(m => m.PeriodoPago == periodoPago)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.FechaVencimiento, nuevaFechaVencimiento));
+    }
 }

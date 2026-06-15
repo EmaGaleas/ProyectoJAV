@@ -69,6 +69,12 @@ builder.Services.AddScoped<IPagoRepository, PagoRepository>();
 builder.Services.AddScoped<IMensualidadRepository, MensualidadRepository>();
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IDeudaRepository, DeudaRepository>();
+builder.Services.AddScoped<ICostosRepository, CostosRepository>();
+builder.Services.AddScoped<ICostosService, CostosService>();
+builder.Services.AddScoped<ITipoCobroRepository, TipoCobroRepository>();
+builder.Services.AddScoped<ITipoCobroService, TipoCobroService>();
+builder.Services.AddScoped<IJornadaCobroRepository, JornadaCobroRepository>();
+builder.Services.AddScoped<IJornadaCobroService, JornadaCobroService>();
 
 // Servicios de seguridad e infraestructura general (capa Infrastructure)
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -81,6 +87,7 @@ builder.Services.AddScoped<EgresoService>(); // Integrado
 builder.Services.AddScoped<PagoService>(); // Integrado
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<DeudaService>();
+
 
 
 // ─────────────────────────────────────────────────────────
@@ -181,9 +188,17 @@ if (app.Environment.IsDevelopment())
         if (!context.Set<TipoCobro>().Any())
         {
             context.Set<TipoCobro>().AddRange(
-                new TipoCobro { Tipo = TipoCobroEnum.Mensualidad, Descripcion = "Mensualidad mensual" },
-                new TipoCobro { Tipo = TipoCobroEnum.Multa,       Descripcion = "Multa por incumplimiento" },
-                new TipoCobro { Tipo = TipoCobroEnum.Pegue,       Descripcion = "Conexión de servicio" }
+                // Mensualidad
+                new TipoCobro { Tipo = TipoCobroEnum.Mensualidad, Descripcion = "Mensualidad por consumo de agua" },
+                
+                // Conexiones (Pegues)
+                new TipoCobro { Tipo = TipoCobroEnum.Pegue, Descripcion = "Nueva conexión de agua principal" },
+                
+                // Multas Random
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por desperdicio de agua" },
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por botar basura en áreas verdes" },
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por reconexión clandestina" },
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por mora excesiva (3+ meses)" }
             );
             context.SaveChanges();
         }
@@ -235,6 +250,40 @@ if (app.Environment.IsDevelopment())
             context.SaveChanges();
         }
 
+          // ── Semilla: Historial de Costos (Precios) ──────────────────────────
+        if (!context.Set<HistorialCostos>().Any())
+        {
+            var admin = context.Usuarios.First(u => u.Rol == Rol.Presidente);
+            var tipos = context.Set<TipoCobro>().ToList();
+
+            var mensualidadAgua = tipos.First(t => t.Tipo == TipoCobroEnum.Mensualidad);
+            var nuevaConexion = tipos.First(t => t.Tipo == TipoCobroEnum.Pegue);
+            var multaDesperdicio = tipos.First(t => t.Descripcion.Contains("desperdicio"));
+            var multaBasura = tipos.First(t => t.Descripcion.Contains("basura"));
+
+            context.Set<HistorialCostos>().AddRange(
+                // --- HISTORIAL MENSUALIDAD ---
+                // Precio viejo (Historial: Ya cerrado)
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 200m, FechaEmision = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
+                // Precio actual (Vigente: Sin fecha de anulación)
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 350m, FechaEmision = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                // Precio programado (Próximo: Entrará en vigencia en 2027)
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 400m, FechaEmision = new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+
+                // --- HISTORIAL NUEVA CONEXIÓN ---
+                // Precio viejo
+                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1200m, FechaEmision = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = new DateTime(2026, 5, 31, 0, 0, 0, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
+                // Precio actual
+                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1500m, FechaEmision = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+
+                // --- HISTORIAL MULTAS ---
+                // Solo vigentes para probar
+                new HistorialCostos { IdTipoCobro = multaDesperdicio.IdTipoCobro, Monto = 500m, FechaEmision = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaBasura.IdTipoCobro, Monto = 800m, FechaEmision = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario }
+            );
+            context.SaveChanges();
+        }
+        
         // ── Semilla: Pagos de prueba ──────────────────────────
         if (!context.Set<Pago>().Any())
         {
