@@ -9,7 +9,7 @@ interface SidebarFooterProps {
 }
 
 export const SidebarFooter = ({ rol, onLogout, collapsed = false }: SidebarFooterProps) => {
-  const allSections = SIDEBAR_CONFIG[rol]
+  const allSections = SIDEBAR_CONFIG[rol] || []
   const footerSection = allSections.find((s) => s.section === 'Footer')
 
   if (!footerSection) return null
