@@ -20,7 +20,7 @@ export const SidebarBody = ({ rol, collapsed = false }: SidebarBodyProps) => {
   const [openItem, setOpen] = useState<string | null>(null)
   const [hoverItem, setHoverItem] = useState<string | null>(null)
 
-  const allSections = SIDEBAR_CONFIG[rol]
+  const allSections = SIDEBAR_CONFIG[rol] || []
   const mainSections = allSections.filter((s) => s.section !== 'Footer')
 
   const handleToggle = (label: string) =>
