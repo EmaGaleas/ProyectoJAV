@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { apiFetch } from "../../services/apiClient";
-import { useAuthStore } from "../auth/store/authStore";
+import { api } from "../../services/api";
 import type { CreateUserFormData } from "./types";
 import { INITIAL_FORM_DATA } from "./types";
 
@@ -9,7 +8,6 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
     useState<CreateUserFormData>(INITIAL_FORM_DATA);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { token } = useAuthStore();
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -124,7 +122,6 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
           : 0,
       };
 
-     
       if (isDuenoDeCasa) {
         payload.domicilio = {
           calle: formData.calle,
@@ -134,11 +131,7 @@ export function useCreateUserForm(isSuperAdmin: boolean, onClose?: () => void) {
         };
       }
       console.log(payload);
-      await apiFetch(
-        "/api/usuarios",
-        { method: "POST", body: JSON.stringify(payload) },
-        token || undefined,
-      );
+      await api.post("/api/usuarios", payload);
       alert("Usuario creado exitosamente");
       if (onClose) onClose();
     } catch (err: any) {

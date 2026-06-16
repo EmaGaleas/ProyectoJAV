@@ -5,9 +5,10 @@ import type { Filters } from "./UserFilters";
 import { useIsTablet } from "../historial/ingresos/useBreakpoint";
 import CreateUserForm from "../create_user_form";
 import { useAuthStore } from "../auth/store/authStore";
+import { api } from "../../services/api";
 
 const CARDS_PER_PAGE = 4;
-export type UserRole = "Presidente" |  "MiembroJav";
+export type UserRole = "Presidente" | "MiembroJav";
 export type UserStatus = "Activo" | "Inactivo";
 export interface User {
   idUsuario: number;
@@ -82,14 +83,8 @@ export default function GestionarUsuarios() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/Usuarios", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        const data = await response.json();
+        const { data } = await api.get<User[]>("api/Usuarios");
+
         console.log(data);
         setUsers(data);
         console.log(users);
@@ -99,6 +94,7 @@ export default function GestionarUsuarios() {
     };
     fetchUsers();
   }, []);
+
   useEffect(() => {
     console.log("users actualizados:", users);
   }, [users]);
