@@ -192,10 +192,16 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Monto).HasColumnName("monto").HasPrecision(18, 2).IsRequired();
             entity.Property(e => e.FechaEmision).HasColumnName("fecha_Emision");
             entity.Property(e => e.FechaAnulacion).HasColumnName("fecha_Anulacion");
+            entity.Property(e => e.EditadoPor).HasColumnName("editado_Por").IsRequired();
 
             entity.HasOne(hc => hc.TipoCobro)
                   .WithMany(tc => tc.HistorialCostos)
                   .HasForeignKey(hc => hc.IdTipoCobro)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(hc => hc.UsuarioEditor)
+                  .WithMany()
+                  .HasForeignKey(hc => hc.EditadoPor)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -279,10 +285,19 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.MetodoPago).HasColumnName("metodo_Pago").HasConversion<string>().IsRequired();
             entity.Property(e => e.Monto).HasColumnName("monto").HasPrecision(18, 2).IsRequired();
             entity.Property(e => e.FechaPago).HasColumnName("fecha_Pago").IsRequired();
+            entity.Property(e => e.Estado).HasColumnName("estado").HasConversion<string>()
+                  .HasDefaultValue(JAV_API.Domain.Enums.EstadoAprobacion.EnRevision);
+            entity.Property(e => e.AprobadoPor).HasColumnName("aprobado_Por");
 
             entity.HasOne(p => p.Registrador)
                   .WithMany(u => u.PagosRegistrados)
                   .HasForeignKey(p => p.RegistradoPor)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(p => p.Aprobador)
+                  .WithMany(u => u.PagosAprobados)
+                  .HasForeignKey(p => p.AprobadoPor)
+                  .IsRequired(false)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -406,19 +421,20 @@ public class ApplicationDbContext : DbContext
         // ─────────────────────────────────────────────────────────
         // JornadaCobro
         // ─────────────────────────────────────────────────────────
-        modelBuilder.Entity<JornadaCobro>(entity =>
+      modelBuilder.Entity<JornadaCobro>(entity =>
         {
             entity.ToTable("Jornada_Cobro");
             entity.HasKey(e => e.IdJornadaCobro);
             entity.Property(e => e.IdJornadaCobro).HasColumnName("id_Jornada_Cobro").ValueGeneratedOnAdd();
             entity.Property(e => e.Fecha).HasColumnName("fecha");
+            entity.Property(e => e.PeriodoCobro).HasColumnName("periodo_cobro"); // Agregamos mapeo
             entity.Property(e => e.Encargado).HasColumnName("encargado").IsRequired();
 
             entity.HasOne(jc => jc.EncargadoUsuario)
                   .WithMany(u => u.JornadasCobroEncargado)
                   .HasForeignKey(jc => jc.Encargado)
                   .OnDelete(DeleteBehavior.Restrict);
-        });
+        }); 
 
         // ─────────────────────────────────────────────────────────
         // CierreCaja (1-1 con JornadaCobro)

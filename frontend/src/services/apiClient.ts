@@ -2,7 +2,6 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5209'
 
 export class ApiError extends Error {
   readonly status: number
-
   constructor(status: number, message: string) {
     super(message)
     this.name = 'ApiError'
@@ -16,8 +15,11 @@ export async function apiFetch<T>(
   token?: string,
 ): Promise<T> {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(options?.headers as Record<string, string>),
+  }
+
+  if (!(options?.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
   }
 
   if (token) headers['Authorization'] = `Bearer ${token}`
@@ -26,7 +28,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, body.mensaje ?? `Error ${res.status}`)
+    throw new ApiError(res.status, body.mensaje ?? body.error ?? `Error ${res.status}`)
   }
 
   return res.json() as Promise<T>

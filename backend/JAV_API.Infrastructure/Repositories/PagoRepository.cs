@@ -1,6 +1,7 @@
 // Archivo: JAV_API.Infrastructure.Repositories.PagoRepository.cs
 using JAV_API.Application.Interfaces;
 using JAV_API.Domain.Entities;
+using JAV_API.Domain.Enums;
 using JAV_API.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -128,5 +129,35 @@ public class PagoRepository : IPagoRepository
         return await query
             .OrderByDescending(p => p.FechaPago)
             .ToListAsync();
+    }
+
+    public async Task<Pago?> ObtenerPorIdAsync(int idPago)
+    {
+        return await _context.Pagos.FindAsync(idPago);
+    }
+
+    public async Task AprobarAsync(int idPago, int aprobadoPor)
+    {
+        var pago = await _context.Pagos.FindAsync(idPago)
+            ?? throw new KeyNotFoundException($"No se encontró el ingreso con ID {idPago}.");
+
+        if (pago.Estado != EstadoAprobacion.EnRevision)
+            throw new InvalidOperationException($"El ingreso ya fue procesado con estado '{pago.Estado}'.");
+
+        pago.Estado = EstadoAprobacion.Aprobado;
+        pago.AprobadoPor = aprobadoPor;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RechazarAsync(int idPago)
+    {
+        var pago = await _context.Pagos.FindAsync(idPago)
+            ?? throw new KeyNotFoundException($"No se encontró el ingreso con ID {idPago}.");
+
+        if (pago.Estado != EstadoAprobacion.EnRevision)
+            throw new InvalidOperationException($"El ingreso ya fue procesado con estado '{pago.Estado}'.");
+
+        pago.Estado = EstadoAprobacion.Rechazado;
+        await _context.SaveChangesAsync();
     }
 }

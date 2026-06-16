@@ -57,6 +57,9 @@ export default function CreateUserForm({
             onSubmit={handleSubmit}
             className="flex flex-col gap-6 px-6 py-6 w-full max-w-125"
           >
+            {isSuperAdmin && (
+              <SeccionRol formData={formData} onChange={handleInputChange} />
+            )}
             <SeccionPersonal formData={formData} onChange={handleInputChange} />
 
             <SeccionContacto
@@ -66,7 +69,7 @@ export default function CreateUserForm({
             />
 
             {showAddress ||
-              (formData.rol === "0" && (
+              (formData.rol === "DuenoDeCasa" && (
                 <SeccionDireccion
                   formData={formData}
                   onChange={handleInputChange}
@@ -74,10 +77,6 @@ export default function CreateUserForm({
                   onCasaHabilitadaChange={(v) => setField("casaHabilitada", v)}
                 />
               ))}
-
-            {isSuperAdmin && (
-              <SeccionRol formData={formData} onChange={handleInputChange} />
-            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">

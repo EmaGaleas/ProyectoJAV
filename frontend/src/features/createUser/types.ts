@@ -33,17 +33,31 @@ export const INITIAL_FORM_DATA: CreateUserFormData = {
   casaHabilitada: true,
   cantidadApartamentos: "",
   apartamentosHabitados: "",
-  rol: "0",
+  rol: "DuenoDeCasa",
 };
 
 export const CALLES = [
-  "Calle 1", "Calle 2", "Calle 3", "Calle 4",
-  "Calle 5", "Calle 6", "Calle 7", "Calle 8",
+  { value: "Calle1A", label: "Calle 1A" },
+  { value: "Calle1B", label: "Calle 1B" },
+  { value: "Calle2A", label: "Calle 2A" },
+  { value: "Calle2B", label: "Calle 2B" },
+  { value: "Calle3A", label: "Calle 3A" },
+  { value: "Calle3B", label: "Calle 3B" },
+  { value: "Calle4A", label: "Calle 4A" },
 ];
 
 export const BLOQUES = [
-  "Bloque A", "Bloque B", "Bloque C",
-  "Bloque D", "Bloque E", "Bloque F",
+  { value: "FGAD", label: "FGAD" },
+  { value: "A", label: "Bloque A" },
+  { value: "B", label: "Bloque B" },
+  { value: "C", label: "Bloque C" },
+  { value: "D", label: "Bloque D" },
+  { value: "E", label: "Bloque E" },
+  { value: "F", label: "Bloque F" },
+  { value: "G", label: "Bloque G" },
+  { value: "H", label: "Bloque H" },
+  { value: "I", label: "Bloque I" },
+  { value: "J", label: "Bloque J" },
 ];
 
 export const INPUT_CLS =

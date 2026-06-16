@@ -69,6 +69,17 @@ builder.Services.AddScoped<IPagoRepository, PagoRepository>();
 builder.Services.AddScoped<IMensualidadRepository, MensualidadRepository>();
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IDeudaRepository, DeudaRepository>();
+builder.Services.AddScoped<ICostosRepository, CostosRepository>();
+builder.Services.AddScoped<ICostosService, CostosService>();
+builder.Services.AddScoped<ITipoCobroRepository, TipoCobroRepository>();
+builder.Services.AddScoped<ITipoCobroService, TipoCobroService>();
+builder.Services.AddScoped<IJornadaCobroRepository, JornadaCobroRepository>();
+builder.Services.AddScoped<IJornadaCobroService, JornadaCobroService>();
+builder.Services.AddScoped<IMultaRepository, MultaRepository>();
+builder.Services.AddScoped<IConexionRepository, ConexionRepository>();
+
+// Si MensualidadRepository tampoco estaba registrado, agrégalo:
+// builder.Services.AddScoped<IMensualidadRepository, MensualidadRepository>();
 
 // Servicios de seguridad e infraestructura general (capa Infrastructure)
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -81,6 +92,7 @@ builder.Services.AddScoped<EgresoService>(); // Integrado
 builder.Services.AddScoped<PagoService>(); // Integrado
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<DeudaService>();
+
 
 
 // ─────────────────────────────────────────────────────────
@@ -138,7 +150,37 @@ builder.Services.AddControllers()
         // Permite enviar/recibir enums como strings ("DuenoDeCasa") en lugar de números (0)
         options.JsonSerializerOptions.Converters.Add(
             new System.Text.Json.Serialization.JsonStringEnumConverter()));
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "JAV API", Version = "v1" });
+
+    // Configuración para que Swagger soporte tus tokens JWT
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Ingresa 'Bearer' [espacio] y luego tu token JWT. Ejemplo: \"Bearer eyJhbGci...\""
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
@@ -147,7 +189,8 @@ var app = builder.Build();
 // ─────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
     // Aplicar migraciones automáticamente e inicializar datos semilla en desarrollo
     using var scope = app.Services.CreateScope();
@@ -181,9 +224,17 @@ if (app.Environment.IsDevelopment())
         if (!context.Set<TipoCobro>().Any())
         {
             context.Set<TipoCobro>().AddRange(
-                new TipoCobro { Tipo = TipoCobroEnum.Mensualidad, Descripcion = "Mensualidad mensual" },
-                new TipoCobro { Tipo = TipoCobroEnum.Multa,       Descripcion = "Multa por incumplimiento" },
-                new TipoCobro { Tipo = TipoCobroEnum.Pegue,       Descripcion = "Conexión de servicio" }
+                // Mensualidad
+                new TipoCobro { Tipo = TipoCobroEnum.Mensualidad, Descripcion = "Mensualidad por consumo de agua" },
+                
+                // Conexiones (Pegues)
+                new TipoCobro { Tipo = TipoCobroEnum.Pegue, Descripcion = "Nueva conexión de agua principal" },
+                
+                // Multas Random
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por desperdicio de agua" },
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por botar basura en áreas verdes" },
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por reconexión clandestina" },
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por mora excesiva (3+ meses)" }
             );
             context.SaveChanges();
         }
@@ -192,6 +243,7 @@ if (app.Environment.IsDevelopment())
         if (!context.Usuarios.Any(u => u.Correo == "maria@test.com"))
         {
             var tipoSuperAdmin = context.Set<TipoUsuario>().First(t => t.Nombre == "SuperAdministrador");
+            var tipoTesorero = context.Set<TipoUsuario>().First(t => t.Nombre == "Tesorero");
             var tipoCliente    = context.Set<TipoUsuario>().First(t => t.Nombre == "Cliente");
 
             var admin = new Usuario
@@ -205,6 +257,18 @@ if (app.Environment.IsDevelopment())
                 UltimoAcceso  = DateTime.UtcNow,
                 Rol           = Rol.Presidente,
                 IdTipoUsuario = tipoSuperAdmin.IdTipo
+            };
+            var tesorero = new Usuario
+            {
+                Persona       = new Persona { PrimerNombre = "Juan",  PrimerApellido = "Perez",   Dni = "0501199902322" },
+                Correo        = "tesorero@villalinda.com",
+                PasswordHash  = hasher.Hash("Tesorero123*"),
+                Telefono      = "9009-1001",
+                Estado        = true,
+                FechaCreacion = DateTime.UtcNow,
+                UltimoAcceso  = DateTime.UtcNow,
+                Rol           = Rol.Tesorero,
+                IdTipoUsuario = tipoTesorero.IdTipo
             };
             var cliente1 = new Usuario
             {
@@ -231,10 +295,44 @@ if (app.Environment.IsDevelopment())
                 IdTipoUsuario = tipoCliente.IdTipo
             };
 
-            context.Usuarios.AddRange(admin, cliente1, cliente2);
+            context.Usuarios.AddRange(admin, tesorero, cliente1, cliente2);
             context.SaveChanges();
         }
 
+          // ── Semilla: Historial de Costos (Precios) ──────────────────────────
+        if (!context.Set<HistorialCostos>().Any())
+        {
+            var admin = context.Usuarios.First(u => u.Rol == Rol.Presidente);
+            var tipos = context.Set<TipoCobro>().ToList();
+
+            var mensualidadAgua = tipos.First(t => t.Tipo == TipoCobroEnum.Mensualidad);
+            var nuevaConexion = tipos.First(t => t.Tipo == TipoCobroEnum.Pegue);
+            var multaDesperdicio = tipos.First(t => t.Descripcion.Contains("desperdicio"));
+            var multaBasura = tipos.First(t => t.Descripcion.Contains("basura"));
+
+            context.Set<HistorialCostos>().AddRange(
+                // --- HISTORIAL MENSUALIDAD ---
+                // Precio viejo (Historial: Ya cerrado)
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 200m, FechaEmision = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
+                // Precio actual (Vigente: Sin fecha de anulación)
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 350m, FechaEmision = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                // Precio programado (Próximo: Entrará en vigencia en 2027)
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 400m, FechaEmision = new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+
+                // --- HISTORIAL NUEVA CONEXIÓN ---
+                // Precio viejo
+                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1200m, FechaEmision = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = new DateTime(2026, 5, 31, 0, 0, 0, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
+                // Precio actual
+                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1500m, FechaEmision = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+
+                // --- HISTORIAL MULTAS ---
+                // Solo vigentes para probar
+                new HistorialCostos { IdTipoCobro = multaDesperdicio.IdTipoCobro, Monto = 500m, FechaEmision = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaBasura.IdTipoCobro, Monto = 800m, FechaEmision = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario }
+            );
+            context.SaveChanges();
+        }
+        
         // ── Semilla: Pagos de prueba ──────────────────────────
         if (!context.Set<Pago>().Any())
         {
@@ -316,6 +414,86 @@ if (app.Environment.IsDevelopment())
             // Caso 3.C: Conexión Vencida (Carlos)
             var conexionVencida = new Conexion { Usuario = cliente2, Monto = 700m, Domicilio = dom2, Estado = Estado.Vencido };
             context.Set<Conexion>().Add(conexionVencida);
+            context.SaveChanges();
+        }
+
+        // ── Semilla: Egresos de prueba ────────────────────────
+        if (!context.Egresos.Any())
+        {
+            var admin = context.Usuarios.First(u => u.Rol == Rol.Presidente);
+
+            var egresos = new List<Egreso>
+            {
+                // Pendientes (en revisión)
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Compra de herramientas",
+                    Descripcion   = "Compra de palas, picos y guantes para mantenimiento de zonas verdes.",
+                    Monto         = 1500.00m,
+                    Fecha         = new DateTime(2026, 6, 1, 10, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.EnRevision,
+                },
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Reparación bomba de agua",
+                    Descripcion   = "Servicio técnico para reparación de la bomba principal del pozo comunitario.",
+                    Monto         = 3200.00m,
+                    Fecha         = new DateTime(2026, 6, 5, 14, 30, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.EnRevision,
+                },
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Papelería y útiles de oficina",
+                    Descripcion   = "Compra de resmas de papel, bolígrafos, sellos y archivadores para la tesorería.",
+                    Monto         = 420.50m,
+                    Fecha         = new DateTime(2026, 6, 8, 9, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.EnRevision,
+                },
+
+                // Aprobados
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Pintura de entrada principal",
+                    Descripcion   = "Contratación de pintor para renovación de la fachada y portón de entrada.",
+                    Monto         = 2800.00m,
+                    Fecha         = new DateTime(2026, 5, 12, 8, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.Aprobado,
+                    AprobadoPor   = admin.IdUsuario,
+                },
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Mantenimiento de jardines",
+                    Descripcion   = "Poda de árboles y corte de césped en todas las áreas comunes. Servicio mensual.",
+                    Monto         = 950.00m,
+                    Fecha         = new DateTime(2026, 5, 20, 11, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.Aprobado,
+                    AprobadoPor   = admin.IdUsuario,
+                },
+
+                // Rechazado
+                new Egreso
+                {
+                    RegistradoPor = admin.IdUsuario,
+                    Titulo        = "Compra de sillas de patio",
+                    Descripcion   = "Adquisición de 20 sillas plásticas para el área de reuniones exteriores. Factura no presentada.",
+                    Monto         = 1800.00m,
+                    Fecha         = new DateTime(2026, 5, 28, 16, 0, 0, DateTimeKind.Utc),
+                    Url           = string.Empty,
+                    Estado        = EstadoAprobacion.Rechazado,
+                },
+            };
+
+            context.Egresos.AddRange(egresos);
             context.SaveChanges();
         }
     }

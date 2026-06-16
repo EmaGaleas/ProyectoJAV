@@ -3,18 +3,20 @@ import type { CreateUserFormData } from "./types";
 import { LABEL_CLS, SECTION_TITLE_CLS, SELECT_CLS } from "./types";
 
 const ROLES = [
-  { value: "0", label: "Cliente / Dueño de Casa" },
-  { value: "1", label: "Tesorero" },
-  { value: "2", label: "Secretario" },
-  { value: "3", label: "Vocal" },
-  { value: "4", label: "Vicepresidente" },
-  { value: "5", label: "Presidente" },
-  { value: "6", label: "Fiscal" },
+  { value: "0", rol: "DuenoDeCasa", label: "Cliente / Dueño de Casa" },
+  { value: "1", rol: "Tesorero", label: "Tesorero" },
+  { value: "2", rol: "Secretario", label: "Secretario" },
+  { value: "3", rol: "Vocal", label: "Vocal" },
+  { value: "4", rol: "Vicepresidente", label: "Vicepresidente" },
+  { value: "5", rol: "Presidente", label: "Presidente" },
+  { value: "6", rol: "Fiscal", label: "Fiscal" },
 ];
 
 interface Props {
   formData: CreateUserFormData;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => void;
 }
 
 export function SeccionRol({ formData, onChange }: Props) {
@@ -34,7 +36,7 @@ export function SeccionRol({ formData, onChange }: Props) {
             className={SELECT_CLS}
           >
             {ROLES.map((r) => (
-              <option key={r.value} value={r.value}>
+              <option key={r.value} value={r.rol}>
                 {r.label}
               </option>
             ))}

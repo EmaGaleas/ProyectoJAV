@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { Income } from './data/mockdata'
-import { L, fmtDate } from './data/mockdata'
+import type { Income } from './types'
+import { L, fmtDate } from './types'
 
 const PAGE_SIZE = 9
 const ROW_H     = 49
@@ -29,9 +29,10 @@ interface Props {
   isTablet: boolean
   onToggleFilters: () => void
   filtersOpen: boolean
+  loading?: boolean
 }
 
-export function IncomeTable({ incomes, search, onSearchChange, onViewDetail, isTablet, onToggleFilters, filtersOpen }: Props) {
+export function IncomeTable({ incomes, search, onSearchChange, onViewDetail, isTablet, onToggleFilters, filtersOpen, loading = false }: Props) {
   const [page, setPage] = useState(0)
 
   const cols       = isTablet ? COLS_TABLET : COLS_DESKTOP
@@ -43,6 +44,11 @@ export function IncomeTable({ incomes, search, onSearchChange, onViewDetail, isT
 
   return (
     <div className="flex flex-col gap-4 flex-1 min-w-0">
+      {loading && (
+        <div className="text-center py-2" style={{ fontSize: 12, color: '#8EBFA3' }}>
+          Cargando historial de ingresos…
+        </div>
+      )}
 
       {/* Barra de búsqueda */}
       <div className="flex gap-2">

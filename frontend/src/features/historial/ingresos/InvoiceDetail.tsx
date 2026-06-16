@@ -1,39 +1,40 @@
-import type { Income, InvoiceLine } from './data/mockdata'
-import { L, fmtDate } from './data/mockdata'
-import { useAuthStore } from '../../auth/store/authStore';
-import { useState } from 'react';
+import { useState } from 'react'
+import type { Income, InvoiceLine } from './types'
+import { L, fmtDate } from './types'
+import { useAuthStore } from '../../auth/store/authStore'
 
 interface Props {
-  income: Income
-  onBack: () => void
+  income:    Income
+  onBack:    () => void
+  onApprove: (id: string) => Promise<void>
+  onReject:  (id: string) => Promise<void>
 }
+
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   'Procesado':   { bg: '#EBF5EF', color: '#308C58' },
   'En revisión': { bg: '#FEF9EC', color: '#B45309' },
   'Rechazado':   { bg: '#FEF2F2', color: '#DC2626' },
 }
 
-export function InvoiceDetail({ income, onBack }: Props) {
+export function InvoiceDetail({ income, onBack, onApprove, onReject }: Props) {
+  const { user } = useAuthStore()
+  const canAct = user?.rol === 'SuperAdministrador'
+  const [isLoading, setIsLoading] = useState(false)
+
   const mensualidades = income.lines.filter(l => l.type === 'mensualidad')
   const multas        = income.lines.filter(l => l.type === 'multa')
-  const {user} = useAuthStore();
-  const isSuperAdmin = user?.rol === "SuperAdministrador";
-  const [status, setStatus] = useState(income.status);
-  
 
-  console.log(income)
+  const handleAccept = async () => {
+    setIsLoading(true)
+    await onApprove(income.id)
+    setIsLoading(false)
+  }
 
-
-    const handleAccept = () => {
-      console.log("Aceptar")
-      setStatus("Procesado");
-      income.status = "Procesado";
-    }
-    const handleReject = () => {
-      console.log("Rechazar")
-      setStatus("Rechazado");
-      income.status = "Rechazado";
-    }
+  const handleReject = async () => {
+    setIsLoading(true)
+    await onReject(income.id)
+    setIsLoading(false)
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -47,20 +48,19 @@ export function InvoiceDetail({ income, onBack }: Props) {
             {income.receiptNumber}
           </span>
         </div>
-        <div className='flex gap-2'>
-        <StatusBadge status={status} />
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[rgba(0,0,0,0.1)] hover:bg-[#F8FDFB] transition-colors"
-          style={{ fontSize: 12, fontWeight: 600, color: '#308C58' }}
-        >
-          ← Volver al detalle
-        </button>
+        <div className="flex gap-2">
+          <StatusBadge status={income.status} />
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[rgba(0,0,0,0.1)] hover:bg-[#F8FDFB] transition-colors"
+            style={{ fontSize: 12, fontWeight: 600, color: '#308C58' }}
+          >
+            ← Volver al detalle
+          </button>
         </div>
-        
       </div>
 
-      {/* Titular y método */}
+      {/* Info */}
       <InfoCard>
         <InfoRow label="Titular"    value={income.holderName} />
         <InfoRow label="Dirección"  value={`${income.street}, ${income.block}, ${income.lot}`} />
@@ -69,32 +69,51 @@ export function InvoiceDetail({ income, onBack }: Props) {
         {income.transferCode && <InfoRow label="Comprobante" value={income.transferCode} />}
       </InfoCard>
 
-      {/* Mensualidades */}
-      {mensualidades.length > 0 && (
-        <InvoiceSection title="Mensualidades" lines={mensualidades} />
-      )}
-
-      {/* Multas */}
-      {multas.length > 0 && (
-        <InvoiceSection title="Multas" lines={multas} />
-      )}
+      {mensualidades.length > 0 && <InvoiceSection title="Mensualidades" lines={mensualidades} />}
+      {multas.length        > 0 && <InvoiceSection title="Multas"        lines={multas}        />}
 
       {/* Total */}
       <div className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: '#F0FAF4', border: '1px solid #D5EDDF' }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>Total pagado</span>
         <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>{L(income.total)}</span>
       </div>
-      {isSuperAdmin && status === "En revisión" &&(
-        <div className="flex items-center justify-between px-4 py-3 " >
-          <button className='bg-green-700 text-white p-2 rounded-xl w-2/5' onClick={handleAccept}>Aceptar</button>
-          <button className='bg-red-700 text-white p-2 rounded-xl w-2/5' onClick={handleReject}>Rechazar</button>
+
+      {/* Botones aprobar/rechazar — solo SuperAdministrador/Administrador y solo si está En revisión */}
+      {canAct && income.status === 'En revisión' && (
+        <div className="flex items-center justify-between px-4 py-3 gap-3">
+          <button
+            disabled={isLoading}
+            onClick={handleAccept}
+            className="flex-1 py-2 rounded-xl text-white font-semibold text-sm transition-opacity disabled:opacity-50"
+            style={{ background: '#15803d' }}
+          >
+            {isLoading ? 'Procesando...' : 'Aceptar'}
+          </button>
+          <button
+            disabled={isLoading}
+            onClick={handleReject}
+            className="flex-1 py-2 rounded-xl text-white font-semibold text-sm transition-opacity disabled:opacity-50"
+            style={{ background: '#b91c1c' }}
+          >
+            {isLoading ? 'Procesando...' : 'Rechazar'}
+          </button>
         </div>
       )}
     </div>
   )
 }
 
-// ─── sub-componentes locales ──────────────────────────────────────────────────
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: string }) {
+  const s = STATUS_STYLE[status] ?? STATUS_STYLE['En revisión']
+  return (
+    <span className="rounded-full whitespace-nowrap flex items-center"
+      style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', background: s.bg, color: s.color }}>
+      {status}
+    </span>
+  )
+}
 
 function InfoCard({ children }: { children: React.ReactNode }) {
   return (
@@ -120,22 +139,15 @@ function InvoiceSection({ title, lines }: { title: string; lines: InvoiceLine[] 
         {title}
       </span>
       <div className="rounded-xl border border-[rgba(0,0,0,0.07)] overflow-hidden">
-        {/* Header */}
-        <div className="grid px-4 py-2 border-b border-[rgba(0,0,0,0.06)]" style={{ gridTemplateColumns: '1fr 90px 90px 90px', background: '#FAFAFA' }}>
+        <div className="grid px-4 py-2 border-b border-[rgba(0,0,0,0.06)]"
+          style={{ gridTemplateColumns: '1fr 90px 90px 90px', background: '#FAFAFA' }}>
           {['Concepto', 'Vencimiento', 'Monto base', 'Mora'].map(h => (
             <span key={h} style={{ fontSize: 10, fontWeight: 700, color: '#8EBFA3', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{h}</span>
           ))}
         </div>
-        {/* Filas */}
         {lines.map((line, i) => (
-          <div
-            key={line.id}
-            className="grid px-4 py-3"
-            style={{
-              gridTemplateColumns: '1fr 90px 90px 90px',
-              borderBottom: i < lines.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
-            }}
-          >
+          <div key={line.id} className="grid px-4 py-3"
+            style={{ gridTemplateColumns: '1fr 90px 90px 90px', borderBottom: i < lines.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
             <span style={{ fontSize: 12, color: '#1A1A1A' }}>{line.concept}</span>
             <span style={{ fontSize: 12, color: '#8EBFA3' }}>{fmtDate(line.dueDate)}</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A' }}>{L(line.baseAmount)}</span>
@@ -146,15 +158,5 @@ function InvoiceSection({ title, lines }: { title: string; lines: InvoiceLine[] 
         ))}
       </div>
     </div>
-  )
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_STYLE[status] ?? STATUS_STYLE['En revisión']
-  return (
-    <span className="rounded-full whitespace-nowrap flex items-center"
-      style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', background: s.bg, color: s.color }}>
-      {status}
-    </span>
   )
 }

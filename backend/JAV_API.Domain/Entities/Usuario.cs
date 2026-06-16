@@ -26,6 +26,7 @@ public class Usuario
     public ICollection<Multa> Multas { get; set; } = new List<Multa>();
     public ICollection<Conexion> Conexiones { get; set; } = new List<Conexion>();
     public ICollection<Pago> PagosRegistrados { get; set; } = new List<Pago>();
+    public ICollection<Pago> PagosAprobados { get; set; } = new List<Pago>();
     public ICollection<Egreso> EgresosRegistrados { get; set; } = new List<Egreso>();
     public ICollection<Egreso> EgresosAprobados { get; set; } = new List<Egreso>();
     public ICollection<JornadaCobro> JornadasCobroEncargado { get; set; } = new List<JornadaCobro>();

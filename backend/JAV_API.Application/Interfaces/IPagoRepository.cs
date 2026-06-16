@@ -21,4 +21,8 @@ public interface IPagoRepository
     Task<Pago?> ObtenerPagoPorIdConDetallesAsync(int idPago);
 
     Task<IEnumerable<Pago>> ObtenerHistorialPorUsuarioAsync(int idUsuario, DateTime? desde, DateTime? hasta);
+
+    Task<Pago?> ObtenerPorIdAsync(int idPago);
+    Task AprobarAsync(int idPago, int aprobadoPor);
+    Task RechazarAsync(int idPago);
 }

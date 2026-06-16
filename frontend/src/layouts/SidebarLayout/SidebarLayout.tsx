@@ -3,15 +3,13 @@ import { Sidebar } from './Sidebar'
 import { PageLayout } from '../PageLayout'
 
 export const SidebarLayout = () => (
-  <div className="flex gap-8 min-h-screen bg-[#F2F2F2]">
- 
+  <div className="flex gap-0 min-h-screen bg-[#F2F2F2]">
     <Sidebar />
- 
+
     <main className="flex-1 overflow-y-auto">
       <PageLayout>
         <Outlet />
       </PageLayout>
     </main>
- 
   </div>
-)
+)

@@ -13,11 +13,12 @@ interface LoginApiResponse {
 // cargo (the raw backend value) is preserved separately for display purposes.
 const ROLE_MAP: Record<string, Role> = {
   Presidente:     'SuperAdministrador',
-  Vicepresidente: 'SuperAdministrador',
+  Vicepresidente: 'Administrador',
   Secretario:     'Administrador',
   Vocal:          'Administrador',
   Tesorero:       'Tesorero',
   Fiscal:         'Fiscal',
+  DuenoDeCasa:    'DuenoDeCasa', 
 }
 
 function decodeJwtSub(token: string): string {

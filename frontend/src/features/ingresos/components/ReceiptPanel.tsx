@@ -1,10 +1,11 @@
 import { FileText } from 'lucide-react'
-import { PAYMENTS, L, fmtDate } from '../data/mock-data'
-import type { Client, Payment } from '../data/mock-data'
+import { L, fmtDate } from './types'
+import type { Client, Payment } from './types'
 import type { Method } from './PaymentMethodPanel'
 
 interface Props {
   client: Client | null
+  payments: Payment[] 
   selectedIds: string[]
   method: Method
   code: string
@@ -16,8 +17,9 @@ const today = () => {
   return `${d.getDate()} de ${m[d.getMonth()]} de ${d.getFullYear()}`
 }
 
-export function ReceiptPanel({ client, selectedIds, method, code }: Props) {
-  const items   = PAYMENTS.filter(p => selectedIds.includes(p.id))
+export function ReceiptPanel({ client, payments, selectedIds, method, code }: Props) {
+  // Ahora filtramos usando el prop 'payments' en lugar del mock estático 'PAYMENTS'
+  const items   = payments.filter(p => selectedIds.includes(p.id))
   const mensual = items.filter(p => p.type === 'mensualidad')
   const multas  = items.filter(p => p.type === 'multa')
   const total   = items.reduce((a, p) => a + p.amount + p.mora, 0)
@@ -50,11 +52,11 @@ export function ReceiptPanel({ client, selectedIds, method, code }: Props) {
             <div>
               <ReceiptLabel text="Cliente" />
               <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A', display: 'block' }}>{client.name}</span>
-              <span style={{ fontSize: 12, color: '#8EBFA3' }}>{client.lot}</span>
+              <span style={{ fontSize: 12, color: '#8EBFA3' }}>Lote {client.lot}</span>
             </div>
 
             {mensual.length > 0 && <ReceiptGroup title="Mensualidades" items={mensual} />}
-            {multas.length  > 0 && <ReceiptGroup title="Multas"         items={multas} />}
+            {multas.length  > 0 && <ReceiptGroup title="Multas"        items={multas} />}
 
             <div style={{ borderTop: '1.5px dashed rgba(0,0,0,0.1)' }} />
 

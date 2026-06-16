@@ -253,6 +253,10 @@ namespace JAV_API.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdCobro"));
 
+                    b.Property<int>("EditadoPor")
+                        .HasColumnType("integer")
+                        .HasColumnName("editado_Por");
+
                     b.Property<DateTime?>("FechaAnulacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_Anulacion");
@@ -271,6 +275,8 @@ namespace JAV_API.Infrastructure.Migrations
                         .HasColumnName("monto");
 
                     b.HasKey("IdCobro");
+
+                    b.HasIndex("EditadoPor");
 
                     b.HasIndex("IdTipoCobro");
 
@@ -293,6 +299,10 @@ namespace JAV_API.Infrastructure.Migrations
                     b.Property<DateTime?>("Fecha")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha");
+
+                    b.Property<DateTime?>("PeriodoCobro")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("periodo_cobro");
 
                     b.HasKey("IdJornadaCobro");
 
@@ -384,6 +394,17 @@ namespace JAV_API.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdPago"));
 
+                    b.Property<int?>("AprobadoPor")
+                        .HasColumnType("integer")
+                        .HasColumnName("aprobado_Por");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("EnRevision")
+                        .HasColumnName("estado");
+
                     b.Property<DateTime>("FechaPago")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_Pago");
@@ -403,6 +424,8 @@ namespace JAV_API.Infrastructure.Migrations
                         .HasColumnName("registrado_Por");
 
                     b.HasKey("IdPago");
+
+                    b.HasIndex("AprobadoPor");
 
                     b.HasIndex("RegistradoPor");
 
@@ -741,6 +764,12 @@ namespace JAV_API.Infrastructure.Migrations
 
             modelBuilder.Entity("JAV_API.Domain.Entities.HistorialCostos", b =>
                 {
+                    b.HasOne("JAV_API.Domain.Entities.Usuario", "UsuarioEditor")
+                        .WithMany()
+                        .HasForeignKey("EditadoPor")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("JAV_API.Domain.Entities.TipoCobro", "TipoCobro")
                         .WithMany("HistorialCostos")
                         .HasForeignKey("IdTipoCobro")
@@ -748,6 +777,8 @@ namespace JAV_API.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("TipoCobro");
+
+                    b.Navigation("UsuarioEditor");
                 });
 
             modelBuilder.Entity("JAV_API.Domain.Entities.JornadaCobro", b =>
@@ -793,10 +824,17 @@ namespace JAV_API.Infrastructure.Migrations
 
             modelBuilder.Entity("JAV_API.Domain.Entities.Pago", b =>
                 {
+                    b.HasOne("JAV_API.Domain.Entities.Usuario", "Aprobador")
+                        .WithMany("PagosAprobados")
+                        .HasForeignKey("AprobadoPor")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("JAV_API.Domain.Entities.Usuario", "Registrador")
                         .WithMany("PagosRegistrados")
                         .HasForeignKey("RegistradoPor")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Aprobador");
 
                     b.Navigation("Registrador");
                 });
@@ -975,6 +1013,8 @@ namespace JAV_API.Infrastructure.Migrations
                     b.Navigation("Mensualidades");
 
                     b.Navigation("Multas");
+
+                    b.Navigation("PagosAprobados");
 
                     b.Navigation("PagosRegistrados");
                 });

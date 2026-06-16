@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
-import { STREETS, BLOCKS, LOTS, CLIENTS } from '../data/mock-data'
-import type { Client } from '../data/mock-data'
+import { STREETS, BLOCKS, BLOCKS_ALL, MAX_LOTE, fmtCalle, fmtBloque } from './types'
+import type { Client } from './types'
 import { Step, SectionLabel } from './shared'
 
 const PER_PAGE = 3
@@ -9,29 +9,49 @@ const PER_PAGE = 3
 interface Props {
   selectedClient: Client | null
   onSelectClient: (c: Client | null) => void
+  // El lote es estrictamente un 'number' opcional, compatible con tu 'int' de C#
+  fetchClients: (calle: string, bloque: string, lote?: number) => Promise<Client[]>;
 }
 
-export function ClientFinder({ selectedClient, onSelectClient }: Props) {
-  const [street, setStreet] = useState('')
-  const [block,  setBlock]  = useState('')
-  const [lot,    setLot]    = useState('')
-  const [page,   setPage]   = useState(0)
+export function ClientFinder({ selectedClient, onSelectClient, fetchClients }: Props) {
+  const [street,  setStreet]  = useState('')
+  const [block,   setBlock]   = useState('')
+  const [lot,     setLot]     = useState<number | undefined>(undefined)
+  const [page,    setPage]    = useState(0)
+  const [clients, setClients] = useState<Client[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const blocks = street ? (BLOCKS[street] ?? []) : []
-  const lots   = block  ? (LOTS[block]    ?? []) : []
+  const blocks  = street ? (BLOCKS[street] ?? BLOCKS_ALL) : []
+  const pages   = Math.ceil(clients.length / PER_PAGE)
+  const visible = clients.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
 
-  const found = useMemo(() =>
-    (!street || !block) ? [] :
-    CLIENTS.filter(c => c.street === street && c.block === block && (lot ? c.lot === lot : true)),
-  [street, block, lot])
+  const search = async (calle: string, bloque: string, lote?: number) => {
+    if (!calle || !bloque) { setClients([]); return }
+    setLoading(true)
+    const result = await fetchClients(calle, bloque, lote)
+    setClients(result)
+    setPage(0)
+    setLoading(false)
+  }
 
-  const pages   = Math.ceil(found.length / PER_PAGE)
-  const visible = found.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
-
-  const onStreet = (v: string) => { setStreet(v); setBlock(''); setLot(''); setPage(0); onSelectClient(null) }
-  const onBlock  = (v: string) => { setBlock(v);  setLot('');  setPage(0); onSelectClient(null) }
-  const onLot    = (v: string) => { setLot(v);    setPage(0);  onSelectClient(null) }
-  const toggle   = (c: Client) => onSelectClient(selectedClient?.id === c.id ? null : c)
+  const onStreet = (v: string) => {
+    setStreet(v); setBlock(''); setLot(undefined); setClients([]); onSelectClient(null)
+  }
+  
+  const onBlock = (v: string) => {
+    setBlock(v); setLot(undefined); onSelectClient(null); search(street, v)
+  }
+  
+  const onLot = (v: string) => {
+    // Transformamos el string del select al int que C# necesita
+    const n = v ? parseInt(v, 10) : undefined;
+    setLot(n); 
+    setPage(0); 
+    onSelectClient(null); 
+    search(street, block, n);
+  }
+  
+  const toggle = (c: Client) => onSelectClient(selectedClient?.id === c.id ? null : c)
 
   const selectClass = "w-full h-10 px-3 text-sm rounded-xl border border-[rgba(0,0,0,0.12)] bg-white appearance-none focus:outline-none focus:ring-2 focus:ring-[#308C58] focus:ring-opacity-30 disabled:opacity-40 disabled:cursor-not-allowed"
 
@@ -57,7 +77,7 @@ export function ClientFinder({ selectedClient, onSelectClient }: Props) {
           <div className="relative">
             <select value={street} onChange={e => onStreet(e.target.value)} className={selectClass}>
               <option value="">Seleccionar calle</option>
-              {STREETS.map(s => <option key={s} value={s}>{s}</option>)}
+              {STREETS.map(s => <option key={s} value={s}>{fmtCalle(s)}</option>)}
             </select>
             <ChevronDown />
           </div>
@@ -69,7 +89,7 @@ export function ClientFinder({ selectedClient, onSelectClient }: Props) {
           <div className="relative">
             <select value={block} onChange={e => onBlock(e.target.value)} disabled={!street} className={selectClass}>
               <option value="">Seleccionar bloque</option>
-              {blocks.map(b => <option key={b} value={b}>{b}</option>)}
+              {blocks.map(b => <option key={b} value={b}>{fmtBloque(b)}</option>)}
             </select>
             <ChevronDown />
           </div>
@@ -79,16 +99,22 @@ export function ClientFinder({ selectedClient, onSelectClient }: Props) {
         <div>
           <Step n={3} label="Lote" />
           <div className="relative">
-            <select value={lot} onChange={e => onLot(e.target.value)} disabled={!block} className={selectClass}>
+            <select
+              value={lot ?? ''}
+              onChange={e => onLot(e.target.value)}
+              disabled={!block}
+              className={selectClass}
+            >
               <option value="">Todos los lotes</option>
-              {lots.map(l => <option key={l} value={l}>{l}</option>)}
+              {Array.from({ length: MAX_LOTE }, (_, i) => i + 1).map(n => (
+                <option key={n} value={n}>Lote {n}</option>
+              ))}
             </select>
             <ChevronDown />
           </div>
         </div>
       </div>
 
-      {/* Grid de clientes */}
       {street && block && (
         <div className="border-t border-[rgba(0,0,0,0.06)] px-6 py-5">
           <div className="flex items-center justify-between mb-4">
@@ -102,17 +128,20 @@ export function ClientFinder({ selectedClient, onSelectClient }: Props) {
             )}
           </div>
 
-          {found.length === 0
-            ? <p style={{ fontSize: 13, color: '#B0C8BA', textAlign: 'center' }}>Sin clientes para esta ubicación</p>
-            : <div className="grid grid-cols-3 gap-3">
-                {Array.from({ length: PER_PAGE }).map((_, i) => {
-                  const c = visible[i]
-                  return c
-                    ? <ClientCard key={c.id} c={c} selected={selectedClient?.id === c.id} onClick={() => toggle(c)} />
-                    : <div key={`e${i}`} className="rounded-xl border-2 border-dashed border-[rgba(0,0,0,0.06)]" style={{ minHeight: 110 }} />
-                })}
-              </div>
-          }
+          {loading ? (
+            <p style={{ fontSize: 13, color: '#B0C8BA', textAlign: 'center' }}>Cargando clientes...</p>
+          ) : clients.length === 0 ? (
+            <p style={{ fontSize: 13, color: '#B0C8BA', textAlign: 'center' }}>Sin clientes para esta ubicación</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {Array.from({ length: PER_PAGE }).map((_, i) => {
+                const c = visible[i]
+                return c
+                  ? <ClientCard key={c.id} c={c} selected={selectedClient?.id === c.id} onClick={() => toggle(c)} />
+                  : <div key={`e${i}`} className="rounded-xl border-2 border-dashed border-[rgba(0,0,0,0.06)]" style={{ minHeight: 110 }} />
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -157,7 +186,7 @@ function ClientCard({ c, selected, onClick }: { c: Client; selected: boolean; on
         {c.initials}
       </div>
       <span style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3 }}>{c.name}</span>
-      <span style={{ fontSize: 11, color: '#8EBFA3' }}>{c.lot}</span>
+      <span style={{ fontSize: 11, color: '#8EBFA3' }}>Lote {c.lot}</span>
     </button>
   )
 }
