@@ -75,6 +75,11 @@ builder.Services.AddScoped<ITipoCobroRepository, TipoCobroRepository>();
 builder.Services.AddScoped<ITipoCobroService, TipoCobroService>();
 builder.Services.AddScoped<IJornadaCobroRepository, JornadaCobroRepository>();
 builder.Services.AddScoped<IJornadaCobroService, JornadaCobroService>();
+builder.Services.AddScoped<IMultaRepository, MultaRepository>();
+builder.Services.AddScoped<IConexionRepository, ConexionRepository>();
+
+// Si MensualidadRepository tampoco estaba registrado, agrégalo:
+// builder.Services.AddScoped<IMensualidadRepository, MensualidadRepository>();
 
 // Servicios de seguridad e infraestructura general (capa Infrastructure)
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -145,7 +150,37 @@ builder.Services.AddControllers()
         // Permite enviar/recibir enums como strings ("DuenoDeCasa") en lugar de números (0)
         options.JsonSerializerOptions.Converters.Add(
             new System.Text.Json.Serialization.JsonStringEnumConverter()));
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "JAV API", Version = "v1" });
+
+    // Configuración para que Swagger soporte tus tokens JWT
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Ingresa 'Bearer' [espacio] y luego tu token JWT. Ejemplo: \"Bearer eyJhbGci...\""
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
@@ -154,7 +189,8 @@ var app = builder.Build();
 // ─────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
     // Aplicar migraciones automáticamente e inicializar datos semilla en desarrollo
     using var scope = app.Services.CreateScope();
@@ -207,6 +243,7 @@ if (app.Environment.IsDevelopment())
         if (!context.Usuarios.Any(u => u.Correo == "maria@test.com"))
         {
             var tipoSuperAdmin = context.Set<TipoUsuario>().First(t => t.Nombre == "SuperAdministrador");
+            var tipoTesorero = context.Set<TipoUsuario>().First(t => t.Nombre == "Tesorero");
             var tipoCliente    = context.Set<TipoUsuario>().First(t => t.Nombre == "Cliente");
 
             var admin = new Usuario
@@ -220,6 +257,18 @@ if (app.Environment.IsDevelopment())
                 UltimoAcceso  = DateTime.UtcNow,
                 Rol           = Rol.Presidente,
                 IdTipoUsuario = tipoSuperAdmin.IdTipo
+            };
+            var tesorero = new Usuario
+            {
+                Persona       = new Persona { PrimerNombre = "Juan",  PrimerApellido = "Perez",   Dni = "0501199902322" },
+                Correo        = "tesorero@villalinda.com",
+                PasswordHash  = hasher.Hash("Tesorero123*"),
+                Telefono      = "9009-1001",
+                Estado        = true,
+                FechaCreacion = DateTime.UtcNow,
+                UltimoAcceso  = DateTime.UtcNow,
+                Rol           = Rol.Tesorero,
+                IdTipoUsuario = tipoTesorero.IdTipo
             };
             var cliente1 = new Usuario
             {
@@ -246,7 +295,7 @@ if (app.Environment.IsDevelopment())
                 IdTipoUsuario = tipoCliente.IdTipo
             };
 
-            context.Usuarios.AddRange(admin, cliente1, cliente2);
+            context.Usuarios.AddRange(admin, tesorero, cliente1, cliente2);
             context.SaveChanges();
         }
 
