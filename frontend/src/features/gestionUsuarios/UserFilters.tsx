@@ -1,6 +1,5 @@
 import type { UserRole, UserStatus } from "./GestionarUsuarios";
 
-
 export interface Filters {
   role: UserRole | "";
   status: UserStatus | "";
@@ -38,13 +37,14 @@ export function UserFilters({ filters, onChange, onApply }: Props) {
       <FilterGroup label="Rol">
         {(
           [
-            "Admin",
-            "Residente",
+            "Dueño de Casa",
+
             "Tesorero",
             "Secretario",
             "Vocal",
-            "Presidente",
+
             "Vicepresidente",
+            "Presidente",
             "Fiscal",
           ] as UserRole[]
         ).map((role) => (

@@ -3,10 +3,13 @@ import { INPUT_CLS, LABEL_CLS, SECTION_TITLE_CLS } from "./types";
 
 interface Props {
   formData: CreateUserFormData;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => void;
+  onDniChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function SeccionPersonal({ formData, onChange }: Props) {
+export function SeccionPersonal({ formData, onChange, onDniChange }: Props) {
   return (
     <div>
       <h3 className={SECTION_TITLE_CLS}>Información Personal</h3>
@@ -55,16 +58,13 @@ export function SeccionPersonal({ formData, onChange }: Props) {
           />
         </div>
         <div className="flex flex-col gap-2">
-          <label className={LABEL_CLS}>
-            Segundo Apellido <span className="text-red-500">*</span>
-          </label>
+          <label className={LABEL_CLS}>Segundo Apellido</label>
           <input
             type="text"
             name="segundoApellido"
             value={formData.segundoApellido}
             onChange={onChange}
             placeholder="Ej: García"
-            required
             className={INPUT_CLS}
           />
         </div>
@@ -78,7 +78,7 @@ export function SeccionPersonal({ formData, onChange }: Props) {
           type="text"
           name="identificacion"
           value={formData.identificacion}
-          onChange={onChange}
+          onChange={onDniChange}
           placeholder="Ej: 0801199912345"
           required
           className={INPUT_CLS}
