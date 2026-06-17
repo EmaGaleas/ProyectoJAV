@@ -22,7 +22,7 @@ export default function UserCard({ user }: Props) {
       <div className="flex flex-col gap-1">
         <p>Nombre: {nombre}</p>
         <p>DNI: {user.dni}</p>
-        <p>Rol: {user.rol}</p>
+        <p>Rol: {user.rol === "DuenoDeCasa" ? "Dueño de Casa" : user.rol}</p>
       </div>
       {/**Badge Activo/Inactivo */}
       <div

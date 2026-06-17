@@ -5,11 +5,17 @@ import { INPUT_CLS, LABEL_CLS, SECTION_TITLE_CLS } from "./types";
 
 interface Props {
   formData: CreateUserFormData;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => void;
   onCelularChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function SeccionContacto({ formData, onChange, onCelularChange }: Props) {
+export function SeccionContacto({
+  formData,
+  onChange,
+  onCelularChange,
+}: Props) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -18,13 +24,16 @@ export function SeccionContacto({ formData, onChange, onCelularChange }: Props) 
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="flex flex-col gap-2">
-          <label className={LABEL_CLS}>Correo Electrónico</label>
+          <label className={LABEL_CLS}>
+            Correo Electrónico <span className="text-red-500">*</span>
+          </label>
           <input
             type="email"
             name="correo"
             value={formData.correo}
             onChange={onChange}
             placeholder="ejemplo@correo.com"
+            required
             className={INPUT_CLS}
           />
         </div>
