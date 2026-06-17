@@ -31,26 +31,22 @@ export function useCreateUserForm(
   };
 
   const handleDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 1. Keep only numbers
     let value = e.target.value.replace(/\D/g, "");
 
-    // 2. Limit to 14 digits total
-    value = value.substring(0, 14);
+    value = value.substring(0, 13);
 
-    // 3. Apply mask 0000-00000-00000
     let formatted = "";
 
     if (value.length > 0) {
       formatted += value.substring(0, 4);
     }
     if (value.length > 4) {
-      formatted += "-" + value.substring(4, 9);
+      formatted += "-" + value.substring(4, 8);
     }
-    if (value.length > 9) {
-      formatted += "-" + value.substring(9, 14);
+    if (value.length > 8) {
+      formatted += "-" + value.substring(8, 13);
     }
 
-    // 4. Update state
     setFormData((prev) => ({
       ...prev,
       identificacion: formatted,
@@ -86,6 +82,12 @@ export function useCreateUserForm(
     if (celularDigits.length !== 11)
       return "El celular debe tener 8 dígitos después de +504";
     if (!formData.correo.trim()) return "El correo electronico es obligatorio";
+
+    const dni = formData.identificacion.trim().replace(/-/g, "");
+    if (dni.length != 14)
+      return "El numero de identificacion debe tener 13 digitos";
+    if (!formData.identificacion.trim())
+      return "El numero de identificacion es obligatorio";
 
     const needsAddress = !isSuperAdmin || formData.rol === "DuenoDeCasa";
     if (needsAddress) {
