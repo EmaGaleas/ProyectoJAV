@@ -132,9 +132,19 @@ public class PagoRepository : IPagoRepository
     }
 
     public async Task<Pago?> ObtenerPorIdAsync(int idPago)
-    {
-        return await _context.Pagos.FindAsync(idPago);
-    }
+{
+    return await _context.Pagos
+        .Include(p => p.Comprobante)
+        .Include(p => p.Registrador)
+            .ThenInclude(u => u.Persona)
+        .Include(p => p.PagoMensualidades)
+            .ThenInclude(pm => pm.Mensualidad)
+        .Include(p => p.PagoMultas)
+            .ThenInclude(pm => pm.Multa)
+        .Include(p => p.PagoConexiones)
+            .ThenInclude(pc => pc.Conexion)
+        .FirstOrDefaultAsync(p => p.IdPago == idPago);
+}
 
     public async Task AprobarAsync(int idPago, int aprobadoPor)
     {
