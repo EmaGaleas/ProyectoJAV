@@ -11,7 +11,11 @@ interface Props {
 }
 
 export function PaymentMethodPanel({ method, onMethodChange, code, onCodeChange, codeError }: Props) {
-  const change = (m: Method) => { onMethodChange(m); if (m === 'cash') onCodeChange('') }
+  // Ya no limpiamos el código al cambiar de método porque ambos lo necesitan
+  const change = (m: Method) => { onMethodChange(m) }
+
+  const labelTexto = method === 'cash' ? 'Número de recibo' : 'Número de comprobante'
+  const placeholderTexto = method === 'cash' ? 'Ej. REC-00123' : 'Ej. TRF-2025-00123'
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-[rgba(0,0,0,0.07)] px-5 py-5 flex flex-col gap-4">
@@ -33,23 +37,21 @@ export function PaymentMethodPanel({ method, onMethodChange, code, onCodeChange,
         </div>
       </div>
 
-      {method === 'transfer' && (
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="code" style={{ fontSize: 12, color: '#555', fontWeight: 500 }}>
-            Número de comprobante <span style={{ color: '#EF4444' }}>*</span>
-          </label>
-          <input
-            id="code"
-            type="text"
-            value={code}
-            placeholder="Ej. TRF-2025-00123"
-            onChange={e => onCodeChange(e.target.value)}
-            className="h-9 px-3 text-sm rounded-xl border w-full focus:outline-none focus:ring-2 focus:ring-[#308C58] focus:ring-opacity-30"
-            style={{ borderColor: codeError ? '#EF4444' : 'rgba(0,0,0,0.12)' }}
-          />
-          {codeError && <span style={{ fontSize: 11, color: '#EF4444' }}>El comprobante es obligatorio</span>}
-        </div>
-      )}
+      <div className="flex flex-col gap-1.5 mt-2">
+        <label htmlFor="code" style={{ fontSize: 12, color: '#555', fontWeight: 500 }}>
+          {labelTexto} <span style={{ color: '#EF4444' }}>*</span>
+        </label>
+        <input
+          id="code"
+          type="text"
+          value={code}
+          placeholder={placeholderTexto}
+          onChange={e => onCodeChange(e.target.value)}
+          className="h-9 px-3 text-sm rounded-xl border w-full focus:outline-none focus:ring-2 focus:ring-[#308C58] focus:ring-opacity-30"
+          style={{ borderColor: codeError ? '#EF4444' : 'rgba(0,0,0,0.12)' }}
+        />
+        {codeError && <span style={{ fontSize: 11, color: '#EF4444' }}>Este campo es obligatorio</span>}
+      </div>
     </div>
   )
 }
