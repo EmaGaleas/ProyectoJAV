@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
-import { X, Receipt, CreditCard, MapPin, Calendar, User, Loader2, FileText, ChevronRight, ArrowLeft } from 'lucide-react'
+import { X, CreditCard, MapPin, User, Loader2, FileText, ChevronRight } from 'lucide-react'
 import { L, fmtDate } from './types'
 import type { Income } from './types'
 import { apiFetch } from '../../../services/apiClient'
 import { useAuthStore } from '../../auth/store/authStore'
 import { ConfirmDialog } from '../egresos/ConfirmDialog'
-import ingreso from '../../../assets/icons/sidebar/tesorero/ingresos.svg?react'
+import Ingreso from '../../../assets/icons/sidebar/tesorero/ingresos.svg?react'
 
-// ─── Tipos backend ────────────────────────────────────────────────────────────
 
 interface LineaPago {
   concepto:         string
@@ -129,7 +128,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                   className="flex items-center justify-center rounded-xl"
                   style={{ width: 38, height: 38, background: '#308C58' }}
                 >
-                  <Receipt size={18} color="#fff" />
+                  <Ingreso width={18} height={18} fill="#fff" />
                 </div>
                 <div>
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#8EBFA3', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block' }}>
@@ -435,9 +434,6 @@ function InfoField({ label, value, highlight }: { label: string; value: string; 
   )
 }
 
-function TwoColGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3">{children}</div>
-}
 
 function ThreeColGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-3 gap-3">{children}</div>

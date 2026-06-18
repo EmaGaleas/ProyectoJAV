@@ -21,23 +21,6 @@ function mapClient(raw: any): Client {
   }
 }
 
-function mapDeuda(raw: any, clientId: string): Payment {
-  const isMensualidad = raw.tipo === 'Mensualidad' || raw.tipoCobro === 'Mensualidad'
-  const isMulta       = raw.tipo === 'Multa'       || raw.tipoCobro === 'Multa'
-
-  return {
-    id:       `${raw.idMensualidad ?? raw.idMulta ?? raw.idConexion}-${raw.tipo}`,
-    clientId,
-    concept:  raw.descripcion ?? raw.periodo ?? raw.concepto ?? '',
-    dueDate:  raw.fechaVencimiento?.split('T')[0] ?? '',
-    amount:   raw.monto      ?? 0,
-    mora:     raw.mora       ?? 0,
-    overdue:  raw.estado === 'Vencido',
-    type:     isMensualidad ? 'mensualidad' : isMulta ? 'multa' : 'conexion',
-    backId:   raw.idMensualidad ?? raw.idMulta ?? raw.idConexion ?? 0,
-  }
-}
-
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function usePaymentRegistration() {
