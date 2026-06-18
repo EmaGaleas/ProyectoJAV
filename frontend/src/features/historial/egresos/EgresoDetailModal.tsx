@@ -29,6 +29,17 @@ export function EgresoDetailModal({ record, userRole, onClose, onApprove, onReje
 
   const canAct = userRole === 'SuperAdministrador' && record.status === 'Pendiente'
 
+  const getFullUrl = (url: string) => {
+    if (!url) return ''
+    if (url.startsWith('http')) return url
+    const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:5209'
+    return `${baseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
+  }
+
+  const fullFacturaUrl = record.facturaUrl ? getFullUrl(record.facturaUrl) : ''
+  const isImage = fullFacturaUrl ? /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(fullFacturaUrl) : false
+  const isPdf = fullFacturaUrl ? /\.pdf(\?.*)?$/i.test(fullFacturaUrl) : false
+
   const handleConfirm = async () => {
     if (!pendingAction) return
     setIsLoading(true)
@@ -109,16 +120,49 @@ export function EgresoDetailModal({ record, userRole, onClose, onApprove, onReje
             {/* Archivo asociado */}
             <div className="flex flex-col gap-2">
               <span className="text-xs font-semibold text-[#9ca3af] uppercase tracking-wide">Archivo asociado</span>
-              <a
-                href={record.facturaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-medium rounded-[10px] px-4 py-2 transition-colors w-fit"
-                style={{ background: '#f3f4f6', color: '#374151', textDecoration: 'none' }}
-              >
-                <div className="w-4 h-4 rounded bg-[#308C58] shrink-0" />
-                {record.facturaUrl}
-              </a>
+              {fullFacturaUrl ? (
+                isImage ? (
+                  <a href={fullFacturaUrl} target="_blank" rel="noopener noreferrer" className="block w-fit mt-1 hover:opacity-90 transition-opacity">
+                    <img src={fullFacturaUrl} alt="Archivo asociado" className="w-32 h-32 object-cover rounded-[10px] border border-[#e5e7eb] shadow-sm" />
+                  </a>
+                ) : isPdf ? (
+                  <div className="flex items-center gap-3 bg-[#f3f4f6] rounded-[10px] px-4 py-3 w-fit border border-[#e5e7eb]">
+                    <div className="w-10 h-10 rounded-lg bg-[#e5e7eb] flex items-center justify-center shrink-0">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                    </div>
+                    <div className="flex flex-col pr-2">
+                      <span className="text-sm font-semibold text-[#1f2937]">Documento PDF</span>
+                      <div className="flex items-center gap-3 mt-1">
+                        <a href={fullFacturaUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-[#308C58] hover:underline">
+                          Ver archivo
+                        </a>
+                        <a href={fullFacturaUrl} download className="text-xs font-medium text-[#308C58] hover:underline">
+                          Descargar
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <a
+                    href={fullFacturaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-medium rounded-[10px] px-4 py-2 transition-colors w-fit"
+                    style={{ background: '#f3f4f6', color: '#374151', textDecoration: 'none' }}
+                  >
+                    <div className="w-4 h-4 rounded bg-[#308C58] shrink-0" />
+                    Ver archivo adjunto
+                  </a>
+                )
+              ) : (
+                <span className="text-sm text-[#6b7280]">No hay archivo asociado</span>
+              )}
             </div>
           </div>
 
