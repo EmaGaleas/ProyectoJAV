@@ -126,11 +126,6 @@ public class CostosService : ICostosService
         };
     }
 
-    public async Task MySqlCustomMethod_EliminarProximaVigenciaAsync(int idCobro)
-    {
-        // El método original se llama EliminarProximaVigenciaAsync, lo conservo intacto abajo
-    }
-
     public async Task EliminarProximaVigenciaAsync(int idCobro)
     {
         var costo = await _costosRepository.ObtenerPorIdAsync(idCobro);
@@ -169,5 +164,43 @@ public class CostosService : ICostosService
             Monto = moraVigente.Monto,
             FechaInicio = moraVigente.FechaEmision?.ToString("yyyy-MM-dd") ?? ""
         };
+    }
+
+    public async Task<IEnumerable<CostoVigenteResponse>> ObtenerMoraProximasVigenciasAsync()
+    {
+        var horaDeMiZona = DateTime.UtcNow.AddHours(-6).Date;
+        var fechaActual = DateTime.SpecifyKind(horaDeMiZona, DateTimeKind.Utc);
+        
+        var proximas = await _costosRepository.ObtenerProximosAsync(TipoCobroEnum.Multa, fechaActual);
+        
+        // Filtramos solo las que son de mora
+        var moraProximas = proximas.Where(p => p.TipoCobro.Descripcion.ToLower().Contains("mora"));
+
+        return moraProximas.Select(p => new CostoVigenteResponse
+        {
+            Id = p.IdCobro,
+            Tipo = p.TipoCobro.Tipo.ToString(),
+            Descripcion = p.TipoCobro.Descripcion,
+            Monto = p.Monto,
+            FechaInicio = p.FechaEmision?.ToString("yyyy-MM-dd") ?? ""
+        });
+    }
+
+    public async Task<IEnumerable<CostoHistorialResponse>> ObtenerMoraHistorialAsync()
+    {
+        var historial = await _costosRepository.ObtenerHistorialAsync(TipoCobroEnum.Multa);
+        
+        var moraHistorial = historial.Where(h => h.TipoCobro.Descripcion.ToLower().Contains("mora"));
+
+        return moraHistorial.Select(h => new CostoHistorialResponse
+        {
+            Id = h.IdCobro,
+            Tipo = h.TipoCobro.Tipo.ToString(),
+            Monto = h.Monto,
+            FechaInicio = h.FechaEmision?.ToString("yyyy-MM-dd") ?? "",
+            FechaFin = h.FechaAnulacion?.ToString("yyyy-MM-dd") ?? "",
+            EditadoPor = $"{h.UsuarioEditor?.Persona?.PrimerNombre} {h.UsuarioEditor?.Persona?.PrimerApellido}".Trim(),
+            EditadoEl = h.FechaEmision?.ToString("yyyy-MM-dd") ?? "" 
+        });
     }
 }

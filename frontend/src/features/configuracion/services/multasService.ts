@@ -1,13 +1,4 @@
-/**
- * ============================================================
- *  SERVICE — Multas
- *  Backend: .NET Web API + PostgreSQL
- *
- *  Controlador: ConfiguracionMultasController.cs
- * ============================================================
- */
-
-import { MULTAS_ACTUALES, MULTAS_HISTORIAL } from "../types";
+import api from './apiConfig';
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
 
@@ -16,7 +7,7 @@ export interface MultaTipoDto {
   tipo: string;
   descripcion: string;
   monto: number;
-  fechaInicio: string; // ISO "YYYY-MM-DD"
+  fechaInicio: string; 
 }
 
 export interface MultaHistorialDto {
@@ -38,97 +29,174 @@ export interface ProximaMultaDto {
   fechaInicio: string;
 }
 
-// ─── GET /api/configuracion/multas ────────────────────────────────────────────
-// Lista de tipos de multa vigentes (sin fechaFin = Presente)
+// ─── ENDPOINTS ────────────────────────────────────────────────────────────────
+
+// GET /api/costos/Multa/vigentes
 export async function getMultasVigentes(): Promise<MultaTipoDto[]> {
-  // TODO: return apiFetch('/api/configuracion/multas', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay(MULTAS_ACTUALES.map((m) => ({ ...m, fechaFin: undefined as any })));
+  const { data } = await api.get("/api/costos/Multa/vigentes");
+  return data
+    .filter((item: any) => !item.descripcion?.toLowerCase().includes("mora"))
+    .map((item: any) => ({
+      id: item.id, 
+      tipo: item.descripcion, // El frontend usa 'tipo' para el nombre principal
+      descripcion: "", // El backend actualmente no maneja una descripción secundaria
+      monto: item.monto,
+      fechaInicio: item.fechaInicio
+    }));
 }
 
-// ─── POST /api/configuracion/multas ───────────────────────────────────────────
-// Crea un nuevo tipo de multa con vigencia inmediata
-// Body: { tipo, descripcion, monto, fechaInicio }
-export async function createMulta(
-  data: Omit<MultaTipoDto, "id">,
-): Promise<MultaTipoDto> {
-  // TODO:
-  // return apiFetch('/api/configuracion/multas', { method: 'POST', body: JSON.stringify(data) }, token)
+// POST /api/TiposCobro/multas + POST /api/costos
+export async function createMulta(data: Omit<MultaTipoDto, "id">): Promise<MultaTipoDto> {
+  // 1. Crear el Tipo de Cobro (Catálogo)
+  const tipoRes = await api.post("/api/TiposCobro/multas", {
+    descripcion: data.tipo 
+  });
+  const idTipoCobro = tipoRes.data.idTipoCobro;
 
-  // MOCK ↓
-  return mockDelay({ id: Date.now(), ...data });
+  // 2. Registrar el Costo inicial para ese tipo
+  const costoRes = await api.post("/api/costos", {
+    idTipoCobro: idTipoCobro,
+    monto: data.monto,
+    fechaInicio: data.fechaInicio
+  });
+
+  return {
+    id: costoRes.data.id,
+    tipo: data.tipo,
+    descripcion: data.descripcion,
+    monto: costoRes.data.monto,
+    fechaInicio: costoRes.data.fechaInicio
+  };
 }
 
-// ─── PUT /api/configuracion/multas/{id} ───────────────────────────────────────
-// Edita un tipo de multa vigente
-// Body: { tipo, descripcion, monto, fechaInicio }
-// El backend debe cerrar el registro anterior con fechaFin = nuevaFechaInicio - 1 día
-// y crear un nuevo registro en el historial automáticamente
-export async function updateMulta(
-  id: number,
-  data: Omit<MultaTipoDto, "id">,
-): Promise<MultaTipoDto> {
-  // TODO:
-  // return apiFetch(`/api/configuracion/multas/${id}`, { method: 'PUT', body: JSON.stringify(data) }, token)
+// PUT /api/TiposCobro/multas/{id} + POST /api/costos
+export async function updateMulta(id: number, data: Omit<MultaTipoDto, "id">): Promise<MultaTipoDto> {
+  // 1. Buscamos el costo vigente para saber el nombre original
+  const vigentesRes = await api.get("/api/costos/Multa/vigentes");
+  const costoActual = vigentesRes.data.find((c: any) => c.id === id);
+  if (!costoActual) throw new Error("No se encontró el costo vigente original.");
 
-  // MOCK ↓
-  return mockDelay({ id, ...data });
+  // 2. Buscamos el catálogo de tipos para extraer su verdadero IdTipoCobro
+  const tiposRes = await api.get("/api/TiposCobro/multas");
+  const tipoExistente = tiposRes.data.find((t: any) => t.descripcion === costoActual.descripcion);
+  if (!tipoExistente) throw new Error("No se encontró el tipo de multa base.");
+
+  const idTipoCobro = tipoExistente.idTipoCobro;
+
+  // 3. Si el usuario editó el nombre (tipo), actualizamos el catálogo
+  if (costoActual.descripcion !== data.tipo) {
+    await api.put(`/api/TiposCobro/multas/${idTipoCobro}`, {
+      descripcion: data.tipo
+    });
+  }
+
+  // 4. Registramos el nuevo costo para forzar el cierre del anterior y crear historial
+  const costoRes = await api.post("/api/costos", {
+    idTipoCobro: idTipoCobro,
+    monto: data.monto,
+    fechaInicio: data.fechaInicio
+  });
+
+  return { id: costoRes.data.id, ...data };
 }
 
-// ─── DELETE /api/configuracion/multas/{id} ────────────────────────────────────
-export async function deleteMulta(_id: number): Promise<void> {
-  // TODO: return apiFetch(`/api/configuracion/multas/${id}`, { method: 'DELETE' }, token)
+// DELETE /api/TiposCobro/multas/{id}
+export async function deleteMulta(id: number): Promise<void> {
+  const vigentesRes = await api.get("/api/costos/Multa/vigentes");
+  const costoActual = vigentesRes.data.find((c: any) => c.id === id);
+  if (!costoActual) throw new Error("No se encontró el costo vigente.");
 
-  // MOCK ↓
-  return mockDelay(undefined);
+  const tiposRes = await api.get("/api/TiposCobro/multas");
+  const tipoExistente = tiposRes.data.find((t: any) => t.descripcion === costoActual.descripcion);
+  if (!tipoExistente) throw new Error("No se encontró el tipo de multa base.");
+
+  await api.delete(`/api/TiposCobro/multas/${tipoExistente.idTipoCobro}`);
 }
 
-// ─── GET /api/configuracion/multas/proximas-vigencias ─────────────────────────
-// Multas programadas para el futuro (fechaInicio > hoy)
+// GET /api/costos/Multa/proximos
 export async function getProximasVigencias(): Promise<ProximaMultaDto[]> {
-  // TODO: return apiFetch('/api/configuracion/multas/proximas-vigencias', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay([]);
+  const { data } = await api.get("/api/costos/Multa/proximos");
+  return data
+    .filter((item: any) => !item.descripcion?.toLowerCase().includes("mora"))
+    .map((item: any) => ({
+      id: item.id,
+      tipo: item.descripcion,
+      descripcion: "",
+      monto: item.monto,
+      fechaInicio: item.fechaInicio
+    }));
 }
 
-// ─── POST /api/configuracion/multas/proximas-vigencias ───────────────────────
-// Programa una multa (nueva o cambio) para una fecha futura
-// Body: { tipo, descripcion, monto, fechaInicio }
-export async function createProximaVigencia(
-  data: Omit<ProximaMultaDto, "id">,
-): Promise<ProximaMultaDto> {
-  // TODO:
-  // return apiFetch(
-  //   '/api/configuracion/multas/proximas-vigencias',
-  //   { method: 'POST', body: JSON.stringify(data) },
-  //   token,
-  // )
+// POST /api/costos (Reutilizando TipoCobro si existe)
+export async function createProximaVigencia(data: Omit<ProximaMultaDto, "id">): Promise<ProximaMultaDto> {
+  const tiposRes = await api.get("/api/TiposCobro/multas");
+  const tipoExistente = tiposRes.data.find((t: any) => t.descripcion === data.tipo);
+  
+  let idTipo = tipoExistente?.idTipoCobro;
+  
+  if (!idTipo) {
+    const nuevoTipo = await api.post("/api/TiposCobro/multas", { descripcion: data.tipo });
+    idTipo = nuevoTipo.data.idTipoCobro;
+  }
 
-  // MOCK ↓
-  return mockDelay({ id: Date.now(), ...data });
+  const { data: costoData } = await api.post("/api/costos", {
+    idTipoCobro: idTipo,
+    monto: data.monto,
+    fechaInicio: data.fechaInicio
+  });
+
+  return { 
+    id: costoData.id, 
+    tipo: data.tipo, 
+    descripcion: data.descripcion, 
+    monto: costoData.monto, 
+    fechaInicio: costoData.fechaInicio 
+  };
 }
 
-// ─── DELETE /api/configuracion/multas/proximas-vigencias/{id} ────────────────
-export async function deleteProximaVigencia(_id: number): Promise<void> {
-  // TODO:
-  // return apiFetch(`/api/configuracion/multas/proximas-vigencias/${id}`, { method: 'DELETE' }, token)
-
-  // MOCK ↓
-  return mockDelay(undefined);
+// DELETE /api/costos/proximos/{id}
+export async function deleteProximaVigencia(id: number): Promise<void> {
+  await api.delete(`/api/costos/proximos/${id}`);
 }
 
-// ─── GET /api/configuracion/multas/historial ─────────────────────────────────
-// Historial de todos los cambios en tipos de multa
+// GET /api/costos/Multa/historial
 export async function getHistorial(): Promise<MultaHistorialDto[]> {
-  // TODO: return apiFetch('/api/configuracion/multas/historial', { method: 'GET' }, token)
+  const { data } = await api.get("/api/costos/Multa/historial");
 
-  // MOCK ↓
-  return mockDelay(MULTAS_HISTORIAL as MultaHistorialDto[]);
-}
+  const historial: MultaHistorialDto[] = data
+    .filter((item: any) => !item.descripcion?.toLowerCase().includes("mora"))
+    .map((item: any): MultaHistorialDto => ({
+      id: item.id,
+      tipo: item.descripcion || item.tipo,
+      montoAnterior: 0,
+      montoNuevo: item.monto,
+      fechaInicio: item.fechaInicio,
+      fechaFin: item.fechaFin || "",
+      editadoPor: item.editadoPor,
+      editadoEl: item.editadoEl,
+    }));
 
-// ─── Helper interno ───────────────────────────────────────────────────────────
-function mockDelay<T>(data: T, ms = 350): Promise<T> {
-  return new Promise((res) => setTimeout(() => res(data), ms));
+  // Agrupar por tipo
+  const grupos = historial.reduce<Record<string, MultaHistorialDto[]>>(
+    (acc, item) => {
+      (acc[item.tipo] ??= []).push(item);
+      return acc;
+    },
+    {}
+  );
+
+  // Calcular montoAnterior
+  Object.values(grupos).forEach(grupo => {
+    grupo.sort(
+      (a, b) =>
+        new Date(a.fechaInicio).getTime() -
+        new Date(b.fechaInicio).getTime()
+    );
+
+    for (let i = 1; i < grupo.length; i++) {
+      grupo[i].montoAnterior = grupo[i - 1].montoNuevo;
+    }
+  });
+
+  return historial;
 }

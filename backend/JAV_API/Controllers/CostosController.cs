@@ -76,4 +76,20 @@ public class CostosController : ControllerBase
         
         return Ok(result);
     }
+
+    // GET /api/costos/mora/proximos
+    [HttpGet("mora/proximos")]
+    public async Task<IActionResult> ObtenerMoraProximos()
+    {
+        var result = await _costosService.ObtenerMoraProximasVigenciasAsync();
+        return Ok(result);
+    }
+
+    // GET /api/costos/mora/historial
+    [HttpGet("mora/historial")]
+    public async Task<IActionResult> ObtenerMoraHistorial()
+    {
+        var result = await _costosService.ObtenerMoraHistorialAsync();
+        return Ok(result);
+    }
 }
