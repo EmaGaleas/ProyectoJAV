@@ -53,4 +53,7 @@ public interface IUsuarioRepository
     /// Usado para asignar automáticamente el TipoUsuario a partir del Rol.
     /// </summary>
     Task<TipoUsuario?> ObtenerTipoUsuarioPorNombreAsync(string nombre);
+
+    /// <summary>Cambia el estado activo/inactivo de un usuario. Devuelve false si el usuario no existe.</summary>
+    Task<bool> CambiarEstadoAsync(int id, bool estado);
 }

@@ -22,4 +22,9 @@ public interface IUsuarioService
     /// <param name="request">Datos del nuevo usuario.</param>
     /// <param name="rolSolicitante">Rol del usuario autenticado que hace la solicitud (extraído del JWT).</param>
     Task<UsuarioResponse> CrearUsuarioAsync(RegistroUsuarioRequest request, string rolSolicitante);
+
+    /// <summary>
+    /// Activa o desactiva un usuario. Devuelve null si no se encontró el usuario con ese ID.
+    /// </summary>
+    Task<UsuarioResponse?> CambiarEstadoAsync(int id, bool estado);
 }

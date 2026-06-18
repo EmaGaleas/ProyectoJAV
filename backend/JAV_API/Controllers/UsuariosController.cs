@@ -54,6 +54,26 @@ public class UsuariosController : ControllerBase
     }
 
     /// <summary>
+    /// Activa o desactiva un usuario por su ID.
+    /// Solo los roles administrativos pueden cambiar el estado de un usuario.
+    /// </summary>
+    /// <response code="200">Estado actualizado. Retorna el usuario con el nuevo estado.</response>
+    /// <response code="404">No existe un usuario con ese ID.</response>
+    [HttpPatch("{id:int}/estado")]
+    [Authorize(Roles = "Presidente,Vicepresidente,Secretario,Vocal")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CambiarEstado(int id, [FromBody] bool estado)
+    {
+        var usuario = await _usuarioService.CambiarEstadoAsync(id, estado);
+
+        if (usuario is null)
+            return NotFound(new { mensaje = $"No se encontró un usuario con ID {id}." });
+
+        return Ok(usuario);
+    }
+
+    /// <summary>
     /// Registra un nuevo usuario en el sistema.
     /// Solo los roles con permisos administrativos pueden crear usuarios.
     /// <list type="bullet">

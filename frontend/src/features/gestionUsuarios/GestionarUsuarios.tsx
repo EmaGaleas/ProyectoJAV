@@ -85,6 +85,12 @@ export default function GestionarUsuarios() {
     setUsers((prev) => [...prev, newUser]);
   };
 
+  const handleEstadoCambiado = (id: number, nuevoEstado: boolean) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.idUsuario === id ? { ...u, estado: nuevoEstado } : u))
+    );
+  };
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -153,7 +159,11 @@ export default function GestionarUsuarios() {
         {/* Cards de usuarios */}
         <div className="flex flex-col gap-4">
           {paginatedUsers.map((user) => (
-            <UserCard key={user.idUsuario} user={user} />
+            <UserCard
+              key={user.idUsuario}
+              user={user}
+              onEstadoCambiado={handleEstadoCambiado}
+            />
           ))}
           {filtered.length === 0 && (
             <div

@@ -137,4 +137,14 @@ public class UsuarioRepository : IUsuarioRepository
         return await _context.TiposUsuario
             .FirstOrDefaultAsync(t => t.Nombre == nombre);
     }
+
+    /// <inheritdoc/>
+    public async Task<bool> CambiarEstadoAsync(int id, bool estado)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario is null) return false;
+
+        usuario.Estado = estado;
+        return await _context.SaveChangesAsync() > 0;
+    }
 }

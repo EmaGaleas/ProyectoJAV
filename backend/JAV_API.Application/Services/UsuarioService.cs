@@ -37,6 +37,16 @@ public class UsuarioService : IUsuarioService
     }
 
     /// <inheritdoc/>
+    public async Task<UsuarioResponse?> CambiarEstadoAsync(int id, bool estado)
+    {
+        var cambiado = await _usuarioRepository.CambiarEstadoAsync(id, estado);
+        if (!cambiado) return null;
+
+        var usuario = await _usuarioRepository.ObtenerPorIdAsync(id);
+        return usuario is null ? null : MapearAResponse(usuario);
+    }
+
+    /// <inheritdoc/>
     public async Task<UsuarioResponse> CrearUsuarioAsync(RegistroUsuarioRequest request, string rolSolicitante)
     {
         ValidarPermisoCreacion(rolSolicitante, request.Rol);
