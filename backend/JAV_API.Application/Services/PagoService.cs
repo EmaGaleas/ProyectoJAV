@@ -43,9 +43,7 @@ public class PagoService
             MetodoPago = request.MetodoPago,
             Monto = request.Monto,
             FechaPago = DateTime.UtcNow,
-            Estado = request.MetodoPago == MetodoPago.Efectivo 
-                    ? EstadoAprobacion.Aprobado 
-                    : EstadoAprobacion.EnRevision
+            Estado = EstadoAprobacion.EnRevision // Todo pago inicia en revisión para auditoría
         };
 
         // Listas agregadas para la persistencia masiva transaccional
