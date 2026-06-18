@@ -352,22 +352,6 @@ if (app.Environment.IsDevelopment())
             context.SaveChanges();
 
             // === 1) MENSUALIDADES ===
-            // Caso 1.A: Mensualidad Pagada (María)
-            var mens1 = new Mensualidad { Usuario = cliente1, Monto = 350m, PeriodoPago = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaVencimiento = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc), Estado = Estado.Pendiente};
-            var pago1 = new Pago { RegistradoPor = admin.IdUsuario, MetodoPago = MetodoPago.Efectivo, Monto = 350m, FechaPago = new DateTime(2026, 6, 2, 0, 0, 0, DateTimeKind.Utc) };
-            context.Set<Mensualidad>().Add(mens1);
-            context.Set<Pago>().Add(pago1);
-            context.SaveChanges();
-            context.Set<Comprobante>().Add(new Comprobante { IdPago = pago1.IdPago, Codigo = 1, Url = string.Empty });
-            context.Set<PagoMensualidad>().Add(new PagoMensualidad { IdMensualidad = mens1.IdMensualidad, IdPago = pago1.IdPago });
-
-            // Caso 1.B: Mensualidad Pagada (Carlos)
-            var mens2 = new Mensualidad { Usuario = cliente2, Monto = 350m, PeriodoPago = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc), FechaVencimiento = new DateTime(2026, 5, 31, 0, 0, 0, DateTimeKind.Utc), Estado = Estado.Pagado };
-            var pago2 = new Pago { RegistradoPor = admin.IdUsuario, MetodoPago = MetodoPago.Transferencia, Monto = 350m, FechaPago = new DateTime(2026, 5, 15, 0, 0, 0, DateTimeKind.Utc) };
-            context.Set<Mensualidad>().Add(mens2);
-            context.Set<Pago>().Add(pago2);
-            context.SaveChanges();
-            context.Set<PagoMensualidad>().Add(new PagoMensualidad { IdMensualidad = mens2.IdMensualidad, IdPago = pago2.IdPago });
 
             // Caso 1.C: Mensualidad Pendiente (María - Julio 2026)
             var mensPendiente = new Mensualidad { Usuario = cliente1, Monto = 350m, PeriodoPago = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc), FechaVencimiento = new DateTime(2026, 7, 30, 0, 0, 0, DateTimeKind.Utc), Estado = Estado.Pendiente };
@@ -379,14 +363,6 @@ if (app.Environment.IsDevelopment())
             context.SaveChanges();
 
             // === 2) MULTAS ===
-            // Caso 2.A: Multa Pagada (María)
-            var multa1 = new Multa { TipoMulta = tipoMulta, Usuario = cliente1, Monto = 100m, Estado = Estado.Pagado };
-            var pago3  = new Pago { RegistradoPor = admin.IdUsuario, MetodoPago = MetodoPago.Efectivo, Monto = 100m, FechaPago = new DateTime(2026, 4, 10, 0, 0, 0, DateTimeKind.Utc) };
-            context.Set<Multa>().Add(multa1);
-            context.Set<Pago>().Add(pago3);
-            context.SaveChanges();
-            context.Set<PagoMulta>().Add(new PagoMulta { IdMulta = multa1.IdMulta, IdPago = pago3.IdPago });
-
             // Caso 2.B: Multa Pendiente (María)
             var multaPendiente = new Multa { TipoMulta = tipoMulta, Usuario = cliente1, Monto = 150m, Estado = Estado.Pendiente };
             context.Set<Multa>().Add(multaPendiente);
@@ -397,13 +373,6 @@ if (app.Environment.IsDevelopment())
             context.SaveChanges();
 
             // === 3) CONEXIONES (PEGUES) ===
-            // Caso 3.A: Conexión Pagada (Carlos)
-            var conexion1 = new Conexion { Usuario = cliente2, Monto = 500m, Domicilio = dom2, Estado = Estado.Pagado };
-            var pago4 = new Pago { RegistradoPor = admin.IdUsuario, MetodoPago = MetodoPago.Transferencia, Monto = 500m, FechaPago = new DateTime(2026, 5, 20, 0, 0, 0, DateTimeKind.Utc) };
-            context.Set<Conexion>().Add(conexion1);
-            context.Set<Pago>().Add(pago4);
-            context.SaveChanges();
-            context.Set<PagoConexion>().Add(new PagoConexion { IdConexion = conexion1.IdConexion, IdPago = pago4.IdPago });
 
             // Caso 3.B: Conexión Pendiente (María)
             var conexionPendiente = new Conexion { Usuario = cliente1, Monto = 600m, Domicilio = dom1, Estado = Estado.Pendiente };
