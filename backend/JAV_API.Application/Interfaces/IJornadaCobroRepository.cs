@@ -7,4 +7,5 @@ public interface IJornadaCobroRepository
     Task<JornadaCobro?> ObtenerPorIdAsync(int id);
     Task ActualizarAsync(JornadaCobro jornada);
     Task GuardarCambiosAsync();
+    Task<IEnumerable<JornadaCobro>> ObtenerPorAnioAsync(int anio);
 }

@@ -22,4 +22,8 @@ public interface ICostosService
     Task EliminarProximaVigenciaAsync(int idCobro);
 
     Task<CostoVigenteResponse?> ObtenerMoraActualAsync();
+
+    Task<IEnumerable<CostoVigenteResponse>> ObtenerMoraProximasVigenciasAsync();
+
+    Task<IEnumerable<CostoHistorialResponse>> ObtenerMoraHistorialAsync();
 }

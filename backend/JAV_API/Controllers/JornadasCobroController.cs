@@ -23,4 +23,18 @@ public class JornadasCobroController : ControllerBase
         await _jornadaCobroService.ActualizarFechaJornadaAsync(id, request);
         return NoContent();
     }
+
+    [HttpGet("fechas-meses")]
+    public async Task<IActionResult> ObtenerFechasMeses([FromQuery] int anio = 0)
+    {
+
+        if (anio == 0)
+        {
+            var horaDeMiZona = DateTime.UtcNow.AddHours(-6).Date;
+            anio = horaDeMiZona.Year;
+        }
+
+        var result = await _jornadaCobroService.ObtenerFechasMesesAsync(anio);
+        return Ok(result);
+    }
 }

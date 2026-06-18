@@ -1,92 +1,107 @@
-/**
- * ============================================================
- *  SERVICE — Mora
- *  Backend: .NET Web API + PostgreSQL
- *
- *  Controlador: ConfiguracionMoraController.cs
- * ============================================================
- */
-
-import { MORA_ACTUAL, MORA_HISTORIAL } from "../types";
-
+import api from "./apiConfig";
+ 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
-
+ 
 export interface MoraActualDto {
+  id?: number;
   monto: number;
   fechaInicio: string; // ISO "YYYY-MM-DD" — sin fechaFin (Presente)
 }
-
-export interface MoraHistorialDto {
-  id: number;
-  monto: number;
-  fechaInicio: string;
-  fechaFin: string;   // siempre tiene fin porque ya fue reemplazado
-  editadoPor: string;
-}
-
+ 
 export interface ProximaMoraDto {
   id: number;
   monto: number;
   fechaInicio: string;
 }
-
-// ─── GET /api/configuracion/mora/actual ──────────────────────────────────────
-// Devuelve el monto de mora vigente
+ 
+export interface MoraHistorialDto {
+  id: number;
+  monto: number;
+  fechaInicio: string;
+  fechaFin: string;
+  editadoPor: string;
+  editadoEl: string;
+}
+ 
+// ─── Helper interno: resolver idTipoCobro de "Mora" ────────────────────────────
+// Busca en el catálogo de tipos de Multa el que contenga "mora" en su descripción.
+// Lanza error si no se encuentra (se asume que ya existe vía seed).
+async function obtenerIdTipoCobroMora(): Promise<number> {
+  const { data } = await api.get("/api/TiposCobro/multas");
+  const tipoMora = data.find((t: any) =>
+    t.descripcion?.toLowerCase().includes("mora")
+  );
+ 
+  if (!tipoMora) {
+    throw new Error(
+      "No se encontró un TipoCobro de Mora configurado en el catálogo. Verifique el seed de la base de datos."
+    );
+  }
+ 
+  return tipoMora.idTipoCobro;
+}
+ 
+// ─── ENDPOINTS ────────────────────────────────────────────────────────────────
+ 
+// GET /api/costos/mora/vigente
 export async function getMoraActual(): Promise<MoraActualDto> {
-  // TODO: return apiFetch('/api/configuracion/mora/actual', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay(MORA_ACTUAL);
+  try {
+    const { data } = await api.get("/api/costos/mora/vigente");
+    return { id: data.id, monto: data.monto, fechaInicio: data.fechaInicio };
+  } catch (error: any) {
+    // El backend responde 404 cuando no hay mora configurada todavía
+    if (error.response?.status === 404) {
+      return { monto: 0, fechaInicio: "" };
+    }
+    throw error;
+  }
 }
-
-// ─── GET /api/configuracion/mora/proximas-vigencias ──────────────────────────
-// Lista de montos de mora programados para el futuro
+ 
+// GET /api/costos/mora/proximos
 export async function getProximasVigencias(): Promise<ProximaMoraDto[]> {
-  // TODO: return apiFetch('/api/configuracion/mora/proximas-vigencias', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay([]);
+  const { data } = await api.get("/api/costos/mora/proximos");
+  return data.map((item: any) => ({
+    id: item.id,
+    monto: item.monto,
+    fechaInicio: item.fechaInicio,
+  }));
 }
-
-// ─── POST /api/configuracion/mora/proximas-vigencias ─────────────────────────
-// Programa un nuevo monto de mora para una fecha futura
-// Body: { monto: number, fechaInicio: "YYYY-MM-DD" }
-// El backend debe validar que fechaInicio > hoy
+ 
+// POST /api/costos
+// Resuelve dinámicamente el idTipoCobro de Mora antes de registrar el costo.
 export async function createProximaVigencia(
-  data: Omit<ProximaMoraDto, "id">,
+  payloadFrontend: Omit<ProximaMoraDto, "id">
 ): Promise<ProximaMoraDto> {
-  // TODO:
-  // return apiFetch(
-  //   '/api/configuracion/mora/proximas-vigencias',
-  //   { method: 'POST', body: JSON.stringify(data) },
-  //   token,
-  // )
-
-  // MOCK ↓
-  return mockDelay({ id: Date.now(), ...data });
+  const idTipoCobro = await obtenerIdTipoCobroMora();
+ 
+  const requestBackend = {
+    idTipoCobro,
+    monto: payloadFrontend.monto,
+    fechaInicio: payloadFrontend.fechaInicio,
+  };
+ 
+  const { data } = await api.post("/api/costos", requestBackend);
+  return {
+    id: data.id,
+    monto: data.monto,
+    fechaInicio: data.fechaInicio,
+  };
 }
-
-// ─── DELETE /api/configuracion/mora/proximas-vigencias/{id} ──────────────────
-export async function deleteProximaVigencia(_id: number): Promise<void> {
-  // TODO:
-  // return apiFetch(`/api/configuracion/mora/proximas-vigencias/${id}`, { method: 'DELETE' }, token)
-
-  // MOCK ↓
-  return mockDelay(undefined);
+ 
+// DELETE /api/costos/proximos/{id}
+export async function deleteProximaVigencia(id: number): Promise<void> {
+  await api.delete(`/api/costos/proximos/${id}`);
 }
-
-// ─── GET /api/configuracion/mora/historial ───────────────────────────────────
-// Historial de todos los montos de mora que han dejado de ser vigentes
-// Nota .NET: el backend cierra el registro anterior con
-//   fechaFin = nuevaFechaInicio - 1 día al crear una nueva vigencia
+ 
+// GET /api/costos/mora/historial
 export async function getHistorial(): Promise<MoraHistorialDto[]> {
-  // TODO: return apiFetch('/api/configuracion/mora/historial', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay(MORA_HISTORIAL as MoraHistorialDto[]);
-}
-
-// ─── Helper interno ───────────────────────────────────────────────────────────
-function mockDelay<T>(data: T, ms = 350): Promise<T> {
-  return new Promise((res) => setTimeout(() => res(data), ms));
+  const { data } = await api.get("/api/costos/mora/historial");
+  return data.map((item: any) => ({
+    id: item.id,
+    monto: item.monto,
+    fechaInicio: item.fechaInicio,
+    fechaFin: item.fechaFin,
+    editadoPor: item.editadoPor,
+    editadoEl: item.editadoEl,
+  }));
 }

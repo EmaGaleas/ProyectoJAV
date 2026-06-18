@@ -1,24 +1,11 @@
-/**
- * ============================================================
- *  SERVICE — Mensualidad
- *  Backend: .NET Web API + PostgreSQL
- *
- *  Patrón de importación cuando el API esté listo:
- *    import { apiFetch } from '../../../../services/apiClient'
- *    import { useAuthStore } from '../../../auth/store/authStore'
- *
- *  Todos los endpoints apuntan al controlador:
- *    ConfiguracionMensualidadController.cs
- * ============================================================
- */
+import api from './apiConfig';
 
-import { MENSUALIDAD_HISTORIAL, MESES_ACTUALES } from "../types";
-
-// ─── DTOs (deben coincidir con los records del backend) ───────────────────────
+// ─── DTOs ─────────────────────────────────────────────────────────────────────
 
 export interface MontoVigenteDto {
+  id?: number;
   monto: number;
-  fechaInicio: string; // ISO "YYYY-MM-DD"
+  fechaInicio: string; 
 }
 
 export interface MesFechaDto {
@@ -43,93 +30,63 @@ export interface MensualidadHistorialDto {
   editadoEl: string;
 }
 
-// ─── GET /api/configuracion/mensualidad/monto-actual ─────────────────────────
-// Devuelve el monto vigente y su fecha de inicio
+// ─── ENDPOINTS ────────────────────────────────────────────────────────────────
+
+// GET /api/costos/Mensualidad/vigentes
 export async function getMontoActual(): Promise<MontoVigenteDto> {
-  // TODO: descomentar cuando el endpoint esté listo
-  // const token = useAuthStore.getState().token
-  // return apiFetch('/api/configuracion/mensualidad/monto-actual', { method: 'GET' }, token)
-
-  // MOCK ↓ eliminar este bloque al conectar el backend
-  return mockDelay({ monto: 300, fechaInicio: "2025-01-01" });
+  const { data } = await api.get("http://localhost:5209/api/costos/Mensualidad/vigentes");
+  if (data && data.length > 0) {
+    return { id: data[0].id, monto: data[0].monto, fechaInicio: data[0].fechaInicio };
+  }
+  return { monto: 0, fechaInicio: "" }; 
 }
 
-// ─── GET /api/configuracion/mensualidad/fechas-meses ─────────────────────────
-// Devuelve las fechas de inicio de los 12 meses del año activo
-export async function getFechasMeses(): Promise<MesFechaDto[]> {
-  // TODO: return apiFetch('/api/configuracion/mensualidad/fechas-meses', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay(MESES_ACTUALES.map((m) => ({ ...m })));
+// GET /api/JornadasCobro/fechas-meses
+export async function getFechasMeses(anio?: number): Promise<MesFechaDto[]> {
+  const url = anio ? `http://localhost:5209/api/JornadasCobro/fechas-meses?anio=${anio}` : "/api/JornadasCobro/fechas-meses";
+  const { data } = await api.get(url);
+  return data;
 }
 
-// ─── PUT /api/configuracion/mensualidad/meses/{id}/fecha-inicio ───────────────
-// Actualiza la fecha de inicio de un mes específico
-// Body: { fechaInicio: "YYYY-MM-DD" }
-export async function updateFechaInicio(
-  _mesId: number,
-  _fechaInicio: string,
-): Promise<void> {
-  // TODO:
-  // return apiFetch(
-  //   `/api/configuracion/mensualidad/meses/${mesId}/fecha-inicio`,
-  //   { method: 'PUT', body: JSON.stringify({ fechaInicio }) },
-  //   token,
-  // )
-
-  // MOCK ↓
-  return mockDelay(undefined);
+// PUT /api/JornadasCobro/{id}/fecha
+export async function updateFechaInicio(idJornada: number, fecha: string): Promise<void> {
+  // Ajustado para coincidir con ActualizarJornadaCobroRequest del backend
+  await api.put(`http://localhost:5209/api/JornadasCobro/${idJornada}/fecha`, { nuevaFechaCobro: fecha });
 }
 
-// ─── GET /api/configuracion/mensualidad/proximas-vigencias ───────────────────
-// Lista de montos programados para entrar en vigencia en el futuro
+// GET /api/costos/Mensualidad/proximos
 export async function getProximasVigencias(): Promise<VigenciaFuturaDto[]> {
-  // TODO: return apiFetch('/api/configuracion/mensualidad/proximas-vigencias', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay([]);
+  const { data } = await api.get("http://localhost:5209/api/costos/Mensualidad/proximos");
+  return data.map((item: any) => ({
+    id: item.id,
+    monto: item.monto,
+    fechaInicio: item.fechaInicio
+  }));
 }
 
-// ─── POST /api/configuracion/mensualidad/proximas-vigencias ──────────────────
-// Programa un nuevo monto futuro
-// Body: { monto: number, fechaInicio: "YYYY-MM-DD" }
-export async function createProximaVigencia(
-  data: Omit<VigenciaFuturaDto, "id">,
-): Promise<VigenciaFuturaDto> {
-  // TODO:
-  // return apiFetch(
-  //   '/api/configuracion/mensualidad/proximas-vigencias',
-  //   { method: 'POST', body: JSON.stringify(data) },
-  //   token,
-  // )
-
-  // MOCK ↓
-  return mockDelay({ id: Date.now(), ...data });
+// POST /api/costos
+export async function createProximaVigencia(payloadFrontend: Omit<VigenciaFuturaDto, "id">): Promise<VigenciaFuturaDto> {
+  const requestBackend = {
+    idTipoCobro: 1, // Verifica que el ID 1 corresponde a "Mensualidad"
+    monto: payloadFrontend.monto,
+    fechaInicio: payloadFrontend.fechaInicio
+  };
+  
+  const { data } = await api.post("http://localhost:5209/api/costos", requestBackend);
+  return {
+    id: data.id,
+    monto: data.monto,
+    fechaInicio: data.fechaInicio
+  };
 }
 
-// ─── DELETE /api/configuracion/mensualidad/proximas-vigencias/{id} ────────────
-export async function deleteProximaVigencia(_id: number): Promise<void> {
-  // TODO:
-  // return apiFetch(
-  //   `/api/configuracion/mensualidad/proximas-vigencias/${id}`,
-  //   { method: 'DELETE' },
-  //   token,
-  // )
-
-  // MOCK ↓
-  return mockDelay(undefined);
+// DELETE /api/costos/proximos/{id}
+export async function deleteProximaVigencia(id: number): Promise<void> {
+  await api.delete(`http://localhost:5209/api/costos/proximos/${id}`);
 }
 
-// ─── GET /api/configuracion/mensualidad/historial ────────────────────────────
-// Historial completo de cambios de monto (paginado en backend si crece mucho)
+// GET /api/costos/Mensualidad/historial
 export async function getHistorial(): Promise<MensualidadHistorialDto[]> {
-  // TODO: return apiFetch('/api/configuracion/mensualidad/historial', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay(MENSUALIDAD_HISTORIAL as MensualidadHistorialDto[]);
-}
-
-// ─── Helper interno ───────────────────────────────────────────────────────────
-function mockDelay<T>(data: T, ms = 350): Promise<T> {
-  return new Promise((res) => setTimeout(() => res(data), ms));
+  const { data } = await api.get("http://localhost:5209/api/costos/Mensualidad/historial");
+  return data;
 }
