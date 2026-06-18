@@ -84,7 +84,7 @@ export function useCreateUserForm(
     if (!formData.correo.trim()) return "El correo electronico es obligatorio";
 
     const dni = formData.identificacion.trim().replace(/-/g, "");
-    if (dni.length != 14)
+    if (dni.length !== 13)
       return "El numero de identificacion debe tener 13 digitos";
     if (!formData.identificacion.trim())
       return "El numero de identificacion es obligatorio";
