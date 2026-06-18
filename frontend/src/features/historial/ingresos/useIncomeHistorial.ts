@@ -32,7 +32,7 @@ function mapBackendToIncome(b: IngresoBackend): Income {
     date:          b.fecha.split('T')[0],   // recortar la parte de hora si viene en ISO
     total:         b.monto,
     status:        statusMap[b.estado] ?? 'En revisión',
-    payMethod:     'Efectivo',              // el historial general no devuelve esto aún
+    payMethod:      "Efectivo",              // el historial general no devuelve esto aún
     street:        '',
     block:         '',
     lot:           '',

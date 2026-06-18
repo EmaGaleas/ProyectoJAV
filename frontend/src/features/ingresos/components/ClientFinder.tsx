@@ -43,7 +43,6 @@ export function ClientFinder({ selectedClient, onSelectClient, fetchClients }: P
   }
   
   const onLot = (v: string) => {
-    // Transformamos el string del select al int que C# necesita
     const n = v ? parseInt(v, 10) : undefined;
     setLot(n); 
     setPage(0); 

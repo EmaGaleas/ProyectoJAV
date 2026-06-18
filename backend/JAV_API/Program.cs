@@ -248,7 +248,7 @@ if (app.Environment.IsDevelopment())
 
             var admin = new Usuario
             {
-                Persona       = new Persona { PrimerNombre = "Admin",  PrimerApellido = "Villalinda", Dni = "0000000000000" },
+                Persona       = new Persona { PrimerNombre = "Juan",  PrimerApellido = "Castellanos", Dni = "0508197300548" },
                 Correo        = "admin@villalinda.com",
                 PasswordHash  = hasher.Hash("Admin123*"),
                 Telefono      = "0000-0000",
