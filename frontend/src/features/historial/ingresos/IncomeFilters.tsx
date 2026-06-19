@@ -6,6 +6,7 @@ export interface Filters {
   dateFrom: string
   dateTo: string
 }
+export const DEFAULT_FILTERS: Filters = { paymentType: '', status: '', dateFrom: '', dateTo: '' }
 
 interface Props {
   filters: Filters
@@ -13,15 +14,16 @@ interface Props {
   onApply: () => void
 }
 
-export const DEFAULT_FILTERS: Filters = { paymentType: '', status: '', dateFrom: '', dateTo: '' }
 
 export function IncomeFilters({ filters, onChange, onApply }: Props) {
   const set = (key: keyof Filters, value: string) => onChange({ ...filters, [key]: value })
+  const hasAny = filters.paymentType ||filters.status|| filters.dateFrom || filters.dateTo
+  const handleClear = () => onChange(DEFAULT_FILTERS)
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-[rgba(0,0,0,0.07)] p-5 flex flex-col h-full" style={{ minWidth: 220 }}>
       <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A', marginBottom: 20 }}>Filtros</span>
-
+      
       {/* Tipo de pago */}
       <FilterGroup label="Tipo de pago">
         {(['Multa', 'Mensualidad', 'Conexión'] as PaymentType[]).map(type => (
@@ -53,13 +55,34 @@ export function IncomeFilters({ filters, onChange, onApply }: Props) {
         )}
       </FilterGroup>
 
-      <div className="flex-1" />
+      {/* Actions */}
+      <div className="flex gap-2">
+        <button
+          onClick={onApply}
+          className="flex-1 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+          style={{ background: '#308C58', color: '#fff', fontSize: 14, fontWeight: 600 }}
+        >
+          Aplicar filtros
+        </button>
 
-      <button onClick={onApply}
-        className="w-full py-2.5 rounded-xl hover:opacity-90 transition-opacity"
-        style={{ background: '#308C58', color: '#fff', fontSize: 14, fontWeight: 600 }}>
-        Aplicar filtros
-      </button>
+        {/* Trash — visible only when there's something to clear */}
+        {hasAny && (
+          <button
+            onClick={handleClear}
+            title="Limpiar filtros"
+            className="flex items-center justify-center rounded-xl hover:opacity-80 transition-opacity shrink-0"
+            style={{ width: 40, background: '#fde8e8', border: 'none', cursor: 'pointer' }}
+          >
+            {/* Trash icon (inline SVG, no lucide dependency needed) */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -115,7 +138,9 @@ function DateInput({ label, value, onChange, max }: { label: string; value: stri
           >
             ×
           </button>
+          
         )}
+        
       </div>
     </div>
   )

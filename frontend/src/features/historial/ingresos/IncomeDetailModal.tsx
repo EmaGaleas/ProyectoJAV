@@ -244,7 +244,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
             </div>
 
             {/* Footer con acciones */}
-            {canAct && !loading && detail && (
+            {canAct && income.status!=="Procesado" && !loading && detail && (
               <div
                 className="px-6 py-4 flex gap-3 shrink-0"
                 style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}

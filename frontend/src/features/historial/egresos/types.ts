@@ -60,4 +60,8 @@ export const TAB_META: TabMeta[] = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export const L       = (n: number) => `L ${n.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-export const fmtDate = (d: string) => { const [y,m,day] = d.split('-'); return `${day}/${m}/${y}` }
+export const fmtDate = (iso: string) => {
+  const [y, m, d] = iso.split("-");
+  const meses = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  return `${d} ${meses[parseInt(m) - 1]} ${y}`;
+};

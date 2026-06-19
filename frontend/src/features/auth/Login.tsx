@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { loginApi } from './services/authService'
@@ -30,7 +31,7 @@ function Login() {
       } else if (err instanceof Error) {
         setError(err.message)
       } else {
-        setError('Ocurrió un error inesperado. Intente de nuevo.')
+        toast.error('Ocurrió un error inesperado. Intente de nuevo.')
       }
     } finally {
       setCargando(false)

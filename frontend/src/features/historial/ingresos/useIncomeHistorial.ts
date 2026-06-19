@@ -100,7 +100,7 @@ export function useIncomeHistorial() {
         { method: 'PATCH', body: JSON.stringify(payload) },
         token ?? undefined,
       )
-      toast.success('Ingreso rechazado .')
+      toast.success('Ingreso rechazado.')
       setRecords(prev =>
         prev.map(r =>
           r.id === id ? { ...r, status: 'Rechazado' as IncomeStatus } : r
