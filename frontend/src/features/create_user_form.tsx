@@ -4,15 +4,18 @@ import { SeccionPersonal } from "./createUser/SeccionPersonal";
 import { SeccionContacto } from "./createUser/SeccionContacto";
 import { SeccionDireccion } from "./createUser/SeccionDireccion";
 import { SeccionRol } from "./createUser/SeccionRol";
+import type { User } from "./gestionUsuarios/GestionarUsuarios";
 
 interface CreateUserFormProps {
   onClose?: () => void;
   isSuperAdmin?: boolean;
+  onUserCreated: (user: User) => void;
 }
 
 export default function CreateUserForm({
   onClose,
   isSuperAdmin = false,
+  onUserCreated,
 }: CreateUserFormProps) {
   const {
     formData,
@@ -20,19 +23,17 @@ export default function CreateUserForm({
     error,
     handleInputChange,
     handleCelularChange,
+    handleDniChange,
     setField,
     resetVivienda,
     handleSubmit,
-  } = useCreateUserForm(isSuperAdmin, onClose);
+  } = useCreateUserForm(isSuperAdmin, onUserCreated, onClose);
 
   const showAddress = !isSuperAdmin;
 
   return (
     <>
-      <div
-        className="fixed backdrop-blur-sm inset-0 z-40 bg-black/20"
-        onClick={onClose}
-      />
+      <div className="fixed backdrop-blur-xs inset-0 z-40 bg-black/20" />
 
       <div className="fixed right-0 top-0 h-full w-full md:w-150 bg-white shadow-2xl z-50 overflow-y-auto">
         {/* Header */}
@@ -60,7 +61,11 @@ export default function CreateUserForm({
             {isSuperAdmin && (
               <SeccionRol formData={formData} onChange={handleInputChange} />
             )}
-            <SeccionPersonal formData={formData} onChange={handleInputChange} />
+            <SeccionPersonal
+              formData={formData}
+              onChange={handleInputChange}
+              onDniChange={handleDniChange}
+            />
 
             <SeccionContacto
               formData={formData}

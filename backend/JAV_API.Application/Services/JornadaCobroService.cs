@@ -1,4 +1,5 @@
 using JAV_API.Application.DTOs.Request;
+using JAV_API.Application.DTOs.Response;
 using JAV_API.Application.Interfaces;
 
 namespace JAV_API.Application.Services;
@@ -37,10 +38,16 @@ public class JornadaCobroService : IJornadaCobroService
         if (!jornada.PeriodoCobro.HasValue)
             throw new Exception("La jornada no tiene un periodo de cobro asignado.");
 
-        jornada.Fecha = request.NuevaFechaCobro.Date;
+        jornada.Fecha = DateTime.SpecifyKind(
+            request.NuevaFechaCobro.Date,
+            DateTimeKind.Utc
+        );
         await _jornadaRepo.ActualizarAsync(jornada);
 
-        var nuevaFechaVencimiento = request.NuevaFechaCobro.Date.AddDays(1);
+        var nuevaFechaVencimiento = DateTime.SpecifyKind(
+            request.NuevaFechaCobro.Date.AddDays(1),
+            DateTimeKind.Utc
+        );
 
         await _mensualidadRepo.ActualizarVencimientoPorPeriodoAsync(
             jornada.PeriodoCobro.Value, 
@@ -48,5 +55,29 @@ public class JornadaCobroService : IJornadaCobroService
         );
 
         await _jornadaRepo.GuardarCambiosAsync();
+    }
+
+    public async Task<IEnumerable<MesFechaResponse>> ObtenerFechasMesesAsync(int anio)
+    {
+        // Obtiene las jornadas filtradas por el año (tendrás que asegurar que tu Repo tenga este método)
+        var jornadas = await _jornadaRepo.ObtenerPorAnioAsync(anio);
+
+        // Nombres de los meses para mapeo rápido
+        string[] nombresMeses = { "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
+
+        return jornadas.Select(j => 
+        {
+            // Asumiendo que PeriodoCobro guarda la fecha o el mes, ajusta la lógica de extracción del mes según tu tipo de dato
+            int mesIndex = j.PeriodoCobro.HasValue ? j.PeriodoCobro.Value.Month - 1 : 0; 
+
+            return new MesFechaResponse
+            {
+                Id = j.IdJornadaCobro,
+                Mes = nombresMeses[mesIndex],
+                FechaInicio = j.Fecha?.ToString("yyyy-MM-dd") ?? "",
+                FechaFin = "" // El frontend ya lo calcula con 'computeFechaFin'
+            };
+        }).OrderBy(m => m.Id); // Ajusta el orden según necesites
     }
 }

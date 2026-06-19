@@ -1,25 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System;
+using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using JAV_API.Application.DTOs.Requests;
 using JAV_API.Application.DTOs.Responses;
 using JAV_API.Application.Services;
-using JAV_API.Domain.Enums;
 
 namespace JAV_API.Controllers;
-
-public class RegistrarPagoForm
-{
-    public int RegistradoPor { get; set; }
-    public MetodoPago MetodoPago { get; set; }
-    public decimal Monto { get; set; }
-    public int CodigoComprobante { get; set; }
-    public IFormFile? ComprobanteArchivo { get; set; }
-    
-    public List<int> MensualidadesIds { get; set; } = new();
-    public List<int> MultasIds { get; set; } = new();
-    public List<int> ConexionesIds { get; set; } = new();
-}
 
 [ApiController]
 [Route("api/[controller]")]
@@ -29,35 +18,26 @@ public class PagosController : ControllerBase
 
     public PagosController(PagoService pagoService) => _pagoService = pagoService;
 
+    /// <summary>Registra un pago único o múltiple (Mensualidades, Multas, Conexiones) mediante JSON.</summary>
     [HttpPost]
-    public async Task<IActionResult> RegistrarPago([FromForm] RegistrarPagoForm form)
+    public async Task<IActionResult> RegistrarPago([FromBody] RegistrarPagoRequest request)
     {
         try
         {
-            var request = new RegistrarPagoRequest
-            {
-                RegistradoPor = form.RegistradoPor,
-                MetodoPago = form.MetodoPago,
-                Monto = form.Monto,
-                CodigoComprobante = form.CodigoComprobante,
-                ComprobanteStream = form.ComprobanteArchivo?.OpenReadStream() ?? Stream.Null,
-                ComprobanteNombre = form.ComprobanteArchivo?.FileName ?? string.Empty,
-                MensualidadesIds = form.MensualidadesIds,
-                MultasIds = form.MultasIds,
-                ConexionesIds = form.ConexionesIds
-            };
-
             await _pagoService.RegistrarPagoAsync(request);
-            return StatusCode(201, new { mensaje = "Pago registrado y comprobante guardado exitosamente." });
+            return StatusCode(201, new { mensaje = "Pago y comprobante de auditoría registrados exitosamente." });
         }
         catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
         catch (Exception ex)
         {
-            // Para excepciones no controladas o de base de datos
-            return StatusCode(500, new { error = "Ocurrió un error interno al procesar el pago.", detalle = ex.Message });
+            return StatusCode(500, new { error = "Ocurrió un error interno al procesar el multi-pago.", detalle = ex.Message });
         }
     }
 
@@ -77,42 +57,30 @@ public class PagosController : ControllerBase
         }
         catch (KeyNotFoundException ex)
         {
-            return NotFound(new { mensaje = ex.Message });
+            return NotFound(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { mensaje = ex.Message });
+            return BadRequest(new { error = ex.Message });
         }
     }
 
-    /// <summary>
-    /// Devuelve el historial de pagos del usuario autenticado.
-    /// Solo retorna los pagos en los que ese usuario es el titular (mensualidad, multa o conexión).
-    /// Soporta filtro opcional por rango de fechas mediante los query params <c>desde</c> y <c>hasta</c>.
-    /// </summary>
-    /// <response code="200">Lista de pagos del usuario autenticado.</response>
-    /// <response code="401">El token JWT no está presente o es inválido.</response>
     [HttpGet("historial")]
     [Authorize]
     public async Task<ActionResult<IEnumerable<HistorialPagoUsuarioResponse>>> ObtenerMiHistorial(
         [FromQuery] DateTime? desde,
         [FromQuery] DateTime? hasta)
     {
-        // El claim "sub" del JWT contiene el IdUsuario (ver AuthService.GenerarToken)
         var subClaim = User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)
                     ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (!int.TryParse(subClaim, out var idUsuario))
-            return Unauthorized(new { mensaje = "Token inválido: no se pudo identificar al usuario." });
+            return Unauthorized(new { mensaje = "Token inválido o expirado." });
 
         var historial = await _pagoService.ObtenerHistorialPorUsuarioAsync(idUsuario, desde, hasta);
         return Ok(historial);
     }
 
-    /// <summary>Aprueba un ingreso (pago) en estado EnRevision.</summary>
-    /// <response code="200">Ingreso aprobado exitosamente.</response>
-    /// <response code="404">No existe un ingreso con ese ID.</response>
-    /// <response code="409">El ingreso ya fue procesado (aprobado o rechazado).</response>
     [HttpPatch("{id:int}/aprobar")]
     public async Task<IActionResult> Aprobar(int id, [FromBody] AprobarPagoRequest request)
     {
@@ -135,10 +103,6 @@ public class PagosController : ControllerBase
         }
     }
 
-    /// <summary>Rechaza un ingreso (pago) en estado EnRevision.</summary>
-    /// <response code="200">Ingreso rechazado exitosamente.</response>
-    /// <response code="404">No existe un ingreso con ese ID.</response>
-    /// <response code="409">El ingreso ya fue procesado (aprobado o rechazado).</response>
     [HttpPatch("{id:int}/rechazar")]
     public async Task<IActionResult> Rechazar(int id, [FromBody] RechazarPagoRequest request)
     {
@@ -160,4 +124,4 @@ public class PagosController : ControllerBase
             return StatusCode(500, new { error = ex.Message });
         }
     }
-}
+}

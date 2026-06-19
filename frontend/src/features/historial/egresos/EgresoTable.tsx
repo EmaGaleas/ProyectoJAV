@@ -1,41 +1,58 @@
-import type { EgresoRecord } from './types'
-import { L, fmtDate } from './types'
+import type { EgresoRecord } from "./types";
+import { L, fmtDate } from "./types";
 
-const PAGE_SIZE = 9
-const ROW_H     = 49
-const MIN_W     = 700
+const PAGE_SIZE = 9;
+const ROW_H = 49;
+const MIN_W = 900;
 
 interface Props {
-  records:         EgresoRecord[]
-  page:            number
-  onPage:          (p: number) => void
-  onDetails:       (r: EgresoRecord) => void
-  isTablet:        boolean
-  onToggleFilters: () => void
-  filtersOpen:     boolean
+  records: EgresoRecord[];
+  page: number;
+  onPage: (p: number) => void;
+  onDetails: (r: EgresoRecord) => void;
+  isTablet: boolean;
+  onToggleFilters: () => void;
+  filtersOpen: boolean;
 }
 
 export function EgresoTable({
-  records, page, onPage, onDetails,
-  isTablet, onToggleFilters, filtersOpen,
+  records,
+  page,
+  onPage,
+  onDetails,
+  isTablet,
+  onToggleFilters,
+  filtersOpen,
 }: Props) {
-  const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE))
-  const safePage   = Math.min(page - 1, totalPages - 1)
-  const pageItems  = records.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
-  const slots      = Array.from({ length: PAGE_SIZE }).map((_, i) => pageItems[i] ?? null)
+  const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
+  const safePage = Math.min(page - 1, totalPages - 1);
+  const pageItems = records.slice(
+    safePage * PAGE_SIZE,
+    (safePage + 1) * PAGE_SIZE,
+  );
+  const slots = Array.from({ length: PAGE_SIZE }).map(
+    (_, i) => pageItems[i] ?? null,
+  );
 
-  const COLS     = isTablet
-    ? '100px 1fr 125px 85px 100px 95px'
-    : '100px 1fr 130px 85px 100px 1fr 95px'
-  const colCount = isTablet ? 6 : 7
+  const COLS = isTablet
+    ? "100px 1fr 125px 85px 100px 95px"
+    : "100px 150px 1fr 1fr 1fr 2fr 95px";
+  const colCount = isTablet ? 6 : 7;
 
   const headers = isTablet
-    ? ['Código', 'Registrado por', 'DNI', 'Fecha', 'Monto', '']
-    : ['Código', 'Registrado por', 'DNI', 'Fecha', 'Monto', 'Receptor de pago', '']
+    ? ["Código", "Registrado por", "DNI", "Fecha", "Monto", ""]
+    : [
+        "Código",
+        "Registrado por",
+        "DNI",
+        "Fecha",
+        "Monto",
+        "Receptor de pago",
+        "",
+      ];
 
   return (
     <div className="flex flex-col gap-3 flex-1 min-w-0">
-
       {/* Tablet filter toggle */}
       {isTablet && (
         <div className="flex justify-end">
@@ -43,14 +60,22 @@ export function EgresoTable({
             onClick={onToggleFilters}
             className="flex items-center gap-2 px-3 rounded-xl border transition-colors"
             style={{
-              height:      40,
-              borderColor: filtersOpen ? '#308C58' : 'rgba(0,0,0,0.12)',
-              background:  filtersOpen ? '#F0FAF4' : '#fff',
-              fontSize: 13, fontWeight: 600,
-              color: filtersOpen ? '#308C58' : '#555',
+              height: 40,
+              borderColor: filtersOpen ? "#308C58" : "rgba(0,0,0,0.12)",
+              background: filtersOpen ? "#F0FAF4" : "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              color: filtersOpen ? "#308C58" : "#555",
             }}
           >
-            <div style={{ width: 13, height: 13, background: filtersOpen ? '#308C58' : '#8EBFA3', borderRadius: 3 }} />
+            <div
+              style={{
+                width: 13,
+                height: 13,
+                background: filtersOpen ? "#308C58" : "#8EBFA3",
+                borderRadius: 3,
+              }}
+            />
             Filtros
           </button>
         </div>
@@ -59,7 +84,6 @@ export function EgresoTable({
       {/* Table card */}
       <div className="bg-white rounded-2xl shadow-sm border border-[rgba(0,0,0,0.07)] flex flex-col overflow-x-auto">
         <div style={{ minWidth: MIN_W }}>
-
           {/* Header */}
           <div
             className="grid shrink-0 border-b border-[rgba(0,0,0,0.07)]"
@@ -67,7 +91,15 @@ export function EgresoTable({
           >
             {headers.map((h, i) => (
               <div key={i} className="px-3 py-3">
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#8EBFA3', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "#8EBFA3",
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
                   {h}
                 </span>
               </div>
@@ -79,16 +111,17 @@ export function EgresoTable({
             {slots.map((r, i) => (
               <div
                 key={r ? r.id : `empty-${i}`}
-                className={`grid ${r ? 'hover:bg-[#F8FDFB]' : ''} transition-colors`}
+                className={`grid ${r ? "hover:bg-[#F8FDFB]" : ""} transition-colors`}
                 style={{
                   gridTemplateColumns: COLS,
-                  height:              ROW_H,
-                  borderBottom:        i < PAGE_SIZE - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
+                  height: ROW_H,
+                  borderBottom:
+                    i < PAGE_SIZE - 1 ? "1px solid rgba(0,0,0,0.05)" : "none",
                 }}
               >
                 {r ? (
                   <>
-                    <Cell text={r.codigoEgreso}  bold />
+                    <Cell text={r.codigoEgreso} bold />
                     <Cell text={r.registradoPor} />
                     <Cell text={r.dni} />
                     <Cell text={fmtDate(r.fecha)} />
@@ -97,7 +130,12 @@ export function EgresoTable({
                     <div className="px-3 flex items-center">
                       <button
                         onClick={() => onDetails(r)}
-                        style={{ fontSize: 12, fontWeight: 600, color: '#308C58', whiteSpace: 'nowrap' }}
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "#308C58",
+                          whiteSpace: "nowrap",
+                        }}
                         className="hover:underline"
                       >
                         Ver detalles
@@ -114,29 +152,51 @@ export function EgresoTable({
           {/* Pagination — inside the card */}
           <div
             className="flex items-center justify-between px-4 py-3 border-t border-[rgba(0,0,0,0.06)] shrink-0"
-            style={{ background: '#FAFAFA' }}
+            style={{ background: "#FAFAFA" }}
           >
-            <span style={{ fontSize: 11, color: '#8EBFA3' }}>
+            <span style={{ fontSize: 11, color: "#8EBFA3" }}>
               {records.length === 0
-                ? 'Sin resultados'
+                ? "Sin resultados"
                 : `${safePage * PAGE_SIZE + 1}–${Math.min((safePage + 1) * PAGE_SIZE, records.length)} de ${records.length} registros`}
             </span>
             <div className="flex items-center gap-0.5">
-              <PageBtn onClick={() => onPage(1)}             disabled={safePage === 0}>«</PageBtn>
-              <PageBtn onClick={() => onPage(safePage)}      disabled={safePage === 0}>‹</PageBtn>
+              <PageBtn onClick={() => onPage(1)} disabled={safePage === 0}>
+                «
+              </PageBtn>
+              <PageBtn
+                onClick={() => onPage(safePage)}
+                disabled={safePage === 0}
+              >
+                ‹
+              </PageBtn>
               {Array.from({ length: totalPages }).map((_, i) => (
-                <PageBtn key={i} onClick={() => onPage(i + 1)} disabled={false} active={i === safePage}>
+                <PageBtn
+                  key={i}
+                  onClick={() => onPage(i + 1)}
+                  disabled={false}
+                  active={i === safePage}
+                >
                   {i + 1}
                 </PageBtn>
               ))}
-              <PageBtn onClick={() => onPage(safePage + 2)}  disabled={safePage === totalPages - 1}>›</PageBtn>
-              <PageBtn onClick={() => onPage(totalPages)}    disabled={safePage === totalPages - 1}>»</PageBtn>
+              <PageBtn
+                onClick={() => onPage(safePage + 2)}
+                disabled={safePage === totalPages - 1}
+              >
+                ›
+              </PageBtn>
+              <PageBtn
+                onClick={() => onPage(totalPages)}
+                disabled={safePage === totalPages - 1}
+              >
+                »
+              </PageBtn>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── sub-componentes ──────────────────────────────────────────────────────────
@@ -144,17 +204,26 @@ export function EgresoTable({
 function Cell({ text, bold }: { text: string; bold?: boolean }) {
   return (
     <div className="px-3 flex items-center overflow-hidden">
-      <span className="truncate" style={{ fontSize: 13, color: '#1A1A1A', fontWeight: bold ? 600 : 400 }}>
+      <span
+        className="truncate"
+        style={{ fontSize: 13, color: "#1A1A1A", fontWeight: bold ? 600 : 400 }}
+      >
         {text}
       </span>
     </div>
-  )
+  );
 }
 
 function PageBtn({
-  onClick, disabled, active, children,
+  onClick,
+  disabled,
+  active,
+  children,
 }: {
-  onClick: () => void; disabled: boolean; active?: boolean; children: React.ReactNode
+  onClick: () => void;
+  disabled: boolean;
+  active?: boolean;
+  children: React.ReactNode;
 }) {
   return (
     <button
@@ -162,13 +231,15 @@ function PageBtn({
       disabled={disabled}
       className="flex items-center justify-center rounded-lg transition-colors disabled:opacity-30"
       style={{
-        width: 26, height: 26,
-        fontSize: 12, fontWeight: active ? 700 : 400,
-        background: active ? '#308C58' : 'transparent',
-        color:      active ? '#fff'    : '#555',
+        width: 26,
+        height: 26,
+        fontSize: 12,
+        fontWeight: active ? 700 : 400,
+        background: active ? "#308C58" : "transparent",
+        color: active ? "#fff" : "#555",
       }}
     >
       {children}
     </button>
-  )
+  );
 }

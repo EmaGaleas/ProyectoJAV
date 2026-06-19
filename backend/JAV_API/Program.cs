@@ -233,8 +233,7 @@ if (app.Environment.IsDevelopment())
                 // Multas Random
                 new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por desperdicio de agua" },
                 new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por botar basura en áreas verdes" },
-                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por reconexión clandestina" },
-                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Multa por mora excesiva (3+ meses)" }
+                new TipoCobro { Tipo = TipoCobroEnum.Multa, Descripcion = "Mora por atraso" }
             );
             context.SaveChanges();
         }
@@ -248,7 +247,7 @@ if (app.Environment.IsDevelopment())
 
             var admin = new Usuario
             {
-                Persona       = new Persona { PrimerNombre = "Admin",  PrimerApellido = "Villalinda", Dni = "0000000000000" },
+                Persona       = new Persona { PrimerNombre = "Juan",  PrimerApellido = "Castellanos", Dni = "0508197300548" },
                 Correo        = "admin@villalinda.com",
                 PasswordHash  = hasher.Hash("Admin123*"),
                 Telefono      = "0000-0000",
@@ -299,7 +298,7 @@ if (app.Environment.IsDevelopment())
             context.SaveChanges();
         }
 
-          // ── Semilla: Historial de Costos (Precios) ──────────────────────────
+        // ── Semilla: Historial de Costos (Precios) ──────────────────────────
         if (!context.Set<HistorialCostos>().Any())
         {
             var admin = context.Usuarios.First(u => u.Rol == Rol.Presidente);
@@ -307,28 +306,27 @@ if (app.Environment.IsDevelopment())
 
             var mensualidadAgua = tipos.First(t => t.Tipo == TipoCobroEnum.Mensualidad);
             var nuevaConexion = tipos.First(t => t.Tipo == TipoCobroEnum.Pegue);
+            
+            // 1. Identificar todos los tipos de multas declarados
             var multaDesperdicio = tipos.First(t => t.Descripcion.Contains("desperdicio"));
             var multaBasura = tipos.First(t => t.Descripcion.Contains("basura"));
+            var multaMora = tipos.First(t => t.Descripcion.Contains("Mora"));
 
             context.Set<HistorialCostos>().AddRange(
                 // --- HISTORIAL MENSUALIDAD ---
-                // Precio viejo (Historial: Ya cerrado)
                 new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 200m, FechaEmision = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
-                // Precio actual (Vigente: Sin fecha de anulación)
                 new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 350m, FechaEmision = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
-                // Precio programado (Próximo: Entrará en vigencia en 2027)
                 new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 400m, FechaEmision = new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
 
                 // --- HISTORIAL NUEVA CONEXIÓN ---
-                // Precio viejo
                 new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1200m, FechaEmision = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = new DateTime(2026, 5, 31, 0, 0, 0, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
-                // Precio actual
                 new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1500m, FechaEmision = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
 
                 // --- HISTORIAL MULTAS ---
-                // Solo vigentes para probar
                 new HistorialCostos { IdTipoCobro = multaDesperdicio.IdTipoCobro, Monto = 500m, FechaEmision = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
-                new HistorialCostos { IdTipoCobro = multaBasura.IdTipoCobro, Monto = 800m, FechaEmision = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario }
+                new HistorialCostos { IdTipoCobro = multaBasura.IdTipoCobro, Monto = 800m, FechaEmision = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                // 2. Se agrega la multa por mora que faltaba
+                new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 35m, FechaEmision = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario }
             );
             context.SaveChanges();
         }
@@ -354,22 +352,6 @@ if (app.Environment.IsDevelopment())
             context.SaveChanges();
 
             // === 1) MENSUALIDADES ===
-            // Caso 1.A: Mensualidad Pagada (María)
-            var mens1 = new Mensualidad { Usuario = cliente1, Monto = 350m, PeriodoPago = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaVencimiento = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc), Estado = Estado.Pendiente};
-            var pago1 = new Pago { RegistradoPor = admin.IdUsuario, MetodoPago = MetodoPago.Efectivo, Monto = 350m, FechaPago = new DateTime(2026, 6, 2, 0, 0, 0, DateTimeKind.Utc) };
-            context.Set<Mensualidad>().Add(mens1);
-            context.Set<Pago>().Add(pago1);
-            context.SaveChanges();
-            context.Set<Comprobante>().Add(new Comprobante { IdPago = pago1.IdPago, Codigo = 1, Url = string.Empty });
-            context.Set<PagoMensualidad>().Add(new PagoMensualidad { IdMensualidad = mens1.IdMensualidad, IdPago = pago1.IdPago });
-
-            // Caso 1.B: Mensualidad Pagada (Carlos)
-            var mens2 = new Mensualidad { Usuario = cliente2, Monto = 350m, PeriodoPago = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc), FechaVencimiento = new DateTime(2026, 5, 31, 0, 0, 0, DateTimeKind.Utc), Estado = Estado.Pagado };
-            var pago2 = new Pago { RegistradoPor = admin.IdUsuario, MetodoPago = MetodoPago.Transferencia, Monto = 350m, FechaPago = new DateTime(2026, 5, 15, 0, 0, 0, DateTimeKind.Utc) };
-            context.Set<Mensualidad>().Add(mens2);
-            context.Set<Pago>().Add(pago2);
-            context.SaveChanges();
-            context.Set<PagoMensualidad>().Add(new PagoMensualidad { IdMensualidad = mens2.IdMensualidad, IdPago = pago2.IdPago });
 
             // Caso 1.C: Mensualidad Pendiente (María - Julio 2026)
             var mensPendiente = new Mensualidad { Usuario = cliente1, Monto = 350m, PeriodoPago = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc), FechaVencimiento = new DateTime(2026, 7, 30, 0, 0, 0, DateTimeKind.Utc), Estado = Estado.Pendiente };
@@ -381,14 +363,6 @@ if (app.Environment.IsDevelopment())
             context.SaveChanges();
 
             // === 2) MULTAS ===
-            // Caso 2.A: Multa Pagada (María)
-            var multa1 = new Multa { TipoMulta = tipoMulta, Usuario = cliente1, Monto = 100m, Estado = Estado.Pagado };
-            var pago3  = new Pago { RegistradoPor = admin.IdUsuario, MetodoPago = MetodoPago.Efectivo, Monto = 100m, FechaPago = new DateTime(2026, 4, 10, 0, 0, 0, DateTimeKind.Utc) };
-            context.Set<Multa>().Add(multa1);
-            context.Set<Pago>().Add(pago3);
-            context.SaveChanges();
-            context.Set<PagoMulta>().Add(new PagoMulta { IdMulta = multa1.IdMulta, IdPago = pago3.IdPago });
-
             // Caso 2.B: Multa Pendiente (María)
             var multaPendiente = new Multa { TipoMulta = tipoMulta, Usuario = cliente1, Monto = 150m, Estado = Estado.Pendiente };
             context.Set<Multa>().Add(multaPendiente);
@@ -399,13 +373,6 @@ if (app.Environment.IsDevelopment())
             context.SaveChanges();
 
             // === 3) CONEXIONES (PEGUES) ===
-            // Caso 3.A: Conexión Pagada (Carlos)
-            var conexion1 = new Conexion { Usuario = cliente2, Monto = 500m, Domicilio = dom2, Estado = Estado.Pagado };
-            var pago4 = new Pago { RegistradoPor = admin.IdUsuario, MetodoPago = MetodoPago.Transferencia, Monto = 500m, FechaPago = new DateTime(2026, 5, 20, 0, 0, 0, DateTimeKind.Utc) };
-            context.Set<Conexion>().Add(conexion1);
-            context.Set<Pago>().Add(pago4);
-            context.SaveChanges();
-            context.Set<PagoConexion>().Add(new PagoConexion { IdConexion = conexion1.IdConexion, IdPago = pago4.IdPago });
 
             // Caso 3.B: Conexión Pendiente (María)
             var conexionPendiente = new Conexion { Usuario = cliente1, Monto = 600m, Domicilio = dom1, Estado = Estado.Pendiente };
@@ -414,6 +381,38 @@ if (app.Environment.IsDevelopment())
             // Caso 3.C: Conexión Vencida (Carlos)
             var conexionVencida = new Conexion { Usuario = cliente2, Monto = 700m, Domicilio = dom2, Estado = Estado.Vencido };
             context.Set<Conexion>().Add(conexionVencida);
+            context.SaveChanges();
+        }
+
+        // ─────────────────────────────────────────────────────────
+        // Siembra de Jornadas de Cobro para el año 2026
+        // ─────────────────────────────────────────────────────────
+        var tieneJornadas2026 = context.Set<JornadaCobro>().Any(j => j.PeriodoCobro.HasValue && j.PeriodoCobro.Value.Year == 2026);
+
+        if (!tieneJornadas2026)
+        {
+            // Obtener el Tesorero (o el Administrador) para asignarlo como Encargado,
+            // ya que en ApplicationDbContext 'Encargado' es IsRequired().
+            var encargadoJornada = context.Usuarios.FirstOrDefault(u => u.Rol == Rol.Tesorero) 
+                                ?? context.Usuarios.First(u => u.Rol == Rol.Presidente);
+
+            var jornadas = new List<JornadaCobro>();
+
+            for (int mes = 1; mes <= 12; mes++)
+            {
+                // 1. Crear el periodo y la jornada correspondiente (ej. programada para el día 5 de cada mes)
+                var periodo = new DateTime(2026, mes, 1, 0, 0, 0, DateTimeKind.Utc);
+                var fechaJornada = new DateTime(2026, mes, 5, 0, 0, 0, DateTimeKind.Utc);
+
+                jornadas.Add(new JornadaCobro
+                {
+                    Fecha = fechaJornada,
+                    PeriodoCobro = periodo,
+                    Encargado = encargadoJornada.IdUsuario // Campo obligatorio asignado
+                });
+            }
+            
+            context.Set<JornadaCobro>().AddRange(jornadas);
             context.SaveChanges();
         }
 

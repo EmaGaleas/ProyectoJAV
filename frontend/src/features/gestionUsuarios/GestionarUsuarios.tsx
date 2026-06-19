@@ -30,7 +30,9 @@ export default function GestionarUsuarios() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const { user, token } = useAuthStore();
-  const isSuperAdmin = user?.rol === "SuperAdministrador";
+  const isSuperAdmin = ["SuperAdministrador", "Secretario"].includes(
+    user?.rol ?? "",
+  );
   console.log(user);
   console.log(token);
 
@@ -46,13 +48,13 @@ export default function GestionarUsuarios() {
           .filter(Boolean)
           .join(" ");
         const estado = user.estado ? "Activo" : "Inactivo";
+        const rol = user.rol === "DuenoDeCasa" ? "Dueño de Casa" : user.rol;
         const q = search.toLowerCase();
         const matchSearch =
           !search ||
           nombre.toLowerCase().includes(q) ||
           user.dni.toLowerCase().includes(q);
-        const matchRole =
-          !activeFilters.role || user.rol === activeFilters.role;
+        const matchRole = !activeFilters.role || rol === activeFilters.role;
         const matchStatus =
           !activeFilters.status || estado === activeFilters.status;
 
@@ -79,6 +81,28 @@ export default function GestionarUsuarios() {
     setActiveFilters(filters);
     setFiltersOpen(false);
   };
+  const handleCrearUsuario = (newUser: User) => {
+    setUsers((prev) => [...prev, newUser]);
+  };
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const { data } = await api.get<User[]>("api/Usuarios");
+
+        console.log(data);
+        setUsers(data);
+        console.log(users);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    console.log("users actualizados:", users);
+  }, [users]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -263,6 +287,7 @@ export default function GestionarUsuarios() {
         <CreateUserForm
           onClose={() => setShowCreateUser(false)}
           isSuperAdmin={isSuperAdmin}
+          onUserCreated={handleCrearUsuario}
         />
       )}
     </div>

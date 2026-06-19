@@ -1,4 +1,8 @@
+using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using JAV_API.Application.Interfaces;
 using JAV_API.Application.DTOs.Requests;
 using JAV_API.Application.DTOs.Responses;
@@ -11,48 +15,51 @@ public class PagoService
 {
     private readonly IPagoRepository _pagoRepository;
     private readonly IMensualidadRepository _mensualidadRepository;
-    // NOTA: Deberás inyectar IMultaRepository e IConexionRepository cuando los crees
-    private readonly IFileStorageService _fileStorageService;
+    private readonly IMultaRepository _multaRepository;
+    private readonly IConexionRepository _conexionRepository;
 
     public PagoService(
         IPagoRepository pagoRepository, 
         IMensualidadRepository mensualidadRepository,
-        IFileStorageService fileStorageService)
+        IMultaRepository multaRepository,
+        IConexionRepository conexionRepository)
     {
         _pagoRepository = pagoRepository;
         _mensualidadRepository = mensualidadRepository;
-        _fileStorageService = fileStorageService;
+        _multaRepository = multaRepository;
+        _conexionRepository = conexionRepository;
     }
 
     public async Task RegistrarPagoAsync(RegistrarPagoRequest request)
     {
+        // Validación de Regla de Negocio: Al menos un ítem seleccionado
         if (!request.MensualidadesIds.Any() && !request.MultasIds.Any() && !request.ConexionesIds.Any())
             throw new ArgumentException("Debe seleccionar al menos un ítem (mensualidad, multa o conexión) para pagar.");
 
-        if (request.MetodoPago == MetodoPago.Transferencia && 
-            (request.ComprobanteStream == Stream.Null || request.ComprobanteStream.Length == 0))
-            throw new ArgumentException("Es obligatorio adjuntar la captura para pagos por transferencia.");
-
-        // 1. Instanciar el Pago base
+        // 1. Instanciar la cabecera de la entidad Pago
         var nuevoPago = new Pago
         {
             RegistradoPor = request.RegistradoPor,
             MetodoPago = request.MetodoPago,
             Monto = request.Monto,
-            FechaPago = DateTime.UtcNow
+            FechaPago = DateTime.UtcNow,
+            Estado = request.MetodoPago == MetodoPago.Efectivo ? EstadoAprobacion.Aprobado : EstadoAprobacion.EnRevision
         };
 
-        // Listas para recolectar las entidades a procesar
+        // Listas agregadas para la persistencia masiva transaccional
         var pagoMensualidades = new List<PagoMensualidad>();
         var mensualidadesAPagar = new List<Mensualidad>();
 
-        // 2. Procesar Mensualidades
+        var pagoMultas = new List<PagoMulta>();
+        var multasAPagar = new List<Multa>();
+
+        var pagoConexiones = new List<PagoConexion>();
+        var conexionesAPagar = new List<Conexion>();
+
+        // 2. Procesar Mensualidades por Id
         if (request.MensualidadesIds.Any())
         {
-            // Requerirá que agregues ObtenerPorIdsAsync en IMensualidadRepository
-            // mensualidadesAPagar = await _mensualidadRepository.ObtenerPorIdsAsync(request.MensualidadesIds);
-            
-            // Lógica temporal asumiendo que ya tienes las entidades:
+            mensualidadesAPagar = (await _mensualidadRepository.ObtenerPorIdsAsync(request.MensualidadesIds)).ToList();
             foreach (var mensualidad in mensualidadesAPagar)
             {
                 if (mensualidad.Estado == Estado.Pagado)
@@ -63,32 +70,52 @@ public class PagoService
             }
         }
 
-        // TODO: Repetir el paso 2 para Multas y Conexiones cuando tengas sus repositorios...
-
-        // 3. Procesar archivo si existe
-        string urlComprobante = string.Empty;
-        if (request.ComprobanteStream != Stream.Null && request.ComprobanteStream.Length > 0)
+        // 3. Procesar Multas por Id
+        if (request.MultasIds.Any())
         {
-            urlComprobante = await _fileStorageService.GuardarArchivoAsync(request.ComprobanteStream, request.ComprobanteNombre);
+            multasAPagar = (await _multaRepository.ObtenerPorIdsAsync(request.MultasIds)).ToList();
+            foreach (var multa in multasAPagar)
+            {
+                if (multa.Estado == Estado.Pagado)
+                    throw new InvalidOperationException($"La multa {multa.IdMulta} ya está pagada.");
+
+                multa.Estado = Estado.Pagado;
+                pagoMultas.Add(new PagoMulta { Multa = multa, Pago = nuevoPago });
+            }
         }
 
+        // 4. Procesar Conexiones por Id
+        if (request.ConexionesIds.Any())
+        {
+            conexionesAPagar = (await _conexionRepository.ObtenerPorIdsAsync(request.ConexionesIds)).ToList();
+            foreach (var conexion in conexionesAPagar)
+            {
+                if (conexion.Estado == Estado.Pagado)
+                    throw new InvalidOperationException($"La conexión {conexion.IdConexion} ya está pagada.");
+
+                conexion.Estado = Estado.Pagado;
+                pagoConexiones.Add(new PagoConexion { Conexion = conexion, Pago = nuevoPago });
+            }
+        }
+
+        // 5. Crear Comprobante plano (Cambio solicitado: sin archivos físicos, solo código de auditoría)
         var nuevoComprobante = new Comprobante
         {
             Pago = nuevoPago,
             Codigo = request.CodigoComprobante,
-            Url = urlComprobante
+            Url = string.Empty // No requiere almacenamiento de archivos
         };
 
-        // 4. Enviar todo al repositorio
+        // 6. Enviar todo al repositorio bajo una sola unidad de trabajo / transacción
         await _pagoRepository.RegistrarPagoMasivoAsync(
             nuevoPago, 
             nuevoComprobante, 
             pagoMensualidades, 
-            new List<PagoMulta>(), // Pasar las listas reales cuando implementes multas
-            new List<PagoConexion>(), // Pasar las listas reales cuando implementes conexiones
+            pagoMultas, 
+            pagoConexiones, 
             mensualidadesAPagar,
-            new List<Multa>(),
-            new List<Conexion>()
+            multasAPagar,
+            conexionesAPagar
         );
     }
 
@@ -98,9 +125,9 @@ public class PagoService
         IEnumerable<IngresoResponse> result = pagos.Select(MapToIngresoResponse);
 
         if (filtros.TipoPago.HasValue)
-            result = result.Where(r => r.TipoIngreso == filtros.TipoPago.Value.ToString());
+            result = result.Where(r => r.TipoIngreso.Contains(filtros.TipoPago.Value.ToString(), StringComparison.OrdinalIgnoreCase));
         if (!string.IsNullOrWhiteSpace(filtros.Estado))
-            result = result.Where(r => r.Estado == filtros.Estado);
+            result = result.Where(r => r.Estado.Equals(filtros.Estado, StringComparison.OrdinalIgnoreCase));
         if (filtros.Desde.HasValue)
             result = result.Where(r => r.Fecha >= filtros.Desde.Value);
         if (filtros.Hasta.HasValue)
@@ -109,15 +136,7 @@ public class PagoService
         return result;
     }
 
-    /// <summary>
-    /// Devuelve el historial de pagos del usuario autenticado (identificado por su IdUsuario),
-    /// con filtro opcional por rango de fechas.
-    /// Solo devuelve pagos donde ese usuario sea el titular (mensualidad/multa/conexión).
-    /// </summary>
-    public async Task<IEnumerable<HistorialPagoUsuarioResponse>> ObtenerHistorialPorUsuarioAsync(
-        int idUsuario,
-        DateTime? desde,
-        DateTime? hasta)
+    public async Task<IEnumerable<HistorialPagoUsuarioResponse>> ObtenerHistorialPorUsuarioAsync(int idUsuario, DateTime? desde, DateTime? hasta)
     {
         var pagos = await _pagoRepository.ObtenerHistorialPorUsuarioAsync(idUsuario, desde, hasta);
         return pagos.Select(MapToHistorialUsuarioResponse);
@@ -125,176 +144,143 @@ public class PagoService
 
     public async Task<DetallePagoResponse> ObtenerDetallePagoModalAsync(int idPago)
     {
-        var pago = await _pagoRepository.ObtenerPagoPorIdConDetallesAsync(idPago)
+        var p = await _pagoRepository.ObtenerPagoPorIdConDetallesAsync(idPago)
             ?? throw new KeyNotFoundException($"No se encontró el pago con ID {idPago}");
 
-        Usuario? usuario = null;
-        Domicilio? domicilio = null;
-        string tipoPago = string.Empty;
-        string estado = string.Empty;
+        // Obtener el titular del pago buscando de forma segura en las deudas pagadas
+        Usuario? usuario = p.PagoMensualidades?.FirstOrDefault()?.Mensualidad?.Usuario 
+                        ?? p.PagoMultas?.FirstOrDefault()?.Multa?.Usuario 
+                        ?? p.PagoConexiones?.FirstOrDefault()?.Conexion?.Usuario;
 
-        if (pago.PagoMensualidades?.Count > 0)
-        {
-            usuario = pago.PagoMensualidades.First().Mensualidad.Usuario;
-            domicilio = usuario?.DomicilioUsuarios?.FirstOrDefault()?.Domicilio;
-            tipoPago = "Mensualidad";
-            estado = pago.PagoMensualidades.First().Mensualidad.Estado.ToString();
-        }
-        else if (pago.PagoMultas?.Count > 0)
-        {
-            usuario = pago.PagoMultas.First().Multa.Usuario;
-            domicilio = usuario?.DomicilioUsuarios?.FirstOrDefault()?.Domicilio;
-            tipoPago = "Multa";
-            estado = pago.PagoMultas.First().Multa.Estado.ToString();
-        }
-        else if (pago.PagoConexiones?.Count > 0)
-        {
-            usuario = pago.PagoConexiones.First().Conexion.Usuario;
-            domicilio = pago.PagoConexiones.First().Conexion.Domicilio;
-            tipoPago = "Conexión";
-            estado = pago.PagoConexiones.First().Conexion.Estado.ToString();
-        }
+        Domicilio? domicilio = usuario?.DomicilioUsuarios?.FirstOrDefault()?.Domicilio 
+                            ?? p.PagoConexiones?.FirstOrDefault()?.Conexion?.Domicilio;
 
         if (usuario?.Persona == null)
-            throw new InvalidOperationException("El pago no está asociado a un titular válido.");
+            throw new InvalidOperationException("El pago no cuenta con relaciones que apunten a un titular de cuenta válido.");
+
+        // Reconstrucción dinámica del tipo de pago (Soporta multipagos)
+        var tiposList = new List<string>();
+        if (p.PagoMensualidades?.Any() == true) tiposList.Add("Mensualidad");
+        if (p.PagoMultas?.Any() == true) tiposList.Add("Multa");
+        if (p.PagoConexiones?.Any() == true) tiposList.Add("Conexión");
+        string tipoPagoReconstruido = tiposList.Any() ? string.Join(", ", tiposList) : "Varios";
 
         var lineas = new List<LineaPagoResponse>();
 
-        foreach (var pm in pago.PagoMensualidades ?? [])
+        foreach (var pm in p.PagoMensualidades ?? [])
         {
             lineas.Add(new LineaPagoResponse
             {
-                Concepto         = pm.Mensualidad.PeriodoPago.HasValue
-                                     ? $"Mensualidad {pm.Mensualidad.PeriodoPago.Value:MMMM yyyy}"
-                                     : "Mensualidad",
+                Concepto = pm.Mensualidad.PeriodoPago.HasValue
+                             ? $"Mensualidad {pm.Mensualidad.PeriodoPago.Value:MMMM yyyy}"
+                             : "Mensualidad",
                 FechaVencimiento = pm.Mensualidad.FechaVencimiento,
-                MontoBase        = pm.Mensualidad.Monto,
-                Mora             = 0m,
-                Tipo             = "mensualidad",
+                MontoBase = pm.Mensualidad.Monto,
+                Mora = 0m,
+                Tipo = "mensualidad",
             });
         }
 
-        foreach (var pm in pago.PagoMultas ?? [])
+        foreach (var pm in p.PagoMultas ?? [])
         {
             lineas.Add(new LineaPagoResponse
             {
-                Concepto         = pm.Multa.TipoMulta?.Descripcion ?? "Multa",
+                Concepto = pm.Multa.TipoMulta?.Descripcion ?? "Multa por Infracción",
                 FechaVencimiento = null,
-                MontoBase        = pm.Multa.Monto,
-                Mora             = 0m,
-                Tipo             = "multa",
+                MontoBase = pm.Multa.Monto,
+                Mora = 0m,
+                Tipo = "multa",
+            });
+        }
+
+        foreach (var pc in p.PagoConexiones ?? [])
+        {
+            lineas.Add(new LineaPagoResponse
+            {
+                Concepto = "Servicio/Reconexión de Red",
+                FechaVencimiento = null,
+                MontoBase = pc.Conexion.Monto,
+                Mora = 0m,
+                Tipo = "conexion"
             });
         }
 
         return new DetallePagoResponse
         {
-            Titular            = $"{usuario.Persona.PrimerNombre} {usuario.Persona.PrimerApellido}",
-            Dni                = usuario.Persona.Dni,
-            NumeroComprobante  = pago.Comprobante?.Codigo.ToString() ?? $"PGO-{pago.IdPago}",
-            Calle              = domicilio?.Calle.ToString() ?? "N/A",
-            Bloque             = domicilio?.CodigoBloque.ToString() ?? "N/A",
-            Lote               = domicilio?.LoteCasa ?? 0,
-            MetodoPago         = pago.MetodoPago.ToString(),
-            CodigoTransferencia = pago.MetodoPago == MetodoPago.Transferencia ? pago.Comprobante?.Codigo.ToString() : null,
-            Fecha              = pago.FechaPago,
-            TipoPago           = tipoPago,
-            Estado             = estado,
-            MontoTotal         = pago.Monto,
-            Lineas             = lineas,
+            Titular = $"{usuario.Persona.PrimerNombre} {usuario.Persona.PrimerApellido}",
+            Dni = usuario.Persona.Dni,
+            NumeroComprobante = p.Comprobante?.Codigo.ToString() ?? $"PGO-{p.IdPago}",
+            Calle = domicilio?.Calle.ToString() ?? "N/A",
+            Bloque = domicilio?.CodigoBloque.ToString() ?? "N/A",
+            Lote = domicilio?.LoteCasa ?? 0,
+            MetodoPago = p.MetodoPago.ToString(),
+            CodigoTransferencia = p.MetodoPago == MetodoPago.Transferencia ? p.Comprobante?.Codigo.ToString() : null,
+            Fecha = p.FechaPago,
+            TipoPago = tipoPagoReconstruido,
+            Estado = p.Estado.ToString(),
+            MontoTotal = p.Monto,
+            Lineas = lineas,
         };
     }
 
     private static IngresoResponse MapToIngresoResponse(Pago p)
     {
-        Usuario? usuario = null;
-        string tipoPago = string.Empty;
+        Usuario? usuario = p.PagoMensualidades?.FirstOrDefault()?.Mensualidad?.Usuario 
+                        ?? p.PagoMultas?.FirstOrDefault()?.Multa?.Usuario 
+                        ?? p.PagoConexiones?.FirstOrDefault()?.Conexion?.Usuario;
 
-        if (p.PagoMensualidades?.Count > 0)
-        {
-            usuario = p.PagoMensualidades.First().Mensualidad?.Usuario;
-            tipoPago = "Mensualidad";
-        }
-        else if (p.PagoMultas?.Count > 0)
-        {
-            usuario = p.PagoMultas.First().Multa?.Usuario;
-            tipoPago = "Multa";
-        }
-        else if (p.PagoConexiones?.Count > 0)
-        {
-            usuario = p.PagoConexiones.First().Conexion?.Usuario;
-            tipoPago = "Conexión";
-        }
+        var tiposList = new List<string>();
+        if (p.PagoMensualidades?.Any() == true) tiposList.Add("Mensualidad");
+        if (p.PagoMultas?.Any() == true) tiposList.Add("Multa");
+        if (p.PagoConexiones?.Any() == true) tiposList.Add("Conexión");
+        string tipoPagoReconstruido = tiposList.Any() ? string.Join(", ", tiposList) : "Otros";
 
-        // Mapear el estado de aprobación del Pago al string que muestra el frontend
         var estadoDisplay = p.Estado switch
         {
-            JAV_API.Domain.Enums.EstadoAprobacion.EnRevision => "En revisión",
-            JAV_API.Domain.Enums.EstadoAprobacion.Aprobado   => "Procesado",
-            JAV_API.Domain.Enums.EstadoAprobacion.Rechazado  => "Rechazado",
+            EstadoAprobacion.EnRevision => "En revisión",
+            EstadoAprobacion.Aprobado   => "Procesado",
+            EstadoAprobacion.Rechazado  => "Rechazado",
             _ => "En revisión"
         };
 
         return new IngresoResponse
         {
-            Id          = p.IdPago,
-            Codigo      = p.Comprobante?.Codigo.ToString() ?? $"PGO-{p.IdPago}",
-            TipoIngreso = tipoPago,
-            Titular     = usuario?.Persona != null
-                            ? $"{usuario.Persona.PrimerNombre} {usuario.Persona.PrimerApellido}"
-                            : "N/A",
-            Dni         = usuario?.Persona?.Dni ?? "N/A",
-            Fecha       = p.FechaPago,
-            Monto       = p.Monto,
-            Estado      = estadoDisplay,
+            Id = p.IdPago,
+            Codigo = p.Comprobante?.Codigo.ToString() ?? $"PGO-{p.IdPago}",
+            TipoIngreso = tipoPagoReconstruido,
+            Titular = usuario?.Persona != null ? $"{usuario.Persona.PrimerNombre} {usuario.Persona.PrimerApellido}" : "N/A",
+            Dni = usuario?.Persona?.Dni ?? "N/A",
+            Fecha = p.FechaPago,
+            Monto = p.Monto,
+            Estado = estadoDisplay,
         };
     }
 
     private static HistorialPagoUsuarioResponse MapToHistorialUsuarioResponse(Pago p)
     {
-        string tipoPago = string.Empty;
-        string estado   = string.Empty;
-
-        if (p.PagoMensualidades?.Count > 0)
-        {
-            tipoPago = "Mensualidad";
-            estado   = p.PagoMensualidades.First().Mensualidad?.Estado.ToString() ?? "Pagado";
-        }
-        else if (p.PagoMultas?.Count > 0)
-        {
-            tipoPago = "Multa";
-            estado   = p.PagoMultas.First().Multa?.Estado.ToString() ?? "Pagado";
-        }
-        else if (p.PagoConexiones?.Count > 0)
-        {
-            tipoPago = "Conexión";
-            estado   = p.PagoConexiones.First().Conexion?.Estado.ToString() ?? "Pagado";
-        }
+        var tiposList = new List<string>();
+        if (p.PagoMensualidades?.Any() == true) tiposList.Add("Mensualidad");
+        if (p.PagoMultas?.Any() == true) tiposList.Add("Multa");
+        if (p.PagoConexiones?.Any() == true) tiposList.Add("Conexión");
+        string tipoPagoReconstruido = tiposList.Any() ? string.Join(", ", tiposList) : "Varios";
 
         var responsable = p.Registrador?.Persona != null
             ? $"{p.Registrador.Persona.PrimerNombre} {p.Registrador.Persona.PrimerApellido}"
-            : "N/A";
+            : "Sistema";
 
         return new HistorialPagoUsuarioResponse
         {
-            Id          = p.IdPago,
-            Codigo      = p.Comprobante?.Codigo.ToString() ?? $"PGO-{p.IdPago}",
-            Fecha       = p.FechaPago,
-            Monto       = p.Monto,
-            TipoPago    = tipoPago,
-            MetodoPago  = p.MetodoPago.ToString(),
+            Id = p.IdPago,
+            Codigo = p.Comprobante?.Codigo.ToString() ?? $"PGO-{p.IdPago}",
+            Fecha = p.FechaPago,
+            Monto = p.Monto,
+            TipoPago = tipoPagoReconstruido,
+            MetodoPago = p.MetodoPago.ToString(),
             Responsable = responsable,
-            Estado      = estado,
+            Estado = p.Estado.ToString(),
         };
     }
 
-    public async Task AprobarPagoAsync(int idPago, AprobarPagoRequest request)
-    {
-        // La validación de existencia y estado la maneja el repositorio
-        await _pagoRepository.AprobarAsync(idPago, request.AprobadoPor);
-    }
-
-    public async Task RechazarPagoAsync(int idPago, RechazarPagoRequest request)
-    {
-        await _pagoRepository.RechazarAsync(idPago);
-    }
-}
+    public async Task AprobarPagoAsync(int idPago, AprobarPagoRequest request) => await _pagoRepository.AprobarAsync(idPago, request.AprobadoPor);
+    public async Task RechazarPagoAsync(int idPago, RechazarPagoRequest request) => await _pagoRepository.RechazarAsync(idPago);
+}

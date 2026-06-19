@@ -84,7 +84,7 @@ public class EgresoService
             IdEgreso      = e.IdEgreso,
             CodigoEgreso  = $"EGR-{e.IdEgreso:D4}",
             RegistradoPor = registrador,
-            Dni           = string.Empty,   // Egreso no tiene DNI directo
+            Dni           = e.Registrador?.Persona?.Dni ?? "Sin DNI",
             Fecha         = e.Fecha,
             Monto         = e.Monto,
             ReceptorPago  = e.Titulo,       // El Titulo hace de nombre del gasto/receptor
