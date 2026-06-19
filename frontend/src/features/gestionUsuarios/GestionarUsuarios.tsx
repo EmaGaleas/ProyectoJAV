@@ -104,6 +104,25 @@ export default function GestionarUsuarios() {
     console.log("users actualizados:", users);
   }, [users]);
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const { data } = await api.get<User[]>("api/Usuarios");
+
+        console.log(data);
+        setUsers(data);
+        console.log(users);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    console.log("users actualizados:", users);
+  }, [users]);
+
   return (
     <div className="flex gap-5 items-stretch">
       {/* Contenido principal: barra de búsqueda + cards */}
