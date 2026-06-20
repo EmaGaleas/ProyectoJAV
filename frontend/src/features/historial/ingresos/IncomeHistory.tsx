@@ -23,22 +23,19 @@ export function IncomeHistory() {
 
   const [search,        setSearch]        = useState('')
   const [filters,       setFilters]       = useState<Filters>(DEFAULT_FILTERS)
-  const [activeFilters, setActiveFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [filtersOpen,   setFiltersOpen]   = useState(false)
 
   const filtered = useMemo(() =>
     records.filter(inc => {
       const q = search.toLowerCase()
       const matchSearch = !search || inc.holderName.toLowerCase().includes(q) || inc.dni.toLowerCase().includes(q)
-      const matchType   = !activeFilters.paymentType || inc.paymentType === activeFilters.paymentType
-      const matchStatus = !activeFilters.status      || inc.status      === activeFilters.status
-      const matchFrom   = !activeFilters.dateFrom || inc.date >= activeFilters.dateFrom
-      const matchTo     = !activeFilters.dateTo   || inc.date <= activeFilters.dateTo
+      const matchType   = !filters.paymentType || inc.paymentType === filters.paymentType
+      const matchStatus = !filters.status      || inc.status      === filters.status
+      const matchFrom   = !filters.dateFrom || inc.date >= filters.dateFrom
+      const matchTo     = !filters.dateTo   || inc.date <= filters.dateTo
       return matchSearch && matchType && matchStatus && matchFrom && matchTo
     }),
-  [records, search, activeFilters])
-
-  const handleApply = () => { setActiveFilters(filters); setFiltersOpen(false) }
+  [records, search, filters])
 
   return (
     <div className="flex gap-5 items-stretch">
@@ -61,11 +58,11 @@ export function IncomeHistory() {
           )}
           <div className="fixed top-0 right-0 h-full z-40 p-4"
             style={{ width: 270, transform: filtersOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.25s ease', pointerEvents: filtersOpen ? 'auto' : 'none' }}>
-            <IncomeFilters filters={filters} onChange={setFilters} onApply={handleApply} />
+            <IncomeFilters filters={filters} onChange={setFilters} />
           </div>
         </>
       ) : (
-        <IncomeFilters filters={filters} onChange={setFilters} onApply={handleApply} />
+        <IncomeFilters filters={filters} onChange={setFilters} />
       )}
 
       {selected && (

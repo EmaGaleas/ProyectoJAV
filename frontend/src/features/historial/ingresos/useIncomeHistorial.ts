@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
-import { apiFetch } from '../../../services/apiClient'
+import { apiClient } from '../../../services/apiClient'
 import { useAuthStore } from '../../auth/store/authStore'
 import type { Income, IncomeStatus } from './types'
 
-// ─── Tipos para la respuesta del backend ──────────────────────────────────────
-// GET /api/Pagos devuelve una lista de IngresoResponse del backend
 interface IngresoBackend {
   id:          number
   codigo:      string
@@ -14,7 +12,7 @@ interface IngresoBackend {
   dni:         string
   fecha:       string
   monto:       number
-  estado:      string   // 'En revisión' | 'Procesado' | 'Rechazado'
+  estado:      string
 }
 
 function mapBackendToIncome(b: IngresoBackend): Income {
@@ -29,18 +27,16 @@ function mapBackendToIncome(b: IngresoBackend): Income {
     holderName:    b.titular,
     dni:           b.dni,
     paymentType:   (b.tipoIngreso === 'Mensualidad' ? 'Mensualidad' : 'Multa'),
-    date:          b.fecha.split('T')[0],   // recortar la parte de hora si viene en ISO
+    date:          b.fecha.split('T')[0],
     total:         b.monto,
     status:        statusMap[b.estado] ?? 'En revisión',
-    payMethod:      "Efectivo",              // el historial general no devuelve esto aún
+    payMethod:     "Efectivo",
     street:        '',
     block:         '',
     lot:           '',
     lines:         [],
   }
 }
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useIncomeHistorial() {
   const { token, user } = useAuthStore()
@@ -50,15 +46,20 @@ export function useIncomeHistorial() {
   const [loading,   setLoading]   = useState(false)
   const [selected,  setSelected]  = useState<Income | null>(null)
 
-  // Carga inicial: GET /api/Pagos
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    apiFetch<IngresoBackend[]>('/api/Pagos', undefined, token ?? undefined)
-      .then(data => {
-        if (!cancelled) setRecords(data.map(mapBackendToIncome))
+
+    // Configuración del token para Axios
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+
+    // Sintaxis de Axios puro, utilizando la instancia configurada
+    apiClient.get<IngresoBackend[]>('/api/Pagos', config)
+      .then(res => {
+        if (!cancelled) setRecords(res.data.map(mapBackendToIncome))
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Detalle del error Axios:", error)
         if (!cancelled) {
           toast.error('No se pudo cargar el historial de ingresos.')
         }
@@ -66,23 +67,20 @@ export function useIncomeHistorial() {
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
+
     return () => { cancelled = true }
   }, [token])
 
   const handleApprove = async (id: string) => {
     const userId  = user ? parseInt(user.id, 10) : 0
     const payload = { AprobadoPor: userId }
+    const config  = token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+
     try {
-      await apiFetch(
-        `/api/Pagos/${id}/aprobar`,
-        { method: 'PATCH', body: JSON.stringify(payload) },
-        token ?? undefined,
-      )
-      toast.success('Ingreso aprobado .')
+      await apiClient.patch(`/api/Pagos/${id}/aprobar`, payload, config)
+      toast.success('Ingreso aprobado.')
       setRecords(prev =>
-        prev.map(r =>
-          r.id === id ? { ...r, status: 'Procesado' as IncomeStatus } : r
-        )
+        prev.map(r => r.id === id ? { ...r, status: 'Procesado' as IncomeStatus } : r)
       )
     } catch {
       toast.error('No se pudo aprobar el ingreso.')
@@ -94,17 +92,13 @@ export function useIncomeHistorial() {
   const handleReject = async (id: string) => {
     const userId  = user ? parseInt(user.id, 10) : 0
     const payload = { RechazadoPor: userId }
+    const config  = token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+
     try {
-      await apiFetch(
-        `/api/Pagos/${id}/rechazar`,
-        { method: 'PATCH', body: JSON.stringify(payload) },
-        token ?? undefined,
-      )
-      toast.success('Ingreso rechazado .')
+      await apiClient.patch(`/api/Pagos/${id}/rechazar`, payload, config)
+      toast.success('Ingreso rechazado.')
       setRecords(prev =>
-        prev.map(r =>
-          r.id === id ? { ...r, status: 'Rechazado' as IncomeStatus } : r
-        )
+        prev.map(r => r.id === id ? { ...r, status: 'Rechazado' as IncomeStatus } : r)
       )
     } catch {
       toast.error('No se pudo rechazar el ingreso.')

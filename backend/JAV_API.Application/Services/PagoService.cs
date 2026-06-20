@@ -43,7 +43,7 @@ public class PagoService
             MetodoPago = request.MetodoPago,
             Monto = request.Monto,
             FechaPago = DateTime.UtcNow,
-            Estado = request.MetodoPago == MetodoPago.Efectivo ? EstadoAprobacion.Aprobado : EstadoAprobacion.EnRevision
+            Estado = EstadoAprobacion.EnRevision
         };
 
         // Listas agregadas para la persistencia masiva transaccional

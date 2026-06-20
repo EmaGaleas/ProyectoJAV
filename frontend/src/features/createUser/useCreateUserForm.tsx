@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { toast } from 'react-toastify'
 import { api } from "../../services/api";
 import type { CreateUserFormData } from "./types";
 import { INITIAL_FORM_DATA } from "./types";
 import type { User } from "../gestionUsuarios/GestionarUsuarios";
+
 
 export function useCreateUserForm(
   isSuperAdmin: boolean,
@@ -166,12 +168,12 @@ export function useCreateUserForm(
       }
       console.log(payload);
       const { data } = await api.post("/api/usuarios", payload);
-      alert("Usuario creado exitosamente");
+      toast.success("Usuario creado exitosamente ")
       onUserCreated(data);
       if (onClose) onClose();
     } catch (err: any) {
       console.error("Error al crear usuario:", err);
-      setError(err.message || "Ocurrió un error al crear el usuario.");
+      toast.error("Ocurrió un error al crear el usuario.")
     } finally {
       setIsLoading(false);
     }
