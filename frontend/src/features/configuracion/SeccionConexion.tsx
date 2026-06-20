@@ -1,16 +1,25 @@
-import { useState, useMemo } from "react";
-import { Calendar } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Calendar, Loader2 } from "lucide-react";
 import type { ConexionHistorial } from "./types";
-import { CONEXION_ACTUAL, CONEXION_HISTORIAL, TH_CLS, TD_CLS, fmtDate, fmtMonto } from "./types";
+import { TH_CLS, TD_CLS, fmtDate, fmtMonto } from "./types";
 import { FiltroHistorial, FILTRO_VACIO } from "./shared/FiltroHistorial";
 import type { FiltroHistorialState } from "./shared/FiltroHistorial";
 import { Paginacion, PAGE_SIZE } from "./shared/Paginacion";
 import { ProximasVigencias } from "./shared/ProximasVigencias";
 import type { VigenciaFutura } from "./shared/ProximasVigencias";
+import { 
+  getConexionActual, 
+  getHistorial, 
+  getProximasVigencias, 
+  createProximaVigencia, 
+  deleteProximaVigencia 
+} from "./services/conexionService"; // Asegúrate de que la ruta sea correcta
 
 // ─── Estado Actual (solo lectura) ─────────────────────────────────────────────
 
 function EstadoActualConexion({ monto, fechaInicio }: { monto: number; fechaInicio: string }) {
+  if (!fechaInicio) return <p className="text-gray-500">No hay tarifa de conexión configurada.</p>;
+  
   return (
     <div className="max-w-xl">
       <div className="bg-white rounded-[12px] border border-[#e5e7eb] p-6">
@@ -44,6 +53,7 @@ function HistorialConexion({ historial }: { historial: ConexionHistorial[] }) {
     }), [filtros, historial]);
   const pagina = filtrado.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const handleFiltros = (f: FiltroHistorialState) => { setFiltros(f); setPage(0); };
+
   return (
     <div className="flex flex-col gap-5">
       <FiltroHistorial filtros={filtros} onChange={handleFiltros} onLimpiar={() => { setFiltros(FILTRO_VACIO); setPage(0); }} editadoresList={editores} placeholder="Buscar por monto o editor..." />
@@ -77,10 +87,90 @@ function HistorialConexion({ historial }: { historial: ConexionHistorial[] }) {
 interface Props { subTab: "estado" | "proximas" | "historial" }
 
 export function SeccionConexion({ subTab }: Props) {
-  const [monto] = useState(CONEXION_ACTUAL.monto);
-  const [fechaInicio] = useState(CONEXION_ACTUAL.fechaInicio);
-  const [historial] = useState<ConexionHistorial[]>(CONEXION_HISTORIAL);
+  const [monto, setMonto] = useState(0);
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [historial, setHistorial] = useState<ConexionHistorial[]>([]);
   const [vigencias, setVigencias] = useState<VigenciaFutura[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Efecto para cargar datos dependiendo de la pestaña activa
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTabContent = async () => {
+      setLoading(true);
+      try {
+        if (subTab === "estado") {
+          const actual = await getConexionActual();
+          if (isMounted) {
+            setMonto(actual.monto);
+            setFechaInicio(actual.fechaInicio);
+          }
+        } 
+        else if (subTab === "proximas") {
+          const [actual, proximas] = await Promise.all([
+            getConexionActual(),
+            getProximasVigencias()
+          ]);
+          if (isMounted) {
+            setMonto(actual.monto);
+            setVigencias(proximas);
+          }
+        } 
+        else if (subTab === "historial") {
+          const historico = await getHistorial();
+          if (isMounted) {
+            // Mapeamos para que coincida exactamente con la interfaz del componente
+            setHistorial(historico.map(h => ({
+              id: h.id,
+              monto: h.monto,
+              fechaInicio: h.fechaInicio,
+              fechaFin: h.fechaFin,
+              editadoPor: h.editadoPor
+            })));
+          }
+        }
+      } catch (error) {
+        console.error("Error cargando los datos de conexión:", error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchTabContent();
+
+    return () => {
+      isMounted = false; // Cleanup para evitar fugas de memoria
+    };
+  }, [subTab]);
+
+  // Handlers para las acciones en ProximasVigencias
+  const handleAddVigencia = async (nuevaVigencia: Omit<VigenciaFutura, "id">) => {
+    try {
+      const response = await createProximaVigencia(nuevaVigencia);
+      setVigencias((prev) => [...prev, response]);
+    } catch (error) {
+      console.error("Error al registrar nueva vigencia:", error);
+      // Aquí podrías agregar un toast o alerta de error para el usuario
+    }
+  };
+
+  const handleRemoveVigencia = async (id: number) => {
+    try {
+      await deleteProximaVigencia(id);
+      setVigencias((prev) => prev.filter((x) => x.id !== id));
+    } catch (error) {
+      console.error("Error al eliminar la vigencia:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-10 text-gray-500">
+        <Loader2 className="animate-spin mr-2" size={24} />
+        <span className="font-['Arimo',sans-serif]">Cargando información...</span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -90,8 +180,8 @@ export function SeccionConexion({ subTab }: Props) {
           etiqueta="Conexión"
           montoActual={monto}
           vigencias={vigencias}
-          onAdd={(v) => setVigencias((p) => [...p, { id: Date.now(), ...v }])}
-          onRemove={(id) => setVigencias((p) => p.filter((x) => x.id !== id))}
+          onAdd={handleAddVigencia}
+          onRemove={handleRemoveVigencia}
         />
       )}
       {subTab === "historial" && <HistorialConexion historial={historial} />}

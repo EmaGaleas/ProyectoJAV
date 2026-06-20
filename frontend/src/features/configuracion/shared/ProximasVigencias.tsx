@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-toastify"; // <-- Agregamos react-toastify
 import { Plus, Trash2, Clock } from "lucide-react";
 import { INPUT_CLS, TH_CLS, TD_CLS, fmtDate, fmtMonto } from "../types";
 
@@ -20,16 +21,26 @@ export function ProximasVigencias({ etiqueta, montoActual, vigencias, onAdd, onR
   const today = new Date().toISOString().split("T")[0];
   const [monto, setMonto] = useState("");
   const [fechaInicio, setFechaInicio] = useState("");
-  const [error, setError] = useState("");
+  // Eliminado: const [error, setError] = useState("");
 
   const handleAdd = () => {
-    if (!monto || Number(monto) <= 0) { setError("Ingresa un monto válido."); return; }
-    if (!fechaInicio) { setError("Selecciona la fecha de inicio de vigencia."); return; }
-    if (fechaInicio <= today) { setError("La fecha de inicio debe ser posterior a hoy."); return; }
+    // Reemplazamos los setError por toast.error
+    if (!monto || Number(monto) <= 0) { 
+      toast.error("Ingresa un monto válido."); 
+      return; 
+    }
+    if (!fechaInicio) { 
+      toast.error("Selecciona la fecha de inicio de vigencia."); 
+      return; 
+    }
+    if (fechaInicio <= today) { 
+      toast.error("La fecha de inicio debe ser posterior a hoy."); 
+      return; 
+    }
+    
     onAdd({ monto: Number(monto), fechaInicio });
     setMonto("");
     setFechaInicio("");
-    setError("");
   };
 
   const sorted = [...vigencias].sort((a, b) => a.fechaInicio.localeCompare(b.fechaInicio));
@@ -53,7 +64,8 @@ export function ProximasVigencias({ etiqueta, montoActual, vigencias, onAdd, onR
             <input
               type="number"
               value={monto}
-              onChange={(e) => { setMonto(e.target.value); setError(""); }}
+              // Eliminado: setError("")
+              onChange={(e) => setMonto(e.target.value)}
               placeholder="0.00"
               min="1"
               className={INPUT_CLS}
@@ -67,7 +79,8 @@ export function ProximasVigencias({ etiqueta, montoActual, vigencias, onAdd, onR
               type="date"
               value={fechaInicio}
               min={today}
-              onChange={(e) => { setFechaInicio(e.target.value); setError(""); }}
+              // Eliminado: setError("")
+              onChange={(e) => setFechaInicio(e.target.value)}
               className={INPUT_CLS}
             />
           </div>
@@ -79,9 +92,7 @@ export function ProximasVigencias({ etiqueta, montoActual, vigencias, onAdd, onR
           </button>
         </div>
 
-        {error && (
-          <p className="mt-3 text-red-500 font-['Arimo',sans-serif] text-[13px]">{error}</p>
-        )}
+        {/* Eliminado el bloque que renderizaba el error visualmente ({error && <p>...}) */}
       </div>
 
       {/* Tabla de próximas vigencias */}
