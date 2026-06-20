@@ -1,4 +1,7 @@
+import { useRef } from 'react' 
 import type { PaymentType, IncomeStatus } from './types'
+import { fmtDate } from './types' 
+import { Calendar, X } from 'lucide-react'
 
 export interface Filters {
   paymentType: PaymentType | ''
@@ -11,18 +14,39 @@ export const DEFAULT_FILTERS: Filters = { paymentType: '', status: '', dateFrom:
 interface Props {
   filters: Filters
   onChange: (f: Filters) => void
-  onApply: () => void
+  // Eliminamos onApply
 }
 
-
-export function IncomeFilters({ filters, onChange, onApply }: Props) {
+export function IncomeFilters({ filters, onChange }: Props) {
   const set = (key: keyof Filters, value: string) => onChange({ ...filters, [key]: value })
-  const hasAny = filters.paymentType ||filters.status|| filters.dateFrom || filters.dateTo
+  // Verifica si algún filtro tiene un valor diferente al por defecto
+  const hasAny = filters.paymentType !== '' || filters.status !== '' || filters.dateFrom !== '' || filters.dateTo !== ''
+  
   const handleClear = () => onChange(DEFAULT_FILTERS)
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-[rgba(0,0,0,0.07)] p-5 flex flex-col h-full" style={{ minWidth: 220 }}>
-      <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A', marginBottom: 20 }}>Filtros</span>
+      
+      {/* Título y Enlace "Quitar Filtros" alineados en la misma fila */}
+      <div className="flex justify-between items-center mb-5">
+        <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A' }}>Filtros</span>
+        {hasAny && (
+          <button
+            onClick={handleClear}
+            style={{ 
+              color: '#FF0000', 
+              textDecoration: 'underline', 
+              background: 'transparent', 
+              border: 'none', 
+              cursor: 'pointer', 
+              fontSize: 13, 
+              padding: 0 
+            }}
+          >
+            Quitar Filtros
+          </button>
+        )}
+      </div>
       
       {/* Tipo de pago */}
       <FilterGroup label="Tipo de pago">
@@ -44,45 +68,8 @@ export function IncomeFilters({ filters, onChange, onApply }: Props) {
       <FilterGroup label="Rango de fecha">
         <DateInput label="Desde" value={filters.dateFrom} onChange={v => set('dateFrom', v)} />
         <DateInput label="Hasta" value={filters.dateTo}   onChange={v => set('dateTo',   v)} max={filters.dateTo} />
-        {(filters.dateFrom || filters.dateTo) && (
-          <button
-            onClick={() => onChange({ ...filters, dateFrom: '', dateTo: '' })}
-            style={{ fontSize: 11, color: '#8EBFA3', textAlign: 'left', marginTop: 2 }}
-            className="hover:text-[#308C58] transition-colors"
-          >
-            Limpiar fechas
-          </button>
-        )}
       </FilterGroup>
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <button
-          onClick={onApply}
-          className="flex-1 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
-          style={{ background: '#308C58', color: '#fff', fontSize: 14, fontWeight: 600 }}
-        >
-          Aplicar filtros
-        </button>
-
-        {/* Trash — visible only when there's something to clear */}
-        {hasAny && (
-          <button
-            onClick={handleClear}
-            title="Limpiar filtros"
-            className="flex items-center justify-center rounded-xl hover:opacity-80 transition-opacity shrink-0"
-            style={{ width: 40, background: '#fde8e8', border: 'none', cursor: 'pointer' }}
-          >
-            {/* Trash icon (inline SVG, no lucide dependency needed) */}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c0392b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              <path d="M10 11v6M14 11v6" />
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-            </svg>
-          </button>
-        )}
-      </div>
     </div>
   )
 }
@@ -115,32 +102,80 @@ function CheckRow({ label, checked, onChange }: { label: string; checked: boolea
   )
 }
 
+// ─── Componente DateInput Modificado ──────────────────────────────────────────
+
 function DateInput({ label, value, onChange, max }: { label: string; value: string; onChange: (v: string) => void; max?: string }) {
+  // Referencia para forzar la apertura del calendario nativo
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleOpenPicker = () => {
+    try {
+      inputRef.current?.showPicker()
+    } catch (e) {
+      inputRef.current?.focus()
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 w-full">
       <span style={{ fontSize: 11, fontWeight: 600, color: '#8EBFA3', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
         {label}
       </span>
-      <div className="relative">
+      
+      {/* Contenedor principal: ahora tiene cursor-pointer y ejecuta handleOpenPicker */}
+      <div 
+        onClick={handleOpenPicker}
+        className="relative w-full h-9 rounded-xl border border-[rgba(0,0,0,0.12)] bg-white hover:border-[#308C58] transition-colors overflow-hidden flex items-center cursor-pointer"
+      >
         <input
+          ref={inputRef}
           type="date"
           value={value}
           max={max || undefined}
           onChange={e => onChange(e.target.value)}
-          className="w-full h-9 px-3 text-sm rounded-xl border border-[rgba(0,0,0,0.12)] bg-white focus:outline-none focus:ring-2 focus:ring-[#308C58] focus:ring-opacity-30"
-          style={{ color: value ? '#1A1A1A' : '#B0C8BA' }}
+          // onClick directo al input para evitar doble propagación o bloqueos
+          onClick={e => {
+            try { e.currentTarget.showPicker() } catch(err) {}
+          }}
+          style={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: 'pointer',
+            zIndex: 10
+          }}
         />
+
+        <div className="flex items-center w-full h-full pointer-events-none px-3 gap-2">
+          <Calendar size={16} style={{ color: '#8EBFA3' }} />
+          <span className="text-sm truncate" style={{ color: value ? '#1A1A1A' : '#B0C8BA' }}>
+            {value ? fmtDate(value) : 'Seleccionar...'}
+          </span>
+        </div>
+        
         {value && (
           <button
-            onClick={() => onChange('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full hover:bg-[#F0FAF4] transition-colors"
-            style={{ width: 18, height: 18, color: '#8EBFA3', fontSize: 14, lineHeight: 1 }}
+            type="button"
+            onClick={(e) => { 
+              e.preventDefault(); 
+              e.stopPropagation(); 
+              onChange(''); 
+            }}
+            className="absolute right-2 flex items-center justify-center rounded-full hover:bg-[#F0FAF4] transition-colors"
+            style={{ 
+              width: 20, 
+              height: 20, 
+              color: '#8EBFA3', 
+              cursor: 'pointer', 
+              zIndex: 20 
+            }}
           >
-            ×
+            <X size={14} />
           </button>
-          
         )}
-        
       </div>
     </div>
   )

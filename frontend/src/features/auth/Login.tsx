@@ -6,13 +6,16 @@ import { loginApi } from './services/authService'
 import { ApiError } from '../../services/apiClient'
 import { ROUTES } from '../../router/routes'
 import logo from '../../assets/logo.png'
+import { Eye, EyeOff } from 'lucide-react'
 
 function Login() {
   const { setAuth } = useAuthStore()
   const navigate    = useNavigate()
+  
 
   const [correo,    setCorreo]    = useState('')
   const [password,  setPassword]  = useState('')
+  const [showPassword, setShowPassword] = useState(false);
   const [error,     setError]     = useState<string | null>(null)
   const [cargando,  setCargando]  = useState(false)
 
@@ -99,19 +102,27 @@ function Login() {
 
           {/* Contraseña */}
           <div className="w-full">
-            <label className="block mb-2">
-              Contraseña
-            </label>
-
-            <input
-              type="password"
-              placeholder="Ingrese Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={cargando}
-              className="w-full px-4 py-2 border border-[#E5E5E5] rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            />
+            <label className="block mb-2">Contraseña</label>
+            
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Ingrese Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={cargando}
+                className="w-full px-4 py-2 border border-[#E5E5E5] rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 pr-10"
+              />
+              
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-500 transition-colors"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           {/* Error */}
@@ -130,10 +141,7 @@ function Login() {
             {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
 
-          {/* Recuperar contraseña */}
-          <p className="text-[#514F4F] font-extralight self-center">
-            ¿Olvidaste tu contraseña?
-          </p>
+          
         </form>
       </div>
     </div>

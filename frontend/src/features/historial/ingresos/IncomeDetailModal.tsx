@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios' 
 import { X, CreditCard, MapPin, User, Loader2, FileText, ChevronRight } from 'lucide-react'
 import { L, fmtDate } from './types'
 import type { Income } from './types'
-import { apiFetch } from '../../../services/apiClient'
 import { useAuthStore } from '../../auth/store/authStore'
 import { ConfirmDialog } from '../egresos/ConfirmDialog'
 import Ingreso from '../../../assets/icons/sidebar/tesorero/ingresos.svg?react'
 
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface LineaPago {
   concepto:         string
@@ -25,14 +26,13 @@ interface DetalleBackend {
   lote:                number
   metodoPago:          string
   codigoTransferencia?: string
-  fecha:               string
+  fecha:               string | null
   tipoPago:            string
   estado:              string
   montoTotal:          number
   lineas:              LineaPago[]
+  documentoUrl?:       string | null 
 }
-
-// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   income:    Income | null
@@ -43,6 +43,8 @@ interface Props {
 }
 
 type PendingAction = 'aprobar' | 'rechazar' | null
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5209'
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
@@ -60,9 +62,12 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
     setDetail(null)
     setLoading(true)
     setShowInvoice(false)
-    apiFetch<DetalleBackend>(`/api/Pagos/${income.id}/detalle`, undefined, token ?? undefined)
-      .then(data => setDetail(data))
-      .catch(err  => console.error('Error al cargar detalle del pago:', err))
+    
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+
+    axios.get<DetalleBackend>(`${API_URL}/api/Pagos/${income.id}/detalle`, config)
+      .then(res => setDetail(res.data))
+      .catch(err  => console.error('Error al cargar detalle del pago', err))
       .finally(()  => setLoading(false))
   }, [income, token])
 
@@ -91,6 +96,16 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
     }
   }
 
+  // Lógica para formatear la URL y detectar si es PDF
+  const getFullUrl = (url?: string | null) => {
+    if (!url) return ''
+    if (url.startsWith('http')) return url
+    return `${API_URL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
+  }
+
+  const fullDocumentUrl = detail ? getFullUrl(detail.documentoUrl) : ''
+  const isPdf = fullDocumentUrl ? /\.pdf(\?.*)?$/i.test(fullDocumentUrl) : false
+
   return (
     <>
       {/* ── Overlay ── */}
@@ -106,8 +121,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
           onClick={e => e.stopPropagation()}
         >
 
-          {/* 
-              MODAL PRINCIPAL
+          {/* MODAL PRINCIPAL
           */}
           <div
             className="bg-white flex flex-col overflow-hidden"
@@ -192,7 +206,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                   <InfoSection title="Información del pago" icon={<CreditCard size={13} />}>
                     <ThreeColGrid>
                       <InfoField label="Método de pago" value={detail.metodoPago} />
-                      <InfoField label="Fecha de pago"  value={fmtDate(detail.fecha.split('T')[0])} />
+                      <InfoField label="Fecha de pago"  value={detail.fecha ? fmtDate(detail.fecha.split('T')[0]) : '—'} />
                       <InfoField label="Tipo de pago"   value={detail.tipoPago} />
                     </ThreeColGrid>
                     <ThreeColGrid>
@@ -203,7 +217,51 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                       {esTransferencia && detail.codigoTransferencia && (
                         <InfoField label="Comprobante de transferencia" value={detail.codigoTransferencia} highlight />
                       )}
+                      <InfoField label="Registrado por"  value={'Pendiente'} />
                     </ThreeColGrid>
+                  </InfoSection>
+
+                  {/* Sección 4: Archivo adjunto */}
+                  <InfoSection title="Documento de respaldo" icon={<FileText size={13} />}>
+                    {fullDocumentUrl ? (
+                      isPdf ? (
+                        <div className="flex items-center gap-3 bg-[#FAFAFA] rounded-[10px] px-4 py-3 w-fit border border-[rgba(0,0,0,0.05)]">
+                          <div className="w-10 h-10 rounded-lg bg-[#e5e7eb] flex items-center justify-center shrink-0">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                              <polyline points="14 2 14 8 20 8"></polyline>
+                              <line x1="16" y1="13" x2="8" y2="13"></line>
+                              <line x1="16" y1="17" x2="8" y2="17"></line>
+                              <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                          </div>
+                          <div className="flex flex-col pr-2">
+                            <span className="text-sm font-semibold text-[#1f2937]">Documento PDF</span>
+                            <div className="flex items-center gap-3 mt-1">
+                              <a href={fullDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-[#308C58] hover:underline">
+                                Ver archivo
+                              </a>
+                              <a href={fullDocumentUrl} download className="text-xs font-medium text-[#308C58] hover:underline">
+                                Descargar
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <a
+                          href={fullDocumentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm font-medium rounded-[10px] px-4 py-2 transition-colors w-fit"
+                          style={{ background: '#f3f4f6', color: '#374151', textDecoration: 'none' }}
+                        >
+                          <div className="w-4 h-4 rounded bg-[#308C58] shrink-0" />
+                          Ver archivo adjunto
+                        </a>
+                      )
+                    ) : (
+                      <span className="text-sm text-[#6b7280] px-1">No hay recibo asociado</span>
+                    )}
                   </InfoSection>
 
                   {/* Total */}
@@ -212,9 +270,9 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                     style={{ background: '#F0FAF4', border: '1.5px solid #D5EDDF' }}
                   >
                     <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>Monto Total Recaudado</span>
-                    <span style={{ fontSize: 18, fontWeight: 800, color: '#308C58' }}>{L(detail.montoTotal)}</span>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: '#308C58' }}>{L(detail.montoTotal ?? 0)}</span>
                   </div>
-
+                  
                   {/* CTA ver factura */}
                   {detail.lineas?.length > 0 && (
                     <button
@@ -262,22 +320,6 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                   style={{ background: '#308C58', color: '#fff', border: 'none', cursor: 'pointer' }}
                 >
                   Aprobar ingreso
-                </button>
-              </div>
-            )}
-
-            {/* Footer sin acciones */}
-            {!canAct && !loading && (
-              <div
-                className="px-6 py-4 flex justify-end shrink-0"
-                style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}
-              >
-                <button
-                  onClick={onClose}
-                  className="px-6 py-2 rounded-[10px] text-sm font-semibold"
-                  style={{ background: '#308C58', color: '#fff', border: 'none', cursor: 'pointer' }}
-                >
-                  Cerrar ventana
                 </button>
               </div>
             )}
@@ -343,7 +385,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                       Total
                     </span>
                     <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>
-                      {L(detail.montoTotal)}
+                      {L(detail.montoTotal ?? 0)}
                     </span>
                   </div>
                   <div style={{ fontSize: 10, color: '#B0C8BA', marginTop: 4 }}>
@@ -434,13 +476,15 @@ function InfoField({ label, value, highlight }: { label: string; value: string; 
   )
 }
 
-
 function ThreeColGrid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-3 gap-3">{children}</div>
 }
 
 function InvoiceLine({ item }: { item: { concepto: string; montoBase: number; mora: number; tipo: string; fechaVencimiento: string | null } }) {
-  const subtotal = item.montoBase + item.mora
+  const base = item.montoBase ?? 0
+  const mora = item.mora ?? 0
+  const subtotal = base + mora
+  
   return (
     <div
       className="flex flex-col gap-1.5 p-3 rounded-xl"
@@ -464,10 +508,10 @@ function InvoiceLine({ item }: { item: { concepto: string; montoBase: number; mo
           {L(subtotal)}
         </span>
       </div>
-      {item.mora > 0 && (
+      {mora > 0 && (
         <div className="flex items-center justify-between pt-1.5" style={{ borderTop: '1px dashed rgba(0,0,0,0.08)' }}>
-          <span style={{ fontSize: 10, color: '#8EBFA3' }}>Base: {L(item.montoBase)}</span>
-          <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600 }}>+{L(item.mora)} mora</span>
+          <span style={{ fontSize: 10, color: '#8EBFA3' }}>Base: {L(base)}</span>
+          <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600 }}>+{L(mora)} mora</span>
         </div>
       )}
     </div>
