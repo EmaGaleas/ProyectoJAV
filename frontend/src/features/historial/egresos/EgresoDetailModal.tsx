@@ -40,8 +40,6 @@ export function EgresoDetailModal({ record, userRole, onClose, onApprove, onReje
   }
 
   const fullFacturaUrl = record.facturaUrl ? getFullUrl(record.facturaUrl) : ''
-  const isImage        = fullFacturaUrl ? /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i.test(fullFacturaUrl) : false
-  const isPdf          = fullFacturaUrl ? /\.pdf(\?.*)?$/i.test(fullFacturaUrl) : false
 
   const handleConfirm = async () => {
     if (!pendingAction) return

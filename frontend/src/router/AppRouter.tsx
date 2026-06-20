@@ -10,6 +10,7 @@ import { IncomeHistory } from "../features/historial/ingresos/IncomeHistory";
 import HistorialEgresos from "../features/historial/egresos/HistorialEgresos";
 import { ConfiguracionCobros } from "../features/configuracion/ConfiguracionCobros";
 import GestionarUsuarios from "../features/gestionUsuarios/GestionarUsuarios";
+import Multas from "../features/multas/HistorialMultas";
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -39,7 +40,7 @@ export const AppRouter = () => (
             
             {/* Clientes: Movido aquí porque Tesorero y SuperAdmin sí lo ven, pero Administrador NO */}
             {/* <Route path={ROUTES.CLIENTES_LISTADO} element={<></>} /> */}
-            <Route path={ROUTES.CLIENTES_MULTAS} element={<></>} />
+            <Route path={ROUTES.CLIENTES_MULTAS} element={<Multas/>} />
             
             {/* CAJA comentada según requerimiento */}
             {/* <Route path="/caja" element={<></>} /> */}
