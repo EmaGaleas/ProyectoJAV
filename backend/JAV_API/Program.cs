@@ -76,6 +76,7 @@ builder.Services.AddScoped<ITipoCobroService, TipoCobroService>();
 builder.Services.AddScoped<IJornadaCobroRepository, JornadaCobroRepository>();
 builder.Services.AddScoped<IJornadaCobroService, JornadaCobroService>();
 builder.Services.AddScoped<IMultaRepository, MultaRepository>();
+builder.Services.AddScoped<IMultaService, MultaService>();
 builder.Services.AddScoped<IConexionRepository, ConexionRepository>();
 
 // Si MensualidadRepository tampoco estaba registrado, agrégalo:
