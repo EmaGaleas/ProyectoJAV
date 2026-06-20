@@ -53,4 +53,16 @@ public interface IUsuarioRepository
     /// Usado para asignar automáticamente el TipoUsuario a partir del Rol.
     /// </summary>
     Task<TipoUsuario?> ObtenerTipoUsuarioPorNombreAsync(string nombre);
+
+    /// <summary>
+    /// Actualiza el correo y el teléfono del usuario con el ID indicado.
+    /// Lanza <see cref="KeyNotFoundException"/> si no existe el usuario.
+    /// </summary>
+    Task ActualizarContactoAsync(int id, string correo, string telefono);
+
+    /// <summary>
+    /// Reemplaza el hash de contraseña del usuario con el ID indicado.
+    /// Lanza <see cref="KeyNotFoundException"/> si no existe el usuario.
+    /// </summary>
+    Task ActualizarContrasenaAsync(int id, string passwordHash);
 }

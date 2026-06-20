@@ -13,7 +13,7 @@ const EMPTY_FORM: EgresoFormData = {
 }
 
 export function useEgresoForm() {
-  const { token, user } = useAuthStore()
+  const { user } = useAuthStore()
 
   const registradoPor: number = parseInt(user?.id ?? '0', 10)
   const nombreUsuario: string = user?.nombre ?? 'Usuario desconocido'

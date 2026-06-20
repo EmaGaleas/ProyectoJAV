@@ -94,4 +94,90 @@ public class UsuariosController : ControllerBase
             return BadRequest(new { mensaje = ex.Message });
         }
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Endpoints de perfil del usuario autenticado
+    // ──────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Obtiene el perfil completo del usuario que está actualmente autenticado.
+    /// </summary>
+    /// <response code="200">Perfil obtenido exitosamente.</response>
+    /// <response code="401">Token JWT ausente o inválido.</response>
+    /// <response code="404">El usuario del token ya no existe en la base de datos.</response>
+    [HttpGet("me")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ObtenerPerfil()
+    {
+        var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idStr, out int idUsuario))
+            return Unauthorized(new { mensaje = "No se pudo determinar la identidad del usuario desde el token." });
+
+        var perfil = await _usuarioService.ObtenerPerfilAsync(idUsuario);
+        if (perfil is null)
+            return NotFound(new { mensaje = "El usuario autenticado no fue encontrado." });
+
+        return Ok(perfil);
+    }
+
+    /// <summary>
+    /// Actualiza el correo y el teléfono del usuario autenticado.
+    /// </summary>
+    /// <response code="204">Contacto actualizado exitosamente.</response>
+    /// <response code="400">El correo o teléfono ya están en uso por otro usuario.</response>
+    /// <response code="401">Token JWT ausente o inválido.</response>
+    [HttpPatch("me/contacto")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ActualizarContacto([FromBody] ActualizarContactoRequest request)
+    {
+        var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idStr, out int idUsuario))
+            return Unauthorized(new { mensaje = "No se pudo determinar la identidad del usuario desde el token." });
+
+        try
+        {
+            await _usuarioService.ActualizarContactoAsync(idUsuario, request);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Cambia la contraseña del usuario autenticado.
+    /// Requiere la contraseña actual para confirmar la identidad.
+    /// </summary>
+    /// <response code="204">Contraseña cambiada exitosamente.</response>
+    /// <response code="400">La contraseña actual es incorrecta o la nueva no cumple los requisitos.</response>
+    /// <response code="401">Token JWT ausente o inválido.</response>
+    [HttpPatch("me/contrasena")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CambiarContrasena([FromBody] CambiarContrasenaRequest request)
+    {
+        var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idStr, out int idUsuario))
+            return Unauthorized(new { mensaje = "No se pudo determinar la identidad del usuario desde el token." });
+
+        try
+        {
+            await _usuarioService.CambiarContrasenaAsync(idUsuario, request);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { mensaje = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
 }

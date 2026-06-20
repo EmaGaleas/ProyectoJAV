@@ -137,4 +137,27 @@ public class UsuarioRepository : IUsuarioRepository
         return await _context.TiposUsuario
             .FirstOrDefaultAsync(t => t.Nombre == nombre);
     }
+
+    /// <inheritdoc/>
+    public async Task ActualizarContactoAsync(int id, string correo, string telefono)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id)
+            ?? throw new KeyNotFoundException($"No se encontró un usuario con ID {id}.");
+
+        usuario.Correo   = correo.Trim().ToLower();
+        usuario.Telefono = telefono.Trim();
+
+        await _context.SaveChangesAsync();
+    }
+
+    /// <inheritdoc/>
+    public async Task ActualizarContrasenaAsync(int id, string passwordHash)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id)
+            ?? throw new KeyNotFoundException($"No se encontró un usuario con ID {id}.");
+
+        usuario.PasswordHash = passwordHash;
+
+        await _context.SaveChangesAsync();
+    }
 }

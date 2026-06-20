@@ -66,6 +66,44 @@ public class UsuarioService : IUsuarioService
         return MapearAResponse(usuario);
     }
 
+    /// <inheritdoc/>
+    public async Task<UsuarioResponse?> ObtenerPerfilAsync(int idUsuario)
+    {
+        var usuario = await _usuarioRepository.ObtenerPorIdAsync(idUsuario);
+        return usuario is null ? null : MapearAResponse(usuario);
+    }
+
+    /// <inheritdoc/>
+    public async Task ActualizarContactoAsync(int idUsuario, ActualizarContactoRequest request)
+    {
+        // Validar que el correo no esté en uso por OTRO usuario
+        var usuarioPorCorreo = await _usuarioRepository.ObtenerPorCorreoAsync(request.Correo);
+        if (usuarioPorCorreo is not null && usuarioPorCorreo.IdUsuario != idUsuario)
+            throw new InvalidOperationException($"El correo '{request.Correo}' ya está en uso por otro usuario.");
+
+        // Validar que el teléfono no esté en uso por OTRO usuario
+        var existeTelefono = await _usuarioRepository.ExisteTelefonoAsync(request.Telefono);
+        if (existeTelefono)
+        {
+            // Verificar que no sea el propio usuario el que ya tiene ese teléfono
+            var usuarioActual = await _usuarioRepository.ObtenerPorIdAsync(idUsuario);
+            if (usuarioActual?.Telefono != request.Telefono)
+                throw new InvalidOperationException($"El teléfono '{request.Telefono}' ya está en uso por otro usuario.");
+        }
+
+        await _usuarioRepository.ActualizarContactoAsync(idUsuario, request.Correo, request.Telefono);
+    }
+
+    /// <inheritdoc/>
+    public async Task CambiarContrasenaAsync(int idUsuario, CambiarContrasenaRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ContrasenaNueva) || request.ContrasenaNueva.Length < 8)
+            throw new InvalidOperationException("La nueva contraseña debe tener al menos 8 caracteres.");
+
+        var nuevoHash = _passwordHasher.Hash(request.ContrasenaNueva);
+        await _usuarioRepository.ActualizarContrasenaAsync(idUsuario, nuevoHash);
+    }
+
     // ─────────────────────────────────────────────────────────
     // Métodos privados (ayudantes internos con nombre semántico)
     // ─────────────────────────────────────────────────────────
