@@ -4,7 +4,7 @@ import { TH_CLS, TD_CLS, INPUT_CLS, fmtDate, fmtMonto } from "./types";
 import { FiltroHistorial, FILTRO_VACIO } from "./shared/FiltroHistorial";
 import type { FiltroHistorialState } from "./shared/FiltroHistorial";
 import { Paginacion, PAGE_SIZE } from "./shared/Paginacion";
-import { toast } from 'react-toastify'
+import { toast } from 'react-toastify';
 
 import * as multasService from "./services/multasService";
 import type { MultaTipoDto, MultaHistorialDto, ProximaMultaDto } from "./services/multasService";
@@ -22,17 +22,20 @@ interface ModalMultaProps {
 function ModalMulta({ initial, onSave, onClose }: ModalMultaProps) {
   const [form, setForm] = useState({
     tipo: initial?.tipo ?? "",
-    descripcion: initial?.descripcion ?? "",
     monto: String(initial?.monto ?? ""),
     fechaInicio: initial?.fechaInicio ?? today(),
   });
   const [guardando, setGuardando] = useState(false);
 
   const set = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
-  const valid = form.tipo.trim() && form.monto && form.fechaInicio && !guardando;
+  
+  // Si estamos editando, solo exigimos el nombre del tipo. Si es nuevo, todo es obligatorio.
+  const valid = initial 
+    ? form.tipo.trim() && !guardando
+    : form.tipo.trim() && form.monto && form.fechaInicio && !guardando;
 
   const handleGuardar = async () => {
-    if (form.fechaInicio < today()) {
+    if (!initial && form.fechaInicio < today()) {
       toast.error("La fecha de inicio no puede ser anterior a hoy.");
       return;
     }
@@ -40,7 +43,6 @@ function ModalMulta({ initial, onSave, onClose }: ModalMultaProps) {
     try {
       await onSave({
         tipo: form.tipo.trim(),
-        descripcion: form.descripcion,
         monto: Number(form.monto),
         fechaInicio: form.fechaInicio,
       });
@@ -56,7 +58,7 @@ function ModalMulta({ initial, onSave, onClose }: ModalMultaProps) {
         <div className="bg-white rounded-[16px] shadow-2xl w-full max-w-lg p-6">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-['Montserrat',sans-serif] text-[18px] text-[#364153]">
-              {initial ? "Editar Tipo de Multa" : "Añadir Tipo de Multa"}
+              {initial ? "Editar Nombre de Multa" : "Añadir Tipo de Multa"}
             </h3>
             <button onClick={onClose} className="p-1 hover:bg-[#f3f4f6] rounded-lg cursor-pointer"><X size={20} className="text-[#6b7280]" /></button>
           </div>
@@ -65,18 +67,20 @@ function ModalMulta({ initial, onSave, onClose }: ModalMultaProps) {
               <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Tipo <span className="text-red-500">*</span></label>
               <input type="text" value={form.tipo} onChange={(e) => set("tipo", e.target.value)} placeholder="Ej: Ruido excesivo" className={INPUT_CLS} disabled={guardando} />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Descripción</label>
-              <input type="text" value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} placeholder="Descripción de la multa" className={INPUT_CLS} disabled={guardando} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Monto (Lps.) <span className="text-red-500">*</span></label>
-              <input type="number" value={form.monto} onChange={(e) => set("monto", e.target.value)} placeholder="0.00" min="0" className={INPUT_CLS} disabled={guardando} />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Fecha de inicio de vigencia <span className="text-red-500">*</span></label>
-              <input type="date" value={form.fechaInicio} onChange={(e) => set("fechaInicio", e.target.value)} className={INPUT_CLS} disabled={guardando} />
-            </div>
+            
+            {!initial && (
+              <>
+                <div className="flex flex-col gap-1">
+                  <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Monto (Lps.) <span className="text-red-500">*</span></label>
+                  <input type="number" value={form.monto} onChange={(e) => set("monto", e.target.value)} placeholder="0.00" min="0" className={INPUT_CLS} disabled={guardando} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Fecha de inicio de vigencia <span className="text-red-500">*</span></label>
+                  <input type="date" value={form.fechaInicio} onChange={(e) => set("fechaInicio", e.target.value)} className={INPUT_CLS} disabled={guardando} />
+                </div>
+              </>
+            )}
+            
           </div>
           <div className="flex justify-end gap-3 mt-6">
             <button onClick={onClose} disabled={guardando} className="h-[42px] px-4 rounded-[8px] border border-[#d1d5dc] text-[#514f4f] font-['Arimo',sans-serif] text-[14px] hover:bg-[#f9fafb] cursor-pointer disabled:opacity-50">Cancelar</button>
@@ -95,7 +99,7 @@ function ModalMulta({ initial, onSave, onClose }: ModalMultaProps) {
   );
 }
 
-// ─── Estado Actual (Lectura API + Añadir / Eliminar tipos vigentes) ──────────
+// ─── Estado Actual (Lectura API + Añadir / Editar tipos vigentes) ──────────
 
 function EstadoActualMultas({ multas, setMultas, loading }: { multas: MultaTipoDto[]; setMultas: React.Dispatch<React.SetStateAction<MultaTipoDto[]>>; loading: boolean }) {
   const [modal, setModal] = useState<{ mode: "add" | "edit"; item?: MultaTipoDto } | null>(null);
@@ -103,7 +107,7 @@ function EstadoActualMultas({ multas, setMultas, loading }: { multas: MultaTipoD
   const [page, setPage] = useState(0);
 
   const filtradas = useMemo(
-    () => multas.filter((m) => !busqueda || m.tipo.toLowerCase().includes(busqueda.toLowerCase()) || m.descripcion.toLowerCase().includes(busqueda.toLowerCase())),
+    () => multas.filter((m) => !busqueda || m.tipo.toLowerCase().includes(busqueda.toLowerCase())),
     [multas, busqueda],
   );
   const pagina = filtradas.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -111,24 +115,17 @@ function EstadoActualMultas({ multas, setMultas, loading }: { multas: MultaTipoD
   const handleSave = async (data: Omit<MultaTipoDto, "id">) => {
     try {
       if (modal?.mode === "edit" && modal.item) {
-        const updated = await multasService.updateMulta(modal.item.id, data);
-        setMultas((p) => p.map((m) => (m.id === modal.item!.id ? updated : m)));
+        await multasService.updateMulta(modal.item.id, data.tipo);
+        setMultas((p) => p.map((m) => (m.id === modal.item!.id ? { ...m, tipo: data.tipo } : m)));
+        toast.success("Nombre de multa actualizado");
       } else {
         const nueva = await multasService.createMulta(data);
         setMultas((p) => [...p, nueva]);
+        toast.success("Tipo de multa añadido correctamente");
       }
       setModal(null);
-    } catch (error) {
-      console.error("Error al guardar la multa", error);
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    try {
-      await multasService.deleteMulta(id);
-      setMultas((p) => p.filter((x) => x.id !== id));
-    } catch (error) {
-      console.error("Error al eliminar la multa", error);
+    } catch (error: any) {
+      toast.error(error.message || "Error al guardar la multa");
     }
   };
 
@@ -151,29 +148,27 @@ function EstadoActualMultas({ multas, setMultas, loading }: { multas: MultaTipoD
           <table className="w-full">
             <thead>
               <tr className="bg-[#f9fafb]">
-                <th className={TH_CLS}>Tipo</th><th className={TH_CLS}>Descripción</th><th className={TH_CLS}>Monto</th><th className={TH_CLS}>Vigencia desde</th><th className={`${TH_CLS} text-right`}>Acciones</th>
+                <th className={TH_CLS}>Tipo</th><th className={TH_CLS}>Monto</th><th className={TH_CLS}>Vigencia desde</th><th className={`${TH_CLS} text-right`}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-10">
+                  <td colSpan={4} className="text-center py-10">
                     <Loader2 className="animate-spin mx-auto text-[#308c58]" size={24} />
                   </td>
                 </tr>
               ) : pagina.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-10 text-[#6b7280] font-['Arimo',sans-serif] text-[14px]">Sin tipos de multa</td></tr>
+                <tr><td colSpan={4} className="text-center py-10 text-[#6b7280] font-['Arimo',sans-serif] text-[14px]">Sin tipos de multa</td></tr>
               ) : (
                 pagina.map((m) => (
                   <tr key={m.id} className="hover:bg-[#f9fafb] transition-colors">
                     <td className={`${TD_CLS} font-medium`}>{m.tipo}</td>
-                    <td className={`${TD_CLS} text-[#6b7280] text-[13px]`}>{m.descripcion || "—"}</td>
                     <td className={TD_CLS}>{fmtMonto(m.monto)}</td>
                     <td className={`${TD_CLS} text-[13px]`}>{fmtDate(m.fechaInicio)} — Presente</td>
                     <td className={`${TD_CLS} text-right`}>
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => setModal({ mode: "edit", item: m })} className="h-[30px] px-3 rounded-[6px] border border-[#d1d5dc] text-[#514f4f] text-[12px] font-['Arimo',sans-serif] hover:bg-[#f9fafb] cursor-pointer flex items-center gap-1"><Pencil size={12}/> Editar</button>
-                        <button onClick={() => handleDelete(m.id)} className="h-[30px] px-2 rounded-[6px] border border-red-200 text-red-500 hover:bg-red-50 cursor-pointer"><Trash2 size={13}/></button>
+                        <button onClick={() => setModal({ mode: "edit", item: m })} className="h-[30px] px-3 rounded-[6px] border border-[#d1d5dc] text-[#514f4f] text-[12px] font-['Arimo',sans-serif] hover:bg-[#f9fafb] cursor-pointer flex items-center gap-1"><Pencil size={12}/> Editar Nombre</button>
                       </div>
                     </td>
                   </tr>
@@ -193,8 +188,7 @@ function EstadoActualMultas({ multas, setMultas, loading }: { multas: MultaTipoD
 
 function ProximasVigenciasMultas({ multasActuales }: { multasActuales: MultaTipoDto[] }) {
   const [proximas, setProximas] = useState<ProximaMultaDto[]>([]);
-  const [form, setForm] = useState({ tipo: "", descripcion: "", monto: "", fechaInicio: "" });
-  const [error, setError] = useState("");
+  const [form, setForm] = useState({ tipo: "", monto: "", fechaInicio: "" });
   const [loading, setLoading] = useState(true);
   const todayStr = today();
   const set = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
@@ -208,30 +202,37 @@ function ProximasVigenciasMultas({ multasActuales }: { multasActuales: MultaTipo
       const data = await multasService.getProximasVigencias();
       setProximas(data);
     } catch (err) {
-      console.error("Error al cargar las próximas vigencias", err);
+      toast.error("Error al cargar las próximas vigencias");
     } finally {
       setLoading(false);
     }
   };
 
   const handleAdd = async () => {
-    if (!form.tipo.trim()) { setError("Ingresa el tipo de multa."); return; }
-    if (!form.monto || Number(form.monto) <= 0) { setError("Ingresa un monto válido."); return; }
-    if (!form.fechaInicio) { setError("Selecciona la fecha de inicio."); return; }
-    if (form.fechaInicio <= todayStr) { setError("La fecha de inicio debe ser posterior a hoy."); return; }
+    if (!form.tipo.trim()) { toast.error("Ingresa el tipo de multa."); return; }
+    if (!form.monto || Number(form.monto) <= 0) { toast.error("Ingresa un monto válido."); return; }
+    if (!form.fechaInicio) { toast.error("Selecciona la fecha de inicio."); return; }
+    if (form.fechaInicio <= todayStr) { toast.error("La fecha de inicio debe ser posterior a hoy."); return; }
+
+    // Validación solicitada: Evitar ingresar vigencia si ya existe una para ese tipo
+    const tipoNormalizado = form.tipo.trim().toLowerCase();
+    const yaExiste = proximas.some(p => p.tipo.toLowerCase() === tipoNormalizado);
+    if (yaExiste) {
+      toast.error("Ya existe una vigencia programada para este tipo de multa. Modifíquela o elimínela primero.");
+      return;
+    }
 
     try {
       const nueva = await multasService.createProximaVigencia({
         tipo: form.tipo,
-        descripcion: form.descripcion,
         monto: Number(form.monto),
         fechaInicio: form.fechaInicio
       });
       setProximas((p) => [...p, nueva]);
-      setForm({ tipo: "", descripcion: "", monto: "", fechaInicio: "" });
-      setError("");
+      setForm({ tipo: "", monto: "", fechaInicio: "" });
+      toast.success("Multa futura programada con éxito");
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Error al programar el costo de la multa.");
+      toast.error(err.response?.data?.message || err.message || "Error al programar el costo de la multa.");
     }
   };
 
@@ -239,8 +240,9 @@ function ProximasVigenciasMultas({ multasActuales }: { multasActuales: MultaTipo
     try {
       await multasService.deleteProximaVigencia(id);
       setProximas((p) => p.filter((x) => x.id !== id));
+      toast.success("Vigencia programada eliminada");
     } catch (err) {
-      console.error("Error al eliminar la próxima vigencia", err);
+      toast.error("Error al eliminar la próxima vigencia");
     }
   };
 
@@ -253,8 +255,8 @@ function ProximasVigenciasMultas({ multasActuales }: { multasActuales: MultaTipo
         <h4 className="font-['Montserrat',sans-serif] text-[15px] text-[#364153] mb-4">
           Programar cambio de multa o nuevo tipo futuro
         </h4>
-        <div className="flex flex-wrap gap-4 mb-4">
-          <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
             <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Tipo <span className="text-red-500">*</span></label>
             <input
               type="text"
@@ -268,12 +270,6 @@ function ProximasVigenciasMultas({ multasActuales }: { multasActuales: MultaTipo
               {tipos.map((t) => <option key={t} value={t} />)}
             </datalist>
           </div>
-          <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
-            <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Descripción</label>
-            <input type="text" value={form.descripcion} onChange={(e) => set("descripcion", e.target.value)} placeholder="Descripción (opcional)" className={INPUT_CLS} />
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-4 items-end">
           <div className="flex flex-col gap-1 min-w-[150px]">
             <label className="font-['Arimo',sans-serif] text-[13px] text-[#6b7280]">Monto (Lps.) <span className="text-red-500">*</span></label>
             <input type="number" value={form.monto} onChange={(e) => set("monto", e.target.value)} placeholder="0.00" min="1" className={INPUT_CLS} />
@@ -286,7 +282,6 @@ function ProximasVigenciasMultas({ multasActuales }: { multasActuales: MultaTipo
             <Plus size={16} /> Programar
           </button>
         </div>
-        {error && <p className="mt-3 text-red-500 font-['Arimo',sans-serif] text-[13px]">{error}</p>}
       </div>
 
       {/* Tabla de próximas */}
@@ -303,12 +298,11 @@ function ProximasVigenciasMultas({ multasActuales }: { multasActuales: MultaTipo
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead><tr className="bg-[#f9fafb]"><th className={TH_CLS}>Tipo</th><th className={TH_CLS}>Descripción</th><th className={TH_CLS}>Monto</th><th className={TH_CLS}>Entra en vigencia</th><th className={`${TH_CLS} text-right`}>Acciones</th></tr></thead>
+              <thead><tr className="bg-[#f9fafb]"><th className={TH_CLS}>Tipo</th><th className={TH_CLS}>Monto</th><th className={TH_CLS}>Entra en vigencia</th><th className={`${TH_CLS} text-right`}>Acciones</th></tr></thead>
               <tbody>
                 {[...proximas].sort((a,b)=>a.fechaInicio.localeCompare(b.fechaInicio)).map((v) => (
                   <tr key={v.id} className="hover:bg-[#f9fafb] transition-colors">
                     <td className={`${TD_CLS} font-medium`}>{v.tipo}</td>
-                    <td className={`${TD_CLS} text-[#6b7280] text-[13px]`}>{v.descripcion || "—"}</td>
                     <td className={`${TD_CLS} font-medium text-[#308c58]`}>{fmtMonto(v.monto)}</td>
                     <td className={TD_CLS}>{fmtDate(v.fechaInicio)}</td>
                     <td className={`${TD_CLS} text-right`}>
@@ -326,20 +320,24 @@ function ProximasVigenciasMultas({ multasActuales }: { multasActuales: MultaTipo
 }
 
 // ─── Historial ────────────────────────────────────────────────────────────────
+// ─── Historial ────────────────────────────────────────────────────────────────
 
 function HistorialMultas({ historial, loading }: { historial: MultaHistorialDto[]; loading: boolean }) {
   const [filtros, setFiltros] = useState<FiltroHistorialState>(FILTRO_VACIO);
   const [page, setPage] = useState(0);
   const editores = [...new Set(historial.map((h) => h.editadoPor))];
+  
   const filtrado = useMemo(() =>
     historial.filter((h) => {
       const q = filtros.busqueda.toLowerCase();
-      const matchBusqueda = !filtros.busqueda || h.tipo.toLowerCase().includes(q) || h.editadoPor.toLowerCase().includes(q);
+      // Cambiamos h.tipo por h.multaAfectada en el filtro
+      const matchBusqueda = !filtros.busqueda || h.multaAfectada.toLowerCase().includes(q) || h.editadoPor.toLowerCase().includes(q);
       const matchDesde = !filtros.fechaDesde || h.fechaInicio >= filtros.fechaDesde;
       const matchHasta = !filtros.fechaHasta || h.fechaFin <= filtros.fechaHasta;
       const matchEditor = !filtros.editadoPor || h.editadoPor === filtros.editadoPor;
       return matchBusqueda && matchDesde && matchHasta && matchEditor;
     }), [filtros, historial]);
+    
   const pagina = filtrado.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const handleFiltros = (f: FiltroHistorialState) => { setFiltros(f); setPage(0); };
 
@@ -350,24 +348,29 @@ function HistorialMultas({ historial, loading }: { historial: MultaHistorialDto[
         <div className="px-5 py-4 border-b border-[#e5e7eb]"><h4 className="font-['Montserrat',sans-serif] text-[15px] text-[#364153]">Historial de Cambios en Multas</h4></div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead><tr className="bg-[#f9fafb]"><th className={TH_CLS}>Tipo</th><th className={TH_CLS}>Monto anterior</th><th className={TH_CLS}>Monto nuevo</th><th className={TH_CLS}>Vigencia (inicio — fin)</th><th className={TH_CLS}>Editado por</th><th className={TH_CLS}>Fecha de edición</th></tr></thead>
+            <thead>
+              <tr className="bg-[#f9fafb]">
+                <th className={TH_CLS}>Multa afectada</th>
+                <th className={TH_CLS}>Monto</th>
+                <th className={TH_CLS}>Vigencia (inicio — fin)</th>
+                <th className={TH_CLS}>Editado por</th>
+                <th className={TH_CLS}>Fecha de edición</th>
+              </tr>
+            </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10">
+                  <td colSpan={5} className="text-center py-10">
                     <Loader2 className="animate-spin mx-auto text-[#308c58]" size={24} />
                   </td>
                 </tr>
               ) : pagina.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-10 text-[#6b7280] font-['Arimo',sans-serif] text-[14px]">Sin registros</td></tr>
+                <tr><td colSpan={5} className="text-center py-10 text-[#6b7280] font-['Arimo',sans-serif] text-[14px]">Sin registros</td></tr>
               ) : (
                 pagina.map((h) => (
                   <tr key={h.id} className="hover:bg-[#f9fafb] transition-colors">
-                    <td className={`${TD_CLS} font-medium`}>{h.tipo}</td>
-                    <td className={`${TD_CLS} text-[#6b7280]`}>
-                      {h.montoAnterior > 0 ? <span className="line-through">{fmtMonto(h.montoAnterior)}</span> : "—"}
-                    </td>
-                    <td className={TD_CLS}>{fmtMonto(h.montoNuevo)}</td>
+                    <td className={`${TD_CLS} font-medium`}>{h.multaAfectada}</td>
+                    <td className={TD_CLS}>{fmtMonto(h.monto)}</td>
                     <td className={`${TD_CLS} text-[13px]`}>{fmtDate(h.fechaInicio)} — {h.fechaFin ? fmtDate(h.fechaFin) : "N/A"}</td>
                     <td className={TD_CLS}>{h.editadoPor}</td>
                     <td className={TD_CLS}>{fmtDate(h.editadoEl)}</td>
@@ -401,7 +404,7 @@ export function SeccionMultas({ subTab }: Props) {
         const data = await multasService.getMultasVigentes();
         setMultas(data);
       } catch (err) {
-        console.error("Error cargando multas", err);
+        toast.error("Error cargando multas");
       } finally {
         setLoadingMultas(false);
       }
@@ -417,7 +420,7 @@ export function SeccionMultas({ subTab }: Props) {
           const data = await multasService.getHistorial();
           setHistorial(data);
         } catch (err) {
-          console.error("Error cargando historial", err);
+          toast.error("Error cargando historial");
         } finally {
           setLoadingHistorial(false);
         }

@@ -1,27 +1,19 @@
-/**
- * ============================================================
- *  SERVICE — Conexión
- *  Backend: .NET Web API + PostgreSQL
- *
- *  Controlador: ConfiguracionConexionController.cs
- * ============================================================
- */
-
-import { CONEXION_ACTUAL, CONEXION_HISTORIAL } from "../types";
+import api from './apiConfig';
 
 // ─── DTOs ─────────────────────────────────────────────────────────────────────
-
 export interface ConexionActualDto {
+  id?: number;
   monto: number;
-  fechaInicio: string; // ISO "YYYY-MM-DD" — sin fechaFin (Presente)
+  fechaInicio: string; 
 }
 
 export interface ConexionHistorialDto {
   id: number;
   monto: number;
   fechaInicio: string;
-  fechaFin?: string;  // opcional: el registro más reciente puede no tener fechaFin
+  fechaFin?: string;  
   editadoPor: string;
+  editadoEl?: string;
 }
 
 export interface ProximaConexionDto {
@@ -30,62 +22,69 @@ export interface ProximaConexionDto {
   fechaInicio: string;
 }
 
-// ─── GET /api/configuracion/conexion/actual ───────────────────────────────────
-// Devuelve la tarifa de conexión vigente
+// ⚠️ IMPORTANTE: Verifica qué ID tiene el TipoCobro "Conexión" en tu base de datos.
+const ID_TIPO_COBRO_CONEXION = 2; 
+
+// ─── ENDPOINTS ────────────────────────────────────────────────────────────────
+
+// GET /api/costos/Conexion/vigentes
 export async function getConexionActual(): Promise<ConexionActualDto> {
-  // TODO: return apiFetch('/api/configuracion/conexion/actual', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay({ monto: CONEXION_ACTUAL.monto, fechaInicio: CONEXION_ACTUAL.fechaInicio });
+  try {
+    const { data } = await api.get("/api/costos/Pegue/vigentes");
+    if (data && data.length > 0) {
+      return { id: data[0].id, monto: data[0].monto, fechaInicio: data[0].fechaInicio };
+    }
+    return { monto: 0, fechaInicio: "" };
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return { monto: 0, fechaInicio: "" };
+    }
+    throw error;
+  }
 }
 
-// ─── GET /api/configuracion/conexion/proximas-vigencias ───────────────────────
-// Lista de tarifas de conexión programadas para el futuro
+// GET /api/costos/Conexion/proximos
 export async function getProximasVigencias(): Promise<ProximaConexionDto[]> {
-  // TODO: return apiFetch('/api/configuracion/conexion/proximas-vigencias', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay([]);
+  const { data } = await api.get("/api/costos/Pegue/proximos");
+  return data.map((item: any) => ({
+    id: item.id,
+    monto: item.monto,
+    fechaInicio: item.fechaInicio
+  }));
 }
 
-// ─── POST /api/configuracion/conexion/proximas-vigencias ──────────────────────
-// Programa una nueva tarifa de conexión para una fecha futura
-// Body: { monto: number, fechaInicio: "YYYY-MM-DD" }
-// El backend valida: fechaInicio > hoy
-// Al activarse (job o trigger): cierra anterior con fechaFin = nuevaFechaInicio - 1
+// POST /api/costos
 export async function createProximaVigencia(
-  data: Omit<ProximaConexionDto, "id">,
+  payloadFrontend: Omit<ProximaConexionDto, "id">
 ): Promise<ProximaConexionDto> {
-  // TODO:
-  // return apiFetch(
-  //   '/api/configuracion/conexion/proximas-vigencias',
-  //   { method: 'POST', body: JSON.stringify(data) },
-  //   token,
-  // )
+  const requestBackend = {
+    idTipoCobro: ID_TIPO_COBRO_CONEXION, 
+    monto: payloadFrontend.monto,
+    fechaInicio: payloadFrontend.fechaInicio
+  };
 
-  // MOCK ↓
-  return mockDelay({ id: Date.now(), ...data });
+  const { data } = await api.post("/api/costos", requestBackend);
+  return {
+    id: data.id,
+    monto: data.monto,
+    fechaInicio: data.fechaInicio
+  };
 }
 
-// ─── DELETE /api/configuracion/conexion/proximas-vigencias/{id} ───────────────
-export async function deleteProximaVigencia(_id: number): Promise<void> {
-  // TODO:
-  // return apiFetch(`/api/configuracion/conexion/proximas-vigencias/${id}`, { method: 'DELETE' }, token)
-
-  // MOCK ↓
-  return mockDelay(undefined);
+// DELETE /api/costos/proximos/{id}
+export async function deleteProximaVigencia(id: number): Promise<void> {
+  await api.delete(`/api/costos/proximos/${id}`);
 }
 
-// ─── GET /api/configuracion/conexion/historial ────────────────────────────────
-// Historial de todas las tarifas de conexión pasadas
+// GET /api/costos/Conexion/historial
 export async function getHistorial(): Promise<ConexionHistorialDto[]> {
-  // TODO: return apiFetch('/api/configuracion/conexion/historial', { method: 'GET' }, token)
-
-  // MOCK ↓
-  return mockDelay(CONEXION_HISTORIAL as ConexionHistorialDto[]);
-}
-
-// ─── Helper interno ───────────────────────────────────────────────────────────
-function mockDelay<T>(data: T, ms = 350): Promise<T> {
-  return new Promise((res) => setTimeout(() => res(data), ms));
+  const { data } = await api.get("/api/costos/Pegue/historial");
+  return data.map((item: any) => ({
+    id: item.id,
+    monto: item.monto,
+    fechaInicio: item.fechaInicio,
+    fechaFin: item.fechaFin,
+    editadoPor: item.editadoPor,
+    editadoEl: item.editadoEl
+  }));
 }
