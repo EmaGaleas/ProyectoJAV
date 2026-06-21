@@ -1,38 +1,14 @@
 import { useState, useMemo } from 'react';
+import type { DashboardFilters, MetricasUsuarios, MetricasFinancieras, DatosSemana, EstadoTransaccionData, DesgloceIngreso } from './types';
 
-// ─── 1. DEFINICIÓN DE INTERFACES (TypeScript) ─────────────────────────────────
-export interface DashboardFilters {
-  mes: number;
-  anio: number;
-}
-
-export interface MetricasUsuarios {
-  total: number;
-  activos: number;
-  inactivos: number;
-  morosos: number;
-}
-
-export interface MetricasFinancieras {
-  ingresosTotales: number;
-  egresosTotales: number;
-  balanceNeto: number;
-  tasaMorosidad: number;
-}
-
-export interface DatosSemana {
-  semana: string;
-  ingresos: number;
-  egresos: number;
-}
-
+// ─── TIPO PARA CATEGORÍAS DE INGRESO ──────────────────────────────────────
 export interface CategoriaIngreso {
   categoria: string;
   monto: number;
   color: string;
 }
 
-// ─── 2. DATOS SIMULADOS (Mock Data de la Junta de Agua) ───────────────────────
+// ─── DATOS SIMULADOS (Mock Data de la Junta de Agua) ───────────────────────
 const MOCK_USUARIOS: MetricasUsuarios = {
   total: 450,
   activos: 380,
@@ -48,20 +24,30 @@ const MOCK_SEMANAS: DatosSemana[] = [
 ];
 
 const MOCK_CATEGORIAS_INGRESO: CategoriaIngreso[] = [
-  { categoria: 'Mensualidades de Agua', monto: 38000, color: '#308C58' },   // Verde Principal
-  { categoria: 'Nuevas Conexiones',     monto: 10500, color: '#2B6CB0' },   // Azul Informativo
-  { categoria: 'Multas e Infracciones', monto: 3400,  color: '#E07A5F' }    // Naranja de Alerta
+  { categoria: 'Mensualidades de Agua', monto: 38000, color: '#308C58' },
+  { categoria: 'Nuevas Conexiones',     monto: 10500, color: '#2B6CB0' },
+  { categoria: 'Multas e Infracciones', monto: 3400,  color: '#E07A5F' }
 ];
 
-// ─── 3. HOOK PERSONALIZADO ───────────────────────────────────────────────────
+const MOCK_ESTADO_TRANSACCIONES: EstadoTransaccionData[] = [
+  { estado: 'Pendiente', ingresos: 8, egresos: 5, color: '#FFF4E5' },
+  { estado: 'En Proceso', ingresos: 12, egresos: 9, color: '#E6F3EC' },
+  { estado: 'Rechazado', ingresos: 2, egresos: 3, color: '#F3F4F6' },
+];
+
+const MOCK_DESGLOSE_INGRESOS: DesgloceIngreso[] = [
+  { tipo: 'Multa', cantidad: 15, monto: 4500.00, color: '#E07A5F' },
+  { tipo: 'Mensualidad', cantidad: 380, monto: 57000.00, color: '#308C58' },
+  { tipo: 'Conexión', cantidad: 8, monto: 9600.00, color: '#2B6CB0' },
+];
+
+// ─── HOOK PERSONALIZADO ───────────────────────────────────────────────────
 export function useDashboard() {
-  // Estado para controlar el mes y año actual en los filtros del panel superior
   const [filters, setFilters] = useState<DashboardFilters>({
     mes: new Date().getMonth() + 1,
     anio: new Date().getFullYear(),
   });
 
-  // Cálculos consolidados para el bloque financiero superior
   const metricasFinancieras = useMemo<MetricasFinancieras>(() => {
     const ingresos = MOCK_SEMANAS.reduce((acc, curr) => acc + curr.ingresos, 0);
     const egresos = MOCK_SEMANAS.reduce((acc, curr) => acc + curr.egresos, 0);
@@ -70,21 +56,17 @@ export function useDashboard() {
       ingresosTotales: ingresos,
       egresosTotales: egresos,
       balanceNeto: ingresos - egresos,
-      // La tasa se calcula dividiendo los usuarios morosos actuales entre el padrón total
       tasaMorosidad: MOCK_USUARIOS.total > 0 
         ? (MOCK_USUARIOS.morosos / MOCK_USUARIOS.total) * 100 
         : 0,
     };
   }, [filters]);
 
-  // Encuentra el valor más alto entre ingresos y egresos de todas las semanas.
-  // Añade un 10% de holgura superior para que la barra más alta nunca toque el borde de la gráfica.
   const maxValueBars = useMemo<number>(() => {
     const maxVal = Math.max(...MOCK_SEMANAS.flatMap(s => [s.ingresos, s.egresos]));
     return maxVal > 0 ? maxVal * 1.1 : 1; 
   }, []);
 
-  // Handler para cambiar de mes o año si decides expandir los selectores en la UI
   const handleFilterChange = (key: keyof DashboardFilters, value: number) => {
     setFilters(prev => ({
       ...prev,
@@ -93,24 +75,15 @@ export function useDashboard() {
   };
 
   return {
-    // Estados y setters de filtrado
     filters,
     setFilters,
     handleFilterChange,
-
-    // Datos demográficos estructurados de usuarios
     usuarios: MOCK_USUARIOS,
-
-    // Métricas calculadas para las tarjetas KPI
     metricasFinancieras,
-
-    // Listado semanal para la gráfica de columnas agrupadas
     datosSemanales: MOCK_SEMANAS,
-
-    // Desglose analítico solicitado por multas, mensualidades y conexiones
     categoriasIngreso: MOCK_CATEGORIAS_INGRESO,
-
-    // Valor de referencia para el escalado proporcional de la UI
     maxValueBars,
+    estadoTransacciones: MOCK_ESTADO_TRANSACCIONES,
+    desgloceIngresos: MOCK_DESGLOSE_INGRESOS,
   };
 }

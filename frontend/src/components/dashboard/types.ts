@@ -1,4 +1,6 @@
 export type DashboardStatus = 'Aprobado' | 'En Revisión' | 'Procesado';
+export type EstadoTransaccion = 'Pendiente' | 'En Proceso' | 'Rechazado';
+export type TipoIngreso = 'Multa' | 'Mensualidad' | 'Conexión';
 
 export interface DashboardFilters {
   mes: number; // 1-12
@@ -39,4 +41,18 @@ export interface DatosSemana {
   semana: string;
   ingresos: number;
   egresos: number;
+}
+
+export interface EstadoTransaccionData {
+  estado: EstadoTransaccion;
+  ingresos: number;
+  egresos: number;
+  color: string;
+}
+
+export interface DesgloceIngreso {
+  tipo: TipoIngreso;
+  cantidad: number;
+  monto: number;
+  color: string;
 }

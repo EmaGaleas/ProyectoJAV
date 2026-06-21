@@ -5,21 +5,31 @@ interface KpiProps {
   label: string;
   value: string | number;
   subtext: string;
-  isAccent?: boolean;
+  textColor?: string;
 }
 
-export function KpiCard({ label, value, subtext, isAccent }: KpiProps) {
+export function KpiCard({ label, value, subtext ,  textColor = '#1A1A1A'}: KpiProps) {
+ 
   return (
     <div className="bg-white p-5 rounded-2xl border border-[rgba(0,0,0,0.05)] shadow-sm flex flex-col gap-1.5 transition-all hover:translate-y-[-2px]">
-      <span style={{ fontSize: 10, fontWeight: 700, color: '#B0C8BA', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+      <span
+        style={{
+          fontSize: 10, fontWeight: 700, color: '#B0C8BA', letterSpacing: '0.08em', textTransform: 'uppercase'
+        }}
+      >
         {label}
       </span>
-      <span className="text-2xl font-bold font-['Montserrat',sans-serif]" style={{ color: isAccent ? '#308C58' : '#1A1A1A' }}>
+      <span
+        className="text-2xl font-bold font-['Montserrat',sans-serif]"
+        style={{ color: textColor }}
+      >
         {value}
       </span>
-      <span className="text-[11px] text-[#9fa3a5] font-['Arimo',sans-serif]">{subtext}</span>
+      <span className="text-[11px] text-[#9fa3a5] font-['Arimo',sans-serif]">
+        {subtext}
+      </span>
     </div>
-  );
+  )
 }
 
 // ── Tabla del Listado Operativo por Pestañas ────────────────────────
