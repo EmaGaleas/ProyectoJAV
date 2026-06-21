@@ -60,9 +60,20 @@ public interface IUsuarioRepository
     /// </summary>
     Task ActualizarContactoAsync(int id, string correo, string telefono);
 
-    /// <summary>
-    /// Reemplaza el hash de contraseña del usuario con el ID indicado.
-    /// Lanza <see cref="KeyNotFoundException"/> si no existe el usuario.
-    /// </summary>
+    /// <summary>Reemplaza el hash de contraseña del usuario con el ID indicado.</summary>
     Task ActualizarContrasenaAsync(int id, string passwordHash);
+
+    /// <summary>Verifica si existe otro usuario (distinto de <paramref name="idExcluido"/>) con ese correo.</summary>
+    Task<bool> ExisteCorreoEnOtroUsuarioAsync(string correo, int idExcluido);
+
+    /// <summary>Verifica si existe otra persona (distinta de <paramref name="idExcluido"/>) con ese DNI.</summary>
+    Task<bool> ExisteDniEnOtroUsuarioAsync(string dni, int idExcluido);
+
+    /// <summary>Verifica si existe otro usuario (distinto de <paramref name="idExcluido"/>) con ese teléfono.</summary>
+    Task<bool> ExisteTelefonoEnOtroUsuarioAsync(string telefono, int idExcluido);
+
+    /// <summary>Actualiza todos los campos editables de la Persona y el Usuario con el ID indicado.</summary>
+    Task EditarAsync(int id, string primerNombre, string? segundoNombre,
+        string primerApellido, string? segundoApellido, string dni,
+        string correo, string telefono, bool estado, Rol? rol, int idTipoUsuario);
 }
