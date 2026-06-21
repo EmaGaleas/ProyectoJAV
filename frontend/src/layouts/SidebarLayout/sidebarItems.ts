@@ -43,7 +43,7 @@ export const SIDEBAR_CONFIG: SidebarConfig = {
     {
       section: 'Principales',
       items: [
-        // { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: null }, // Comentado temporalmente
+         { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: null }, // Comentado temporalmente
         {
           label: 'Ingresos',
           path: ROUTES.INGRESOS,
@@ -101,7 +101,7 @@ export const SIDEBAR_CONFIG: SidebarConfig = {
     {
       section: 'Principales',
       items: [
-       // { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: null },
+        { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: null },
        // {
        //   label: 'Validaciones',
        //   path: ROUTES.VALIDACIONES,
@@ -149,7 +149,7 @@ export const SIDEBAR_CONFIG: SidebarConfig = {
     {
       section: 'Principales',
       items: [
-        // { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: null }, // Comentado
+         { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: null }, // Comentado
         // { label: 'Clientes', path: ROUTES.CLIENTES_LISTADO, icon: null }, // Comentado según solicitud
         {
           label: 'Historial',
@@ -192,7 +192,7 @@ export const SIDEBAR_CONFIG: SidebarConfig = {
     {
       section: 'Principales',
       items: [
-       // { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: null },
+        { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: null },
       //  {
       //    label: 'Clientes',
       //    path: ROUTES.CLIENTES,
