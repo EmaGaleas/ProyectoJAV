@@ -7,9 +7,15 @@ interface Props {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => void;
   onDniChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disable?: boolean;
 }
 
-export function SeccionPersonal({ formData, onChange, onDniChange }: Props) {
+export function SeccionPersonal({
+  formData,
+  onChange,
+  onDniChange,
+  disable,
+}: Props) {
   return (
     <div>
       <h3 className={SECTION_TITLE_CLS}>Información Personal</h3>
@@ -27,6 +33,7 @@ export function SeccionPersonal({ formData, onChange, onDniChange }: Props) {
             placeholder="Ej: Juan"
             required
             className={INPUT_CLS}
+            disabled={disable}
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -38,6 +45,7 @@ export function SeccionPersonal({ formData, onChange, onDniChange }: Props) {
             onChange={onChange}
             placeholder="Ej: Carlos"
             className={INPUT_CLS}
+            disabled={disable}
           />
         </div>
       </div>
@@ -55,6 +63,7 @@ export function SeccionPersonal({ formData, onChange, onDniChange }: Props) {
             placeholder="Ej: López"
             required
             className={INPUT_CLS}
+            disabled={disable}
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -66,6 +75,7 @@ export function SeccionPersonal({ formData, onChange, onDniChange }: Props) {
             onChange={onChange}
             placeholder="Ej: García"
             className={INPUT_CLS}
+            disabled={disable}
           />
         </div>
       </div>
@@ -77,11 +87,12 @@ export function SeccionPersonal({ formData, onChange, onDniChange }: Props) {
         <input
           type="text"
           name="identificacion"
-          value={formData.identificacion}
+          value={formData.dni}
           onChange={onDniChange}
           placeholder="Ej: 0801199912345"
           required
           className={INPUT_CLS}
+          disabled={disable}
         />
       </div>
     </div>

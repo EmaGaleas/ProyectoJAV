@@ -16,6 +16,12 @@ export const DEFAULT_FILTERS: Filters = { role: "", status: "" };
 export function UserFilters({ filters, onChange, onApply }: Props) {
   const set = (key: keyof Filters, value: string) =>
     onChange({ ...filters, [key]: value });
+  onApply();
+
+  const clearFilters = () => {
+    onChange(DEFAULT_FILTERS);
+    onApply();
+  };
 
   return (
     <div
@@ -72,9 +78,9 @@ export function UserFilters({ filters, onChange, onApply }: Props) {
       {/* Cantidad de propiedades */}
 
       <div className="flex-1" />
-
+      {/** */}
       <button
-        onClick={onApply}
+        onClick={clearFilters}
         className="w-full py-2.5 rounded-xl hover:opacity-90 transition-opacity"
         style={{
           background: "#308C58",
@@ -83,7 +89,7 @@ export function UserFilters({ filters, onChange, onApply }: Props) {
           fontWeight: 600,
         }}
       >
-        Aplicar filtros
+        Limpiar filtros
       </button>
     </div>
   );
