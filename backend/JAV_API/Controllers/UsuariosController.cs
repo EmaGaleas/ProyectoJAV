@@ -180,4 +180,61 @@ public class UsuariosController : ControllerBase
             return BadRequest(new { mensaje = ex.Message });
         }
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Endpoints de edición de usuario (Presidente y Secretario)
+    // ──────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Verifica la contraseña del usuario autenticado como paso previo a editar otro usuario.
+    /// </summary>
+    /// <response code="204">Contraseña correcta — identidad verificada.</response>
+    /// <response code="401">Contraseña incorrecta o token inválido.</response>
+    [HttpPost("verificar-identidad")]
+    [Authorize(Roles = "Presidente,Secretario")]
+    public async Task<IActionResult> VerificarIdentidad([FromBody] VerificarIdentidadRequest request)
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idClaim, out int idAdmin))
+            return Unauthorized(new { mensaje = "Token inválido." });
+
+        try
+        {
+            await _usuarioService.VerificarIdentidadAsync(idAdmin, request.Password);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { mensaje = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { mensaje = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Actualiza todos los campos editables de la Persona y el Usuario con el ID indicado.
+    /// </summary>
+    /// <response code="200">Usuario actualizado exitosamente con sus nuevos datos.</response>
+    /// <response code="400">Correo, DNI o teléfono ya en uso por otro usuario.</response>
+    /// <response code="404">No existe un usuario con ese ID.</response>
+    [HttpPatch("{id:int}")]
+    [Authorize(Roles = "Presidente,Secretario")]
+    public async Task<IActionResult> EditarUsuario(int id, [FromBody] EditarUsuarioRequest request)
+    {
+        try
+        {
+            var usuario = await _usuarioService.EditarUsuarioAsync(id, request);
+            return Ok(usuario);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { mensaje = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
 }

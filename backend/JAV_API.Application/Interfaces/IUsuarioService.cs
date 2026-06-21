@@ -32,9 +32,18 @@ public interface IUsuarioService
     /// </summary>
     Task ActualizarContactoAsync(int idUsuario, ActualizarContactoRequest request);
 
-    /// <summary>
-    /// Cambia la contraseña del usuario autenticado.
-    /// Verifica que <see cref="CambiarContrasenaRequest.ContrasenaActual"/> sea correcta antes de aplicar el cambio.
-    /// </summary>
+    /// <summary>Cambia la contraseña del usuario autenticado.</summary>
     Task CambiarContrasenaAsync(int idUsuario, CambiarContrasenaRequest request);
+
+    /// <summary>
+    /// Verifica que la contraseña proporcionada coincida con la del usuario autenticado.
+    /// Lanza <see cref="UnauthorizedAccessException"/> si no coincide.
+    /// </summary>
+    Task VerificarIdentidadAsync(int idAdmin, string password);
+
+    /// <summary>
+    /// Edita todos los campos de la Persona y el Usuario con el ID indicado.
+    /// Valida duplicados excluyendo al propio usuario.
+    /// </summary>
+    Task<UsuarioResponse> EditarUsuarioAsync(int id, EditarUsuarioRequest request);
 }

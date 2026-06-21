@@ -160,4 +160,44 @@ public class UsuarioRepository : IUsuarioRepository
 
         await _context.SaveChangesAsync();
     }
+
+    /// <inheritdoc/>
+    public async Task<bool> ExisteCorreoEnOtroUsuarioAsync(string correo, int idExcluido)
+        => await _context.Usuarios
+            .AnyAsync(u => u.Correo.ToLower() == correo.ToLower() && u.IdUsuario != idExcluido);
+
+    /// <inheritdoc/>
+    public async Task<bool> ExisteDniEnOtroUsuarioAsync(string dni, int idExcluido)
+        => await _context.Personas
+            .AnyAsync(p => p.Dni == dni && p.IdPersona != idExcluido);
+
+    /// <inheritdoc/>
+    public async Task<bool> ExisteTelefonoEnOtroUsuarioAsync(string telefono, int idExcluido)
+        => await _context.Usuarios
+            .AnyAsync(u => u.Telefono == telefono && u.IdUsuario != idExcluido);
+
+    /// <inheritdoc/>
+    public async Task EditarAsync(int id, string primerNombre, string? segundoNombre,
+        string primerApellido, string? segundoApellido, string dni,
+        string correo, string telefono, bool estado, Domain.Enums.Rol? rol, int idTipoUsuario)
+    {
+        var usuario = await _context.Usuarios
+            .Include(u => u.Persona)
+            .FirstOrDefaultAsync(u => u.IdUsuario == id)
+            ?? throw new KeyNotFoundException($"No se encontró un usuario con ID {id}.");
+
+        usuario.Persona.PrimerNombre    = primerNombre.Trim();
+        usuario.Persona.SegundoNombre   = segundoNombre?.Trim();
+        usuario.Persona.PrimerApellido  = primerApellido.Trim();
+        usuario.Persona.SegundoApellido = segundoApellido?.Trim();
+        usuario.Persona.Dni             = dni.Trim();
+
+        usuario.Correo        = correo.Trim().ToLower();
+        usuario.Telefono      = telefono.Trim();
+        usuario.Estado        = estado;
+        usuario.Rol           = rol;
+        usuario.IdTipoUsuario = idTipoUsuario;
+
+        await _context.SaveChangesAsync();
+    }
 }
