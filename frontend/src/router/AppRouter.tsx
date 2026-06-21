@@ -11,6 +11,7 @@ import HistorialEgresos from "../features/historial/egresos/HistorialEgresos";
 import { ConfiguracionCobros } from "../features/configuracion/ConfiguracionCobros";
 import GestionarUsuarios from "../features/gestionUsuarios/GestionarUsuarios";
 import Multas from "../features/multas/HistorialMultas";
+import Dashboard from "../features/dashbaord/Dashboard";
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -22,10 +23,8 @@ export const AppRouter = () => (
       <Route element={<PrivateRoute />}>
         <Route element={<SidebarLayout />}>
           
-          {/* Acceso Universal (Todos los roles autenticados) 
-              Incluye Dueño de casa (que solo ve perfil) */}
-          {/* MEJORA: Redirección al Perfil en lugar de pantalla en blanco si no hay Dashboard */}
-          <Route index element={<Navigate to={ROUTES.PERFIL} replace />} />
+
+          <Route index element={<Navigate to={ROUTES.DASHBOARD} replace />} />
           <Route path={ROUTES.PERFIL} element={<></>} />
 
           {/* ── Grupo: Tesorero + SuperAdministrador ── */}
@@ -46,7 +45,7 @@ export const AppRouter = () => (
             {/* <Route path="/caja" element={<></>} /> */}
           </Route>
 
-          {/* ── Grupo Historiales y Reportes: Tesorero + Fiscal + Administrador + SuperAdministrador ── */}
+          {/* ── Grupo Dashboard, Historiales y Reportes: Tesorero + Fiscal + Administrador + SuperAdministrador ── */}
           <Route
             element={
               <RoleRoute
@@ -54,6 +53,8 @@ export const AppRouter = () => (
               />
             }
           >
+            <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
+
             {/* Historiales de Ingresos y Egresos */}
             <Route path={ROUTES.INGRESOS_HISTORIAL} element={<IncomeHistory />} />
             <Route path={ROUTES.EGRESOS_HISTORIAL} element={<HistorialEgresos />} />
@@ -69,7 +70,7 @@ export const AppRouter = () => (
           <Route element={<RoleRoute allowedRoles={["Fiscal"]} />}>
            {/* <Route path={ROUTES.VALIDACIONES_CIERRES} element={<></>} />*/}
            {/*<Route path={ROUTES.VALIDACIONES_HISTORIAL} element={<></>} />*/}
-                     </Route>
+          </Route>
 
           {/* ── Grupo: Administrador + SuperAdministrador ── */}
           <Route

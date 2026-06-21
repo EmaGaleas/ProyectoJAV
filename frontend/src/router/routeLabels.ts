@@ -1,7 +1,7 @@
 import { ROUTES } from './routes'
 
 export const ROUTE_LABELS: Record<string, string> = {
-  //[ROUTES.DASHBOARD]:                 'Dashboard',
+  [ROUTES.DASHBOARD]:                 'Dashboard',
 
   [ROUTES.INGRESOS]:                  'Ingresos',
   [ROUTES.INGRESOS_REGISTRAR]:        'Registrar cobro',
