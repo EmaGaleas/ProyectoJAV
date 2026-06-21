@@ -22,40 +22,43 @@ interface Props {
   users: User[];
 }
 
-
 export function SeccionRol({ formData, onChange, disable, users }: Props) {
   const ROLE_LIMITS: Record<string, number> = {
-  Presidente: 1,
-  Tesorero: 1,
-  Secretario: 1,
-  Vocal: 3,
-  Vicepresidente: 1,
-  Fiscal: 1,
+    Presidente: 1,
+    Tesorero: 1,
+    Secretario: 1,
+    Vocal: 3,
+    Vicepresidente: 1,
+    Fiscal: 1,
 
-  
-  DuenoDeCasa: Infinity,
-};
+    DuenoDeCasa: Infinity,
+  };
 
-  const getRoleCounts = (users: User[]) =>{
-    return users.reduce((acc,user)=>{
-      acc[user.rol] = (acc[user.rol] || 0)+1;
-      return acc;
-    },{}as Record<string,number>);
+  const getRoleCounts = (users: User[]) => {
+    return users
+      .filter((user) => user.estado)
+      .reduce(
+        (acc, user) => {
+          acc[user.rol] = (acc[user.rol] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
   };
   const getRoleOptions = (users: User[]) => {
-  const counts = getRoleCounts(users);
+    const counts = getRoleCounts(users);
 
-  return ROLES.map((role) => {
-    const limit = ROLE_LIMITS[role.rol] ?? 1;
-    const current = counts[role.rol] ?? 0;
+    return ROLES.map((role) => {
+      const limit = ROLE_LIMITS[role.rol] ?? 1;
+      const current = counts[role.rol] ?? 0;
 
-    return {
-      ...role,
-      disabled: current >= limit,
-    };
-  });
-};
-const availableRoles = getRoleOptions(users);
+      return {
+        ...role,
+        disabled: current >= limit,
+      };
+    });
+  };
+  const availableRoles = getRoleOptions(users);
 
   return (
     <div>
@@ -76,6 +79,7 @@ const availableRoles = getRoleOptions(users);
             {availableRoles.map((r) => (
               <option key={r.value} value={r.rol} disabled={r.disabled}>
                 {r.label}
+                {r.disabled ? " (No disponible)" : ""}
               </option>
             ))}
           </select>

@@ -50,6 +50,9 @@ export default function CreateUserForm({
         : "Detalles de Usuario";
 
   const viewOnly = mode === "view";
+  const hasPresidente = users.some(
+    (user) => user.rol === "Presidente" && user.estado,
+  );
 
   return (
     <>
@@ -88,15 +91,16 @@ export default function CreateUserForm({
             onSubmit={handleSubmit}
             className="flex flex-col gap-6 px-6 py-6 w-full max-w-125"
           >
-            {isSuperAdmin && (
-              <SeccionRol
-                formData={formData}
-                onChange={handleInputChange}
-                disable={viewOnly}
-                users={users}
-              />
-            )}
-            
+            {isSuperAdmin ||
+              (!hasPresidente && (
+                <SeccionRol
+                  formData={formData}
+                  onChange={handleInputChange}
+                  disable={viewOnly}
+                  users={users}
+                />
+              ))}
+
             {mode !== "create" && (
               <SeccionEstado
                 formData={formData}
