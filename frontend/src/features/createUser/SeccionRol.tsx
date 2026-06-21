@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import type { CreateUserFormData } from "./types";
 import { LABEL_CLS, SECTION_TITLE_CLS, SELECT_CLS } from "./types";
+import type { User } from "../gestionUsuarios/GestionarUsuarios";
 
 const ROLES = [
   { value: "0", rol: "DuenoDeCasa", label: "Cliente / Dueño de Casa" },
@@ -17,9 +18,45 @@ interface Props {
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => void;
+  disable: boolean;
+  users: User[];
 }
 
-export function SeccionRol({ formData, onChange }: Props) {
+
+export function SeccionRol({ formData, onChange, disable, users }: Props) {
+  const ROLE_LIMITS: Record<string, number> = {
+  Presidente: 1,
+  Tesorero: 1,
+  Secretario: 1,
+  Vocal: 3,
+  Vicepresidente: 1,
+  Fiscal: 1,
+
+  
+  DuenoDeCasa: Infinity,
+};
+
+  const getRoleCounts = (users: User[]) =>{
+    return users.reduce((acc,user)=>{
+      acc[user.rol] = (acc[user.rol] || 0)+1;
+      return acc;
+    },{}as Record<string,number>);
+  };
+  const getRoleOptions = (users: User[]) => {
+  const counts = getRoleCounts(users);
+
+  return ROLES.map((role) => {
+    const limit = ROLE_LIMITS[role.rol] ?? 1;
+    const current = counts[role.rol] ?? 0;
+
+    return {
+      ...role,
+      disabled: current >= limit,
+    };
+  });
+};
+const availableRoles = getRoleOptions(users);
+
   return (
     <div>
       <h3 className={SECTION_TITLE_CLS}>Tipo de Usuario</h3>
@@ -34,9 +71,10 @@ export function SeccionRol({ formData, onChange }: Props) {
             onChange={onChange}
             required
             className={SELECT_CLS}
+            disabled={disable}
           >
-            {ROLES.map((r) => (
-              <option key={r.value} value={r.rol}>
+            {availableRoles.map((r) => (
+              <option key={r.value} value={r.rol} disabled={r.disabled}>
                 {r.label}
               </option>
             ))}

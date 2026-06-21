@@ -2,9 +2,10 @@ import type { User } from "./GestionarUsuarios";
 
 interface Props {
   user: User;
+  onClick?: () => void;
 }
 
-export default function UserCard({ user }: Props) {
+export default function UserCard({ user, onClick }: Props) {
   const isActive = user.estado === true;
   const estado = isActive ? "Activo" : "Inactivo";
   const nombre = [
@@ -17,7 +18,10 @@ export default function UserCard({ user }: Props) {
     .join(" ");
 
   return (
-    <div className="flex flex-row bg-white justify-between h-28 shadow-md rounded-2xl p-4">
+    <div
+      className="flex flex-row bg-white justify-between h-28 shadow-md rounded-2xl p-4"
+      onClick={onClick}
+    >
       {/**Nombre y dni */}
       <div className="flex flex-col gap-1">
         <p>Nombre: {nombre}</p>
