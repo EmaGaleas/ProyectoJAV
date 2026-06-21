@@ -12,6 +12,7 @@ import { ConfiguracionCobros } from "../features/configuracion/ConfiguracionCobr
 import GestionarUsuarios from "../features/gestionUsuarios/GestionarUsuarios";
 import Multas from "../features/multas/HistorialMultas";
 import Dashboard from "../features/dashbaord/Dashboard";
+import ReportesFinancieros from "../features/reportes/ReportesFinancieros";
 
 export const AppRouter = () => (
   <BrowserRouter>
@@ -60,7 +61,7 @@ export const AppRouter = () => (
             <Route path={ROUTES.EGRESOS_HISTORIAL} element={<HistorialEgresos />} />
 
             {/* Reportes: Solo el financiero activo actualmente */}
-            <Route path={ROUTES.REPORTES_FINANCIERO} element={<></>} />
+            <Route path={ROUTES.REPORTES_FINANCIERO} element={<ReportesFinancieros />} />
             {/* Comentados temporalmente por desarrollo */}
             {/* <Route path={ROUTES.REPORTES_INGRESOS} element={<></>} /> */}
             {/* <Route path={ROUTES.REPORTES_EGRESOS} element={<></>} /> */}

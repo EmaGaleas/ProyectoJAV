@@ -1,4 +1,5 @@
 export type ReporteTab = 'Morosos' | 'Balance';
+export type TipoBalance = 'Ingreso' | 'Egreso';
 
 export interface MorosoRecord {
   id: string;
@@ -12,8 +13,9 @@ export interface MorosoRecord {
 
 export interface BalanceRecord {
   id: string;
+  codigo: string;
   fecha: string;
-  tipo: 'Ingreso' | 'Egreso';
+  tipo: TipoBalance;
   categoria: string;
   descripcion: string;
   monto: number;
