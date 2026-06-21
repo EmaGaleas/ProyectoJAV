@@ -145,12 +145,10 @@ export default function GestionarUsuarios() {
   };
   const handleEditarUsuario = (updatedUser: User) => {
     setUsers((prev) =>
-    prev.map((user) =>
-      user.idUsuario === updatedUser.idUsuario
-        ? updatedUser
-        : user
-    )
-  );
+      prev.map((user) =>
+        user.idUsuario === updatedUser.idUsuario ? updatedUser : user,
+      ),
+    );
   };
 
   useEffect(() => {

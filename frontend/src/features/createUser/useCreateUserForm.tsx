@@ -12,6 +12,7 @@ export function useCreateUserForm(
   initialData?: CreateUserFormData,
   mode?: string,
 ) {
+  console.log(isSuperAdmin);
   const [formData, setFormData] = useState<CreateUserFormData>(
     initialData ?? INITIAL_FORM_DATA,
   );
@@ -26,26 +27,23 @@ export function useCreateUserForm(
   };
 
   const handleCelularChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  let value = e.target.value;
+    let value = e.target.value;
 
-  value = value.replace(/\D/g, "");
+    value = value.replace(/\D/g, "");
 
-  if (value.startsWith("504")) {
-    value = value.slice(3);
-  }
+    if (value.startsWith("504")) {
+      value = value.slice(3);
+    }
 
-  
-  value = value.substring(0, 8);
+    value = value.substring(0, 8);
 
-  const formatted = value.length
-    ? `+504 ${value}`
-    : "+504 ";
+    const formatted = value.length ? `+504 ${value}` : "+504 ";
 
-  setFormData((prev) => ({
-    ...prev,
-    telefono: formatted,
-  }));
-};
+    setFormData((prev) => ({
+      ...prev,
+      telefono: formatted,
+    }));
+  };
 
   const handleDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "");
@@ -108,7 +106,7 @@ export function useCreateUserForm(
     if (!formData.dni.trim())
       return "El numero de identificacion es obligatorio";
 
-    const needsAddress = !isSuperAdmin || formData.rol === "DuenoDeCasa";
+    const needsAddress = formData.rol === "DuenoDeCasa";
     if (needsAddress) {
       if (!formData.domicilios.calle) return "La calle es obligatoria";
       if (!formData.domicilios.codigoBloque) return "El bloque es obligatorio";
@@ -202,7 +200,7 @@ export function useCreateUserForm(
       }
 
       const { data } = response;
-      
+
       onUserCreated(data);
       if (onClose) onClose();
     } catch (err: any) {
