@@ -162,6 +162,7 @@ public class CostosService : ICostosService
         return new CostoVigenteResponse
         {
             Id = moraVigente.IdCobro,
+            IdTipoCobro = moraVigente.IdTipoCobro,
             Tipo = moraVigente.TipoCobro.Tipo.ToString(),
             Descripcion = moraVigente.TipoCobro.Descripcion,
             Monto = moraVigente.Monto,

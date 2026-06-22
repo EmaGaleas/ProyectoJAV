@@ -16,6 +16,7 @@ public class Pago
     public EstadoAprobacion Estado { get; set; } = EstadoAprobacion.EnRevision;
     public int? AprobadoPor { get; set; }
     public Usuario? Aprobador { get; set; }
+    public string? ComentarioRechazo { get; set; }
 
     // Relaciones
     public Comprobante? Comprobante { get; set; }

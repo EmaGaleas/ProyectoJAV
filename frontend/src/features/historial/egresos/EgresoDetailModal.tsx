@@ -14,7 +14,7 @@ interface Props {
   userRole:  UserRole
   onClose:   () => void
   onApprove: (id: string) => Promise<void>
-  onReject:  (id: string) => Promise<void>
+  onReject:  (id: string, motivo: string) => Promise<void> 
 }
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5209'
@@ -41,18 +41,21 @@ export function EgresoDetailModal({ record, userRole, onClose, onApprove, onReje
 
   const fullFacturaUrl = record.facturaUrl ? getFullUrl(record.facturaUrl) : ''
 
-  const handleConfirm = async () => {
-    if (!pendingAction) return
-    setIsLoading(true)
-    try {
-      if (pendingAction === 'aprobar') await onApprove(record.id)
-      else                             await onReject(record.id)
-      setPendingAction(null)
-      onClose()
-    } finally {
-      setIsLoading(false)
+const handleConfirm = async (obs?: string) => {
+  if (!pendingAction) return
+  setIsLoading(true)
+  try {
+    if (pendingAction === 'aprobar') {
+        await onApprove(record.id)
+    } else {
+        await onReject(record.id, obs || '') 
     }
+    setPendingAction(null)
+    onClose()
+  } finally {
+    setIsLoading(false)
   }
+}
 
   return (
     <>

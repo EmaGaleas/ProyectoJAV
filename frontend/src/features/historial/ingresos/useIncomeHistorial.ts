@@ -89,16 +89,20 @@ export function useIncomeHistorial() {
     }
   }
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, motivo: string) => { // <-- 1. Agregamos motivo
     const userId  = user ? parseInt(user.id, 10) : 0
-    const payload = { RechazadoPor: userId }
+    
+    // 2. El payload ahora envía el Motivo que espera el backend
+    const payload = { RechazadoPor: userId, Motivo: motivo } 
     const config  = token ? { headers: { Authorization: `Bearer ${token}` } } : {}
 
     try {
       await apiClient.patch(`/api/Pagos/${id}/rechazar`, payload, config)
       toast.success('Ingreso rechazado.')
+      
+      // 3. Actualizamos el estado inyectando el motivo para que el modal lo muestre sin recargar
       setRecords(prev =>
-        prev.map(r => r.id === id ? { ...r, status: 'Rechazado' as IncomeStatus } : r)
+        prev.map(r => r.id === id ? { ...r, status: 'Rechazado' as IncomeStatus, motivoRechazo: motivo } : r)
       )
     } catch {
       toast.error('No se pudo rechazar el ingreso.')
