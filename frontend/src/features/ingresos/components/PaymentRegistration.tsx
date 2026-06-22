@@ -6,47 +6,21 @@ import { usePaymentRegistration } from '../hooks/usePaymentRegistration'
 
   export function PaymentRegistration() {
     const {
-      client,
-      payments,
-      selPay,
-      method,
-      code,
-      codeError,
-      file,
-      fileError,
-      isLoadingPay,
-      isSubmitting,
-      fetchClients,
-      handleSelectClient,
-      handleTogglePay,
-      handleMethodChange,
-      handleCodeChange,
-      handleFileChange,
-      handleSubmit,
+      client, payments, selPay, method, code, codeError, file, fileError,
+      isLoadingPay, isSubmitting, fetchClients, handleSelectClient,
+      handleTogglePay, handleMethodChange, handleCodeChange,
+      handleFileChange, handleSubmit,
     } = usePaymentRegistration()
 
     const canSubmit = !!client && selPay.length > 0 && !isSubmitting
 
     return (
       <div className="flex gap-5 items-start">
-
-        {/* Columna izquierda */}
         <div className="flex flex-col gap-5 flex-1 min-w-0">
-          <ClientFinder
-            selectedClient={client}
-            onSelectClient={handleSelectClient}
-            fetchClients={fetchClients}
-          />
-          <PendingPayments
-            client={client}
-            payments={payments}
-            selectedIds={selPay}
-            onToggle={handleTogglePay}
-            isLoading={isLoadingPay}
-          />
+          <ClientFinder selectedClient={client} onSelectClient={handleSelectClient} fetchClients={fetchClients} />
+          <PendingPayments client={client} payments={payments} selectedIds={selPay} onToggle={handleTogglePay} isLoading={isLoadingPay} />
         </div>
 
-        {/* Columna derecha */}
         <div className="flex flex-col gap-5 shrink-0" style={{ width: 300 }}>
           <PaymentMethodPanel
             method={method}       onMethodChange={handleMethodChange}
@@ -55,15 +29,8 @@ import { usePaymentRegistration } from '../hooks/usePaymentRegistration'
             file={file}           onFileChange={handleFileChange}
             fileError={fileError}
           />
-          <ReceiptPanel
-            client={client}
-            payments={payments}
-            selectedIds={selPay}
-            method={method}
-            code={code}
-          />
+          <ReceiptPanel client={client} payments={payments} selectedIds={selPay} method={method} code={code} />
 
-          {/* Botón registrar */}
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
@@ -78,7 +45,6 @@ import { usePaymentRegistration } from '../hooks/usePaymentRegistration'
             {isSubmitting ? 'Registrando...' : 'Registrar Pago'}
           </button>
         </div>
-
       </div>
     )
   }

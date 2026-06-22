@@ -21,8 +21,6 @@ function mapClient(raw: any): Client {
   }
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
 export function usePaymentRegistration() {
   const { token, user } = useAuthStore()
   const registradoPor   = parseInt(user?.id ?? '0', 10)
@@ -34,39 +32,31 @@ export function usePaymentRegistration() {
   const [code,         setCode]         = useState('')
   const [codeError,    setCodeError]    = useState(false)
   
-  // Estados para el archivo
+  // Estados para el archivo (Solo para UI, no se envían al backend)
   const [file,         setFile]         = useState<File | null>(null)
   const [fileError,    setFileError]    = useState(false)
 
   const [isLoadingPay, setIsLoadingPay] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // ── Helper para inyectar el Token en Axios ────────────────────────────────
   const getConfig = () => ({
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     }
   })
 
-  // ── Buscar clientes ───────────────────────────────────────────────────────
   const fetchClients = async (calle: string, bloque: string, lote?: number): Promise<Client[]> => {
     try {
       const params = { Calle: calle, Bloque: bloque, ...(lote != null ? { Lote: lote } : {}) }
-      
-      const response = await axios.get(`${API_BASE_URL}/api/Clientes/buscar`, {
-        params,
-        ...getConfig()
-      })
-      
+      const response = await axios.get(`${API_BASE_URL}/api/Clientes/buscar`, { params, ...getConfig() })
       return response.data.map(mapClient)
     } catch (error: any) {
       console.error('Error fetching clients:', error)
-      toast.error(error.response?.data?.message || 'Error al buscar los clientes. Verifica tu conexión.')
+      toast.error(error.response?.data?.message || 'Error al buscar los clientes.')
       return []
     }
   }
 
-  // ── Seleccionar cliente y cargar sus deudas ───────────────────────────────
   const handleSelectClient = async (c: Client | null) => {
     setClient(c)
     setSelPay([])
@@ -79,16 +69,13 @@ export function usePaymentRegistration() {
     setIsLoadingPay(true)
     try {
       const response = await axios.get(`${API_BASE_URL}/api/Deudas/usuario/${c.id}`, getConfig())
-      
       const data = response.data; 
 
       const todasLasDeudas = [
         ...(data.mensualidades || []).map((m: any) => ({ ...mapDeudaCustom(m, 'mensualidad'), clientId: c.id })),
         ...(data.multas || []).map((m: any) => ({ ...mapDeudaCustom(m, 'multa'), clientId: c.id }))
       ];
-
       setPayments(todasLasDeudas);
-
     } catch (error: any) {
       console.error('Error fetching debts:', error);
       toast.error('No se pudieron cargar las deudas.');
@@ -126,7 +113,7 @@ export function usePaymentRegistration() {
 
   const handleFileChange = (f: File | null) => {
     if (f) {
-      const maxSize = 5 * 1024 * 1024; // 5 MB en bytes
+      const maxSize = 5 * 1024 * 1024; // 5 MB
       if (f.size > maxSize) {
         toast.error('El archivo supera el límite máximo de 5 MB.')
         setFileError(true)
@@ -153,12 +140,6 @@ export function usePaymentRegistration() {
       return
     }
 
-    if (!file) {
-      setFileError(true)
-      toast.error('Debes adjuntar el comprobante o recibo en formato archivo.')
-      return
-    }
-
     const selected = payments.filter(p => selPay.includes(p.id))
 
     const mensualidadesIds = selected.filter(p => p.type === 'mensualidad').map(p => p.backId)
@@ -166,21 +147,20 @@ export function usePaymentRegistration() {
     const conexionesIds    = selected.filter(p => p.type === 'conexion').map(p => p.backId)
     const total            = selected.reduce((a, p) => a + p.amount + p.mora, 0)
 
-    const formData = new FormData();
-    formData.append('registradoPor', registradoPor.toString());
-    formData.append('metodoPago', method === 'cash' ? 'Efectivo' : 'Transferencia');
-    formData.append('monto', total.toString());
-    formData.append('codigoComprobante', code.trim());
-    
-    formData.append('comprobante', file);
-
-    mensualidadesIds.forEach(id => formData.append('mensualidadesIds', id.toString()));
-    multasIds.forEach(id => formData.append('multasIds', id.toString()));
-    conexionesIds.forEach(id => formData.append('conexionesIds', id.toString()));
+    // ── RETORNAMOS AL PAYLOAD JSON ORIGINAL (Sin FormData ni archivo) ──
+    const payload = {
+      registradoPor: registradoPor,
+      metodoPago: method === 'cash' ? 'Efectivo' : 'Transferencia',
+      monto: total,
+      codigoComprobante: code.trim(),
+      mensualidadesIds,
+      multasIds,
+      conexionesIds
+    }
 
     setIsSubmitting(true)
     try {
-      await axios.post(`${API_BASE_URL}/api/Pagos`, formData, getConfig())
+      await axios.post(`${API_BASE_URL}/api/Pagos`, payload, getConfig())
       
       toast.success('Pago registrado exitosamente.')
 
@@ -201,22 +181,10 @@ export function usePaymentRegistration() {
   }
 
   return {
-    client,
-    payments,
-    selPay,
-    method,
-    code,
-    codeError,
-    file,
-    fileError,
-    isLoadingPay,
-    isSubmitting,
-    fetchClients,
-    handleSelectClient,
-    handleTogglePay,
-    handleMethodChange,
-    handleCodeChange,
-    handleFileChange,
-    handleSubmit,
+    client, payments, selPay, method, code, codeError,
+    file, fileError, 
+    isLoadingPay, isSubmitting, fetchClients, handleSelectClient,
+    handleTogglePay, handleMethodChange, handleCodeChange,
+    handleFileChange, handleSubmit,
   }
 }
