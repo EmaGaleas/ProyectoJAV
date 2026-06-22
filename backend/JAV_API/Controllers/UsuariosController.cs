@@ -214,6 +214,23 @@ public class UsuariosController : ControllerBase
     }
 
     /// <summary>
+    /// Activa o desactiva el usuario con el ID indicado.
+    /// </summary>
+    /// <response code="200">Estado cambiado exitosamente.</response>
+    /// <response code="404">No existe un usuario con ese ID.</response>
+    [HttpPatch("{id:int}/estado")]
+    [Authorize(Roles = "Presidente,Vicepresidente,Secretario,Vocal")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CambiarEstado(int id, [FromBody] bool estado)
+    {
+        var usuario = await _usuarioService.CambiarEstadoAsync(id, estado);
+        if (usuario is null)
+            return NotFound(new { mensaje = $"No se encontró un usuario con ID {id}." });
+        return Ok(usuario);
+    }
+
+    /// <summary>
     /// Actualiza todos los campos editables de la Persona y el Usuario con el ID indicado.
     /// </summary>
     /// <response code="200">Usuario actualizado exitosamente con sus nuevos datos.</response>
