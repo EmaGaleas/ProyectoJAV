@@ -1,4 +1,4 @@
-  import { usePaymentRegistration } from '../hooks/usePaymentRegistration'
+import { usePaymentRegistration } from '../hooks/usePaymentRegistration'
   import { ClientFinder }           from './ClientFinder'
   import { PendingPayments }        from './PendingPayments'
   import { PaymentMethodPanel }     from './PaymentMethodPanel'
@@ -12,6 +12,8 @@
       method,
       code,
       codeError,
+      file,
+      fileError,
       isLoadingPay,
       isSubmitting,
       fetchClients,
@@ -19,6 +21,7 @@
       handleTogglePay,
       handleMethodChange,
       handleCodeChange,
+      handleFileChange,
       handleSubmit,
     } = usePaymentRegistration()
 
@@ -49,6 +52,8 @@
             method={method}       onMethodChange={handleMethodChange}
             code={code}           onCodeChange={handleCodeChange}
             codeError={codeError}
+            file={file}           onFileChange={handleFileChange}
+            fileError={fileError}
           />
           <ReceiptPanel
             client={client}

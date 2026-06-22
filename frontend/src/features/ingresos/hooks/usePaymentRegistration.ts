@@ -33,6 +33,11 @@ export function usePaymentRegistration() {
   const [method,       setMethod]       = useState<Method>('cash')
   const [code,         setCode]         = useState('')
   const [codeError,    setCodeError]    = useState(false)
+  
+  // Estados para el archivo
+  const [file,         setFile]         = useState<File | null>(null)
+  const [fileError,    setFileError]    = useState(false)
+
   const [isLoadingPay, setIsLoadingPay] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -66,6 +71,8 @@ export function usePaymentRegistration() {
     setClient(c)
     setSelPay([])
     setPayments([])
+    setFile(null)
+    setFileError(false)
 
     if (!c) return
 
@@ -73,10 +80,8 @@ export function usePaymentRegistration() {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/Deudas/usuario/${c.id}`, getConfig())
       
-      // La respuesta ahora es un objeto: { mensualidades: [], multas: [] }
       const data = response.data; 
 
-      // Combinamos ambas listas en un solo arreglo plano para que tu frontend siga funcionando igual
       const todasLasDeudas = [
         ...(data.mensualidades || []).map((m: any) => ({ ...mapDeudaCustom(m, 'mensualidad'), clientId: c.id })),
         ...(data.multas || []).map((m: any) => ({ ...mapDeudaCustom(m, 'multa'), clientId: c.id }))
@@ -92,11 +97,10 @@ export function usePaymentRegistration() {
     }
   }
 
-  // Nueva función mapeadora adaptada a tus DTOs de C#
   function mapDeudaCustom(raw: any, tipo: 'mensualidad' | 'multa'): Payment {
     return {
-      id:        `${raw.idReal}-${tipo}`, // Usamos IdReal de tu DTO
-      clientId:  '', // Se asigna en el map superior
+      id:        `${raw.idReal}-${tipo}`,
+      clientId:  '',
       concept:   raw.concepto,
       dueDate:   raw.fechaVencimiento?.split('T')[0] ?? '',
       amount:    raw.monto,
@@ -112,7 +116,7 @@ export function usePaymentRegistration() {
 
   const handleMethodChange = (m: Method) => {
     setMethod(m)
-    setCodeError(false) // Solo limpiamos el error visual al cambiar, no el valor
+    setCodeError(false) 
   }
 
   const handleCodeChange = (v: string) => {
@@ -120,20 +124,38 @@ export function usePaymentRegistration() {
     if (v.trim()) setCodeError(false)
   }
 
+  const handleFileChange = (f: File | null) => {
+    if (f) {
+      const maxSize = 5 * 1024 * 1024; // 5 MB en bytes
+      if (f.size > maxSize) {
+        toast.error('El archivo supera el límite máximo de 5 MB.')
+        setFileError(true)
+        setFile(null)
+        return
+      }
+      setFileError(false)
+    }
+    setFile(f)
+  }
+
   const handleSubmit = async () => {
-    // 1. Verificamos que haya seleccionado un cliente y al menos un pago
     if (!client || selPay.length === 0) {
       toast.error('Selecciona un cliente y al menos un pago.')
       return
     }
     
-    // 2. Verificamos que el código (recibo o comprobante) haya sido ingresado
     if (!code.trim()) {
       setCodeError(true)
       const errorMsg = method === 'cash' 
         ? 'El número de recibo es obligatorio.' 
         : 'El número de comprobante es obligatorio.'
       toast.error(errorMsg)
+      return
+    }
+
+    if (!file) {
+      setFileError(true)
+      toast.error('Debes adjuntar el comprobante o recibo en formato archivo.')
       return
     }
 
@@ -144,30 +166,31 @@ export function usePaymentRegistration() {
     const conexionesIds    = selected.filter(p => p.type === 'conexion').map(p => p.backId)
     const total            = selected.reduce((a, p) => a + p.amount + p.mora, 0)
 
-    // 3. Armamos el Payload como JSON para que C# ([FromBody]) lo procese correctamente
-    const payload = {
-      registradoPor: registradoPor,
-      metodoPago: method === 'cash' ? 'Efectivo' : 'Transferencia',
-      monto: total,
-      codigoComprobante: code.trim(),
-      mensualidadesIds: mensualidadesIds,
-      multasIds: multasIds,
-      conexionesIds: conexionesIds
-    }
+    const formData = new FormData();
+    formData.append('registradoPor', registradoPor.toString());
+    formData.append('metodoPago', method === 'cash' ? 'Efectivo' : 'Transferencia');
+    formData.append('monto', total.toString());
+    formData.append('codigoComprobante', code.trim());
+    
+    formData.append('comprobante', file);
+
+    mensualidadesIds.forEach(id => formData.append('mensualidadesIds', id.toString()));
+    multasIds.forEach(id => formData.append('multasIds', id.toString()));
+    conexionesIds.forEach(id => formData.append('conexionesIds', id.toString()));
 
     setIsSubmitting(true)
     try {
-      // Axios enviará esto automáticamente como 'application/json'
-      await axios.post(`${API_BASE_URL}/api/Pagos`, payload, getConfig())
+      await axios.post(`${API_BASE_URL}/api/Pagos`, formData, getConfig())
       
       toast.success('Pago registrado exitosamente.')
 
-      // Limpiar estado
       setClient(null)
       setPayments([])
       setSelPay([])
       setMethod('cash')
       setCode('')
+      setFile(null)
+      setFileError(false)
     } catch (error: any) {
       console.error('Error al registrar el pago:', error)
       const msg = error.response?.data?.error || error.response?.data?.detalle || error.message || 'Error al registrar el pago.'
@@ -184,6 +207,8 @@ export function usePaymentRegistration() {
     method,
     code,
     codeError,
+    file,
+    fileError,
     isLoadingPay,
     isSubmitting,
     fetchClients,
@@ -191,6 +216,7 @@ export function usePaymentRegistration() {
     handleTogglePay,
     handleMethodChange,
     handleCodeChange,
+    handleFileChange,
     handleSubmit,
   }
 }
