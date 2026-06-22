@@ -220,6 +220,7 @@ public class PagoService
             Estado = p.Estado.ToString(),
             MontoTotal = p.Monto,
             Lineas = lineas,
+            ComentarioRechazo = p.ComentarioRechazo,
         };
     }
 
@@ -282,5 +283,5 @@ public class PagoService
     }
 
     public async Task AprobarPagoAsync(int idPago, AprobarPagoRequest request) => await _pagoRepository.AprobarAsync(idPago, request.AprobadoPor);
-    public async Task RechazarPagoAsync(int idPago, RechazarPagoRequest request) => await _pagoRepository.RechazarAsync(idPago);
+    public async Task RechazarPagoAsync(int idPago, RechazarPagoRequest request) => await _pagoRepository.RechazarAsync(idPago, request.Motivo);
 }

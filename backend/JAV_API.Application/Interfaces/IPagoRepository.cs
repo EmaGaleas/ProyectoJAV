@@ -24,5 +24,5 @@ public interface IPagoRepository
 
     Task<Pago?> ObtenerPorIdAsync(int idPago);
     Task AprobarAsync(int idPago, int aprobadoPor);
-    Task RechazarAsync(int idPago);
+    Task RechazarAsync(int idPago, string? comentario);
 }

@@ -16,6 +16,7 @@ export interface EgresoRecord {
   status:        EgresoStatus
   aprobadoPor?:  string        // se llena al aprobar
   rechazadoPor?: string        // se llena al rechazar
+  comentarioRechazo?: string
 }
 
 // ─── Payloads para PATCH /api/Egresos/:id/aprobar|rechazar ───────────────────

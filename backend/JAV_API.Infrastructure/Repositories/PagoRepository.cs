@@ -159,15 +159,40 @@ public class PagoRepository : IPagoRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task RechazarAsync(int idPago)
+    public async Task RechazarAsync(int idPago, string? comentario)
     {
-        var pago = await _context.Pagos.FindAsync(idPago)
-            ?? throw new KeyNotFoundException($"No se encontró el ingreso con ID {idPago}.");
+        // 1. Obtenemos el pago incluyendo todas sus tablas intermedias y las deudas originales
+        var pago = await _context.Pagos
+            .Include(p => p.PagoMensualidades).ThenInclude(pm => pm.Mensualidad)
+            .Include(p => p.PagoMultas).ThenInclude(pm => pm.Multa)
+            .Include(p => p.PagoConexiones).ThenInclude(pc => pc.Conexion)
+            .FirstOrDefaultAsync(p => p.IdPago == idPago)
+            ?? throw new KeyNotFoundException($"No se encontró el pago con ID {idPago}.");
 
         if (pago.Estado != EstadoAprobacion.EnRevision)
-            throw new InvalidOperationException($"El ingreso ya fue procesado con estado '{pago.Estado}'.");
+            throw new InvalidOperationException($"El pago ya fue procesado con estado '{pago.Estado}'.");
 
+        // 2. Revertimos el estado de todas las deudas asociadas a Pendiente
+        foreach (var pm in pago.PagoMensualidades)
+        {
+            pm.Mensualidad.Estado = Estado.Pendiente;
+        }
+
+        foreach (var pm in pago.PagoMultas)
+        {
+            pm.Multa.Estado = Estado.Pendiente;
+        }
+
+        foreach (var pc in pago.PagoConexiones)
+        {
+            pc.Conexion.Estado = Estado.Pendiente;
+        }
+
+        // 3. Actualizamos el estado del pago principal y adjuntamos el comentario
         pago.Estado = EstadoAprobacion.Rechazado;
+        pago.ComentarioRechazo = comentario;
+
+        // 4. Guardamos los cambios. EF Core ejecutará todo dentro de una misma transacción implícita.
         await _context.SaveChangesAsync();
     }
 }

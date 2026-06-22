@@ -42,7 +42,7 @@ interface Props {
   userRole:  string
   onClose:   () => void
   onApprove: (id: string) => Promise<void>
-  onReject:  (id: string) => Promise<void>
+  onReject:  (id: string, motivo: string) => Promise<void> 
 }
 
 type PendingAction = 'aprobar' | 'rechazar' | null
@@ -87,13 +87,19 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
     ? detail.codigoTransferencia
     : detail?.numeroComprobante ?? income.receiptNumber
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (obs?: string) => {
     if (!pendingAction) return
     setIsSubmitting(true)
     try {
-      if (pendingAction === 'aprobar') await onApprove(income.id)
-      else                             await onReject(income.id)
+      if (pendingAction === 'aprobar') {
+          await onApprove(income.id)
+      } else {
+          // 3. Pasar el motivo a la función onReject
+          await onReject(income.id, obs || '')
+      }
       setPendingAction(null)
+      // Nota: Aquí podrías querer llamar a onClose() también si quieres que se cierre el modal padre, 
+      // al igual que lo haces en EgresoDetailModal.
     } finally {
       setIsSubmitting(false)
     }

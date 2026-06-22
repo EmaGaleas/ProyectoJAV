@@ -20,6 +20,7 @@ interface EgresoBackend {
   facturaUrl:    string
   estado:        string
   aprobadoPor?:  string | null
+  comentarioRechazo?: string | null
 }
 
 function mapBackendToRecord(b: EgresoBackend): EgresoRecord {
@@ -35,6 +36,7 @@ function mapBackendToRecord(b: EgresoBackend): EgresoRecord {
     facturaUrl:    b.facturaUrl,
     status:        (b.estado as EgresoStatus) ?? 'Pendiente',
     aprobadoPor:   b.aprobadoPor ?? undefined,
+    comentarioRechazo: b.comentarioRechazo ?? undefined,
   }
 }
 
@@ -126,15 +128,21 @@ export function useEgresoHistorial() {
     }
   }
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, motivo: string) => { // <-- 1. Agregamos motivo
     const userId  = user ? parseInt(user.id, 10) : 0
-    const payload = { RechazadoPor: userId }
+    
+    // 2. Incluimos el Motivo en el cuerpo de la petición
+    const payload = { RechazadoPor: userId, Motivo: motivo }
     const config = { headers: token ? { Authorization: `Bearer ${token}` } : {} }
 
     try {
       await axios.patch(`${API_URL}/api/Egresos/${id}/rechazar`, payload, config)
       toast.success('Egreso rechazado.')
-      setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'Rechazado', rechazadoPor: userName } : r))
+      
+      // 3. Reflejamos el cambio en el estado local
+      setRecords(prev => 
+        prev.map(r => r.id === id ? { ...r, status: 'Rechazado', rechazadoPor: userName, motivoRechazo: motivo } : r)
+      )
     } catch {
       toast.error('No se pudo rechazar el egreso. Intenta de nuevo más tarde.')
     } finally {

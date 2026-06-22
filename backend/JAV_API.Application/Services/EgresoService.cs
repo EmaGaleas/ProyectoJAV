@@ -52,7 +52,7 @@ public class EgresoService
 
     public async Task RechazarEgresoAsync(int idEgreso, RechazarEgresoRequest request)
     {
-        await _egresoRepository.RechazarAsync(idEgreso);
+        await _egresoRepository.RechazarAsync(idEgreso, request.Motivo);
     }
 
     public async Task<IEnumerable<EgresoResponse>> ObtenerHistorialEgresosAsync()
@@ -92,6 +92,7 @@ public class EgresoService
             FacturaUrl    = e.Url,
             Estado        = estadoDisplay,
             AprobadoPor   = aprobador,
+            ComentarioRechazo = e.ComentarioRechazo,
         };
     }
 }
