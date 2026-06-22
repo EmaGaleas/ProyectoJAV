@@ -125,45 +125,65 @@ export function usePaymentRegistration() {
     setFile(f)
   }
 
+
   const handleSubmit = async () => {
-    if (!client || selPay.length === 0) {
-      toast.error('Selecciona un cliente y al menos un pago.')
+    // 1. Validar que se haya ingresado el código/número de recibo
+    if (!code.trim()) {
+      // Supongo que tienes un setCodeError o validación similar
+      toast.error('Debe ingresar el número de comprobante o recibo.')
       return
     }
-    
-    if (!code.trim()) {
-      setCodeError(true)
-      const errorMsg = method === 'cash' 
-        ? 'El número de recibo es obligatorio.' 
-        : 'El número de comprobante es obligatorio.'
-      toast.error(errorMsg)
+
+    // 2. VALIDACIÓN NUEVA: Validar que se haya adjuntado el comprobante físico
+    if (!file) {
+      setFileError(true) // Activamos el estado visual de error en el panel
+      toast.error('Debe adjuntar el archivo del comprobante físico.')
       return
     }
 
     const selected = payments.filter(p => selPay.includes(p.id))
-
     const mensualidadesIds = selected.filter(p => p.type === 'mensualidad').map(p => p.backId)
     const multasIds        = selected.filter(p => p.type === 'multa').map(p => p.backId)
     const conexionesIds    = selected.filter(p => p.type === 'conexion').map(p => p.backId)
     const total            = selected.reduce((a, p) => a + p.amount + p.mora, 0)
 
-    // ── RETORNAMOS AL PAYLOAD JSON ORIGINAL (Sin FormData ni archivo) ──
+    // Nota: Convertimos el código a entero ya que tu RegistrarPagoRequest.cs espera un 'int'
+    const numeroComprobanteInt = parseInt(code.trim(), 10);
+    if (isNaN(numeroComprobanteInt)) {
+      toast.error('El número de comprobante debe ser un valor numérico válido.')
+      return
+    }
+
+    // 3. CONSTRUIMOS EL PAYLOAD JSON (Igual al que mapea tu DTO del Backend)
     const payload = {
       registradoPor: registradoPor,
       metodoPago: method === 'cash' ? 'Efectivo' : 'Transferencia',
       monto: total,
-      codigoComprobante: code.trim(),
+      codigoComprobante: numeroComprobanteInt,
       mensualidadesIds,
       multasIds,
       conexionesIds
     }
 
+    // 4. CREAMOS EL MULTIPART/FORM-DATA
+    const formData = new FormData()
+    // El primer parámetro debe llamarse exactamente igual que los argumentos en tu PagosController.cs
+    formData.append('comprobanteArchivo', file) 
+    formData.append('datosJson', JSON.stringify(payload))
+
     setIsSubmitting(true)
     try {
-      await axios.post(`${API_BASE_URL}/api/Pagos`, payload, getConfig())
+      // Enviamos el formData en lugar del objeto payload
+      await axios.post(`${API_BASE_URL}/api/Pagos`, formData, {
+        headers: {
+          ...getConfig().headers, // Mantiene tus tokens de autenticación Bearer
+          'Content-Type': 'multipart/form-data' // Indica al navegador que viaja un archivo
+        }
+      })
       
       toast.success('Pago registrado exitosamente.')
 
+      // Reseteamos todo el formulario limpiando el archivo también
       setClient(null)
       setPayments([])
       setSelPay([])
