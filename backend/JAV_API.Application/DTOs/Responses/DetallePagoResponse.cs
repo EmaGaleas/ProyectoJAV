@@ -16,5 +16,5 @@ public class DetallePagoResponse
     public decimal MontoTotal { get; set; }
     public List<LineaPagoResponse> Lineas { get; set; } = new();
     public string? ComentarioRechazo { get; set; }
-
+    public string? UrlComprobante { get; set; }
 }

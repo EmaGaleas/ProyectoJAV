@@ -13,7 +13,8 @@ public interface IPagoRepository
         List<PagoConexion> pagoConexiones,
         List<Mensualidad> mensualidades,
         List<Multa> multas,
-        List<Conexion> conexiones
+        List<Conexion> conexiones,
+        List<Multa> multasNuevas
     );
     
     Task<IEnumerable<Pago>> ObtenerHistorialPagosAsync();

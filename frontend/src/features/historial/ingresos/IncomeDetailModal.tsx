@@ -32,7 +32,7 @@ interface DetalleBackend {
   estado:                string
   montoTotal:            number
   lineas:                LineaPago[]
-  documentoUrl?:         string | null
+  urlComprobante?:         string | null
   motivoRechazo?:        string | null
   comentarioRechazo?:    string | null
 }
@@ -105,13 +105,15 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
     }
   }
 
+// En la línea 85 aprox.
   const getFullUrl = (url?: string | null) => {
     if (!url) return ''
     if (url.startsWith('http')) return url
     return `${API_URL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
   }
 
-  const fullDocumentUrl = detail ? getFullUrl(detail.documentoUrl) : ''
+  // Cambiar detail.documentoUrl por detail.urlComprobante
+  const fullDocumentUrl = detail ? getFullUrl(detail.urlComprobante) : ''
 
   // Obtener motivo de rechazo desde el detalle o el objeto income
   const motivoRechazo =

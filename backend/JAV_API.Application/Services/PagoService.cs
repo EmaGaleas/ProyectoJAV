@@ -17,26 +17,30 @@ public class PagoService
     private readonly IMensualidadRepository _mensualidadRepository;
     private readonly IMultaRepository _multaRepository;
     private readonly IConexionRepository _conexionRepository;
+    private readonly IFileStorageService _fileStorageService; // Añadido
+    private readonly ICostosService _costosService;           // Añadido
 
     public PagoService(
         IPagoRepository pagoRepository, 
         IMensualidadRepository mensualidadRepository,
         IMultaRepository multaRepository,
-        IConexionRepository conexionRepository)
+        IConexionRepository conexionRepository,
+        IFileStorageService fileStorageService,
+        ICostosService costosService)
     {
         _pagoRepository = pagoRepository;
         _mensualidadRepository = mensualidadRepository;
         _multaRepository = multaRepository;
         _conexionRepository = conexionRepository;
+        _fileStorageService = fileStorageService;
+        _costosService = costosService;
     }
 
     public async Task RegistrarPagoAsync(RegistrarPagoRequest request)
     {
-        // Validación de Regla de Negocio: Al menos un ítem seleccionado
         if (!request.MensualidadesIds.Any() && !request.MultasIds.Any() && !request.ConexionesIds.Any())
-            throw new ArgumentException("Debe seleccionar al menos un ítem (mensualidad, multa o conexión) para pagar.");
+            throw new ArgumentException("Debe seleccionar al menos un ítem para pagar.");
 
-        // 1. Instanciar la cabecera de la entidad Pago
         var nuevoPago = new Pago
         {
             RegistradoPor = request.RegistradoPor,
@@ -46,17 +50,20 @@ public class PagoService
             Estado = EstadoAprobacion.EnRevision
         };
 
-        // Listas agregadas para la persistencia masiva transaccional
         var pagoMensualidades = new List<PagoMensualidad>();
         var mensualidadesAPagar = new List<Mensualidad>();
-
+        
         var pagoMultas = new List<PagoMulta>();
-        var multasAPagar = new List<Multa>();
+        var multasExistentesAPagar = new List<Multa>();
+        var multasNuevasGeneradas = new List<Multa>(); // Lista para las moras creadas al vuelo
 
         var pagoConexiones = new List<PagoConexion>();
         var conexionesAPagar = new List<Conexion>();
 
-        // 2. Procesar Mensualidades por Id
+        // Obtenemos el valor actual de la mora
+        var moraVigente = await _costosService.ObtenerMoraActualAsync();
+
+        // 1. Procesar Mensualidades y generar Moras dinámicas
         if (request.MensualidadesIds.Any())
         {
             mensualidadesAPagar = (await _mensualidadRepository.ObtenerPorIdsAsync(request.MensualidadesIds)).ToList();
@@ -65,16 +72,30 @@ public class PagoService
                 if (mensualidad.Estado == Estado.Pagado)
                     throw new InvalidOperationException($"La mensualidad {mensualidad.IdMensualidad} ya está pagada.");
 
+                // Si está vencida, generamos el castigo de mora
+                if (mensualidad.Estado == Estado.Vencido && moraVigente != null)
+                {
+                    var nuevaMora = new Multa
+                    {
+                        IdUsuario = mensualidad.IdUsuario,
+                        IdTipoMulta = moraVigente.IdTipoCobro,
+                        Monto = moraVigente.Monto,
+                        Estado = Estado.Pagado // Nace pagada porque se está cobrando en este instante
+                    };
+                    multasNuevasGeneradas.Add(nuevaMora);
+                    pagoMultas.Add(new PagoMulta { Multa = nuevaMora, Pago = nuevoPago });
+                }
+
                 mensualidad.Estado = Estado.Pagado;
                 pagoMensualidades.Add(new PagoMensualidad { Mensualidad = mensualidad, Pago = nuevoPago });
             }
         }
 
-        // 3. Procesar Multas por Id
+        // 2. Procesar Multas explícitas que vengan del Frontend
         if (request.MultasIds.Any())
         {
-            multasAPagar = (await _multaRepository.ObtenerPorIdsAsync(request.MultasIds)).ToList();
-            foreach (var multa in multasAPagar)
+            multasExistentesAPagar = (await _multaRepository.ObtenerPorIdsAsync(request.MultasIds)).ToList();
+            foreach (var multa in multasExistentesAPagar)
             {
                 if (multa.Estado == Estado.Pagado)
                     throw new InvalidOperationException($"La multa {multa.IdMulta} ya está pagada.");
@@ -84,7 +105,7 @@ public class PagoService
             }
         }
 
-        // 4. Procesar Conexiones por Id
+        // 3. Procesar Conexiones
         if (request.ConexionesIds.Any())
         {
             conexionesAPagar = (await _conexionRepository.ObtenerPorIdsAsync(request.ConexionesIds)).ToList();
@@ -98,15 +119,21 @@ public class PagoService
             }
         }
 
-        // 5. Crear Comprobante plano (Cambio solicitado: sin archivos físicos, solo código de auditoría)
+        // 4. Guardar archivo físico si existe
+        string urlComprobante = string.Empty;
+        if (request.ComprobanteStream != Stream.Null && request.ComprobanteStream.Length > 0)
+        {
+            urlComprobante = await _fileStorageService.GuardarArchivoAsync(request.ComprobanteStream, request.ComprobanteNombre);
+        }
+
         var nuevoComprobante = new Comprobante
         {
             Pago = nuevoPago,
             Codigo = request.CodigoComprobante,
-            Url = string.Empty // No requiere almacenamiento de archivos
+            Url = urlComprobante
         };
 
-        // 6. Enviar todo al repositorio bajo una sola unidad de trabajo / transacción
+        // 5. Enviar a Infraestructura
         await _pagoRepository.RegistrarPagoMasivoAsync(
             nuevoPago, 
             nuevoComprobante, 
@@ -114,8 +141,9 @@ public class PagoService
             pagoMultas, 
             pagoConexiones, 
             mensualidadesAPagar,
-            multasAPagar,
-            conexionesAPagar
+            multasExistentesAPagar,
+            conexionesAPagar,
+            multasNuevasGeneradas // Pasamos las moras nuevas
         );
     }
 
@@ -221,6 +249,7 @@ public class PagoService
             MontoTotal = p.Monto,
             Lineas = lineas,
             ComentarioRechazo = p.ComentarioRechazo,
+            UrlComprobante = p.Comprobante?.Url,
         };
     }
 

@@ -329,7 +329,7 @@ if (app.Environment.IsDevelopment())
 
                 // --- HISTORIAL MORA POR ATRASO ---
                 new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 20m, FechaEmision = inicioAnioPasado, FechaAnulacion = finAnioAnterior, EditadoPor = admin.IdUsuario },
-                new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 35m, FechaEmision = inicioAnioActual, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 30m, FechaEmision = inicioAnioActual, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
                 new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 50m, FechaEmision = inicioFuturo, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
 
                 // --- HISTORIAL NUEVA CONEXIÓN (PEGUE) ---
