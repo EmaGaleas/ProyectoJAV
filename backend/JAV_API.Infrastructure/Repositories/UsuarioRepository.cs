@@ -177,6 +177,15 @@ public class UsuarioRepository : IUsuarioRepository
             .AnyAsync(u => u.Telefono == telefono && u.IdUsuario != idExcluido);
 
     /// <inheritdoc/>
+    public async Task<bool> CambiarEstadoAsync(int id, bool estado)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario is null) return false;
+        usuario.Estado = estado;
+        return await _context.SaveChangesAsync() > 0;
+    }
+
+    /// <inheritdoc/>
     public async Task EditarAsync(int id, string primerNombre, string? segundoNombre,
         string primerApellido, string? segundoApellido, string dni,
         string correo, string telefono, bool estado, Domain.Enums.Rol? rol, int idTipoUsuario)

@@ -76,4 +76,7 @@ public interface IUsuarioRepository
     Task EditarAsync(int id, string primerNombre, string? segundoNombre,
         string primerApellido, string? segundoApellido, string dni,
         string correo, string telefono, bool estado, Rol? rol, int idTipoUsuario);
+
+    /// <summary>Cambia únicamente el estado (activo/inactivo) del usuario con el ID indicado.</summary>
+    Task<bool> CambiarEstadoAsync(int id, bool estado);
 }

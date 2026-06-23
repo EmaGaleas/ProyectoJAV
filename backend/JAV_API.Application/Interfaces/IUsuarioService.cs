@@ -46,4 +46,7 @@ public interface IUsuarioService
     /// Valida duplicados excluyendo al propio usuario.
     /// </summary>
     Task<UsuarioResponse> EditarUsuarioAsync(int id, EditarUsuarioRequest request);
+
+    /// <summary>Activa o desactiva el usuario con el ID indicado. Devuelve null si no existe.</summary>
+    Task<UsuarioResponse?> CambiarEstadoAsync(int id, bool estado);
 }

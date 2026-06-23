@@ -161,6 +161,15 @@ public class UsuarioService : IUsuarioService
         return MapearAResponse(actualizado!);
     }
 
+    /// <inheritdoc/>
+    public async Task<UsuarioResponse?> CambiarEstadoAsync(int id, bool estado)
+    {
+        var cambiado = await _usuarioRepository.CambiarEstadoAsync(id, estado);
+        if (!cambiado) return null;
+        var usuario = await _usuarioRepository.ObtenerPorIdAsync(id);
+        return usuario is null ? null : MapearAResponse(usuario);
+    }
+
     // ─────────────────────────────────────────────────────────
     // Métodos privados (ayudantes internos con nombre semántico)
     // ─────────────────────────────────────────────────────────
