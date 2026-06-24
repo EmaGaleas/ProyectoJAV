@@ -35,6 +35,7 @@ export interface AsignarMultaFormData {
   calle: string;
   bloque: string;
   lote: string;
+  tipoMultaId: string;
   tipoMulta: string;
   fecha: string;
   monto: number | '';

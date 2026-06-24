@@ -166,7 +166,7 @@ export function MiPerfil() {
     <div className="flex flex-col gap-4">
       <div className="bg-white rounded-[16px] shadow-sm p-[32px] flex items-center gap-[28px]">
         <div className="flex flex-col gap-[4px]">
-          <h1 className="font-['Inter',sans-serif] font-medium text-[22px] leading-[1.3] text-[#0d1273]">
+          <h1 className="font-['Inter',sans-serif] font-medium text-[22px] leading-[1.3] ">
             {profile.primerNombre} {profile.primerApellido}
           </h1>
           <div className="flex items-center gap-[8px]">
@@ -183,7 +183,7 @@ export function MiPerfil() {
       <div className="bg-white rounded-[16px] shadow-sm overflow-hidden">
         <div className="px-[32px] py-[20px] border-b border-[rgba(0,0,0,0.06)] flex flex-row justify-between">
           <div className="flex flex-col">
-            <h2 className="font-['Inter',sans-serif] font-medium text-[16px] text-[#0d1273]">
+            <h2 className="font-['Inter',sans-serif] font-medium text-[16px] ">
               Información Personal
             </h2>
             <p className="font-['Inter',sans-serif] text-[13px] text-[#717182] mt-[2px]">
@@ -354,7 +354,7 @@ function FormField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className={`w-full rounded-[8px] border px-[14px] py-[10px] font-['Inter',sans-serif] font-normal text-[14px] leading-[22px] text-[#0d1273] outline-none transition-colors placeholder:text-[#bdbdbd] ${
+        className={`w-full rounded-[8px] border px-[14px] py-[10px] font-['Inter',sans-serif] font-normal text-[14px] leading-[22px]  outline-none transition-colors placeholder:text-[#bdbdbd] ${
           error
             ? "border-[#d55f5a] bg-[#fff5f5] focus:border-[#d55f5a]"
             : "border-[rgba(0,0,0,0.15)] bg-white focus:border-[#308c58]"

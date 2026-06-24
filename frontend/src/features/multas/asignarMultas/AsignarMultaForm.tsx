@@ -3,9 +3,14 @@ import { X } from "lucide-react";
 import { useAsignarMultaForm } from "./useAsignarMultaForm";
 import { SearchableSelect } from "../SearchableSelect";
 import { INPUT_CLS, LABEL_CLS, SECTION_TITLE_CLS } from "../types";
+import type { TipoMulta } from "../types";
+
 
 interface Props {
   onClose: () => void;
+  onSuccess?: () => void;
+  tiposMulta?: TipoMulta[];
+  
 }
 
 const todayDisplay = () => {
@@ -13,17 +18,17 @@ const todayDisplay = () => {
   return d.toLocaleDateString('es-HN', { day: '2-digit', month: 'long', year: 'numeric' });
 };
 
-export default function AsignarMultaForm({ onClose }: Props) {
+export default function AsignarMultaForm({ onClose, onSuccess, tiposMulta = [] }: Props) {
   const {
     formData,
     setFormData,
     isLoading,
     dueñosDeCasa,
-    tiposMulta,
+    
     handlePersonaSelect,
     handleTipoMultaSelect,
     handleSubmit
-  } = useAsignarMultaForm(onClose);
+  } = useAsignarMultaForm(onClose, onSuccess);
 
   // 👇 NUEVA CONSTANTE (solo añadida aquí, no afecta el resto)
   const READONLY_INPUT_CLS = `${INPUT_CLS} bg-gray-50 text-gray-500 cursor-not-allowed font-bold`;
@@ -35,10 +40,11 @@ export default function AsignarMultaForm({ onClose }: Props) {
     data: u
   }));
 
-  const opcionesTipos = tiposMulta.map(t => ({
-    label: t.tipo,
-    value: t.id,
-    data: { monto: t.monto }
+  const opcionesTipos = tiposMulta
+  .filter((t) => t.tipoDescripcion !== "Todos")
+  .map((t) => ({
+    label: t.tipoDescripcion,
+    value: t.idMulta.toString(),
   }));
 
   return (
@@ -152,7 +158,14 @@ export default function AsignarMultaForm({ onClose }: Props) {
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className={LABEL_CLS}>Monto (L)</label>
-                  <input type="text" value={formData.monto} readOnly placeholder="Autocompletado" className={`${INPUT_CLS} bg-gray-50 font-bold text-[#308C58] cursor-not-allowed`} />
+                  <input type="text" value={formData.monto} onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setFormData({ ...formData, monto: "" });
+                    } else if (/^\d+$/.test(val)) {
+                      setFormData({ ...formData, monto: parseInt(val, 10) });
+                    }
+                  }} placeholder="Ingrese el monto" className={`${INPUT_CLS} bg-gray-50 font-bold text-[#308C58] `} />
                 </div>
               </div>
               <div className="flex flex-col gap-2">
