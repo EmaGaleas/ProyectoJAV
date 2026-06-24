@@ -250,7 +250,6 @@ export default function GestionarUsuarios() {
               key={user.idUsuario}
               user={user}
               onClick={() => handleUserClicked(user)}
-              onEstadoCambiado={handleEstadoCambiado}
             />
           ))}
           {filtered.length === 0 && (
