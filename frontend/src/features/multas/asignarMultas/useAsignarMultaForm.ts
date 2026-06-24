@@ -1,12 +1,16 @@
 // useAsignarMultaForm.ts
-import { useState, useMemo } from 'react';
-import type { AsignarMultaFormData, MockUser } from './asignarMultaTypes';
-import { MOCK_USERS_DB, TIPOS_MULTA_DB } from './asignarMultaTypes';
-import {api} from "../../../services/api";
+import { useState, useEffect } from 'react';
+import type { AsignarMultaFormData, UserDTO } from './asignarMultaTypes';
+import { api } from "../../../services/api";
+import type { TipoMulta } from '../types';
 
-export function useAsignarMultaForm(onClose: () => void, onSuccess?: () => void) {
+export function useAsignarMultaForm(
+  onClose: () => void,
+  tiposMultaDb: TipoMulta[],
+  onSuccess?: () => void
+) {
   const [formData, setFormData] = useState<AsignarMultaFormData>({
-    codigo: `MUL-${Math.floor(1000 + Math.random() * 9000)}`, // Generado automáticamente
+    codigo: `MUL-${Math.floor(1000 + Math.random() * 9000)}`, // Mantenemos como generador local o adáptalo si la DB lo asigna
     personaId: '',
     personaNombre: '',
     dni: '',
@@ -15,29 +19,47 @@ export function useAsignarMultaForm(onClose: () => void, onSuccess?: () => void)
     lote: '',
     tipoMultaId: '',
     tipoMulta: '',
-    fecha: new Date().toISOString().split('T')[0], // Hoy por defecto
+    fecha: new Date().toISOString().split('T')[0],
     monto: '',
     descripcion: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [dueñosDeCasa, setDueñosDeCasa] = useState<UserDTO[]>([]);
 
-  // Filtrar solo Dueños de Casa para el buscador
-  const dueñosDeCasa = useMemo(() => 
-    MOCK_USERS_DB.filter(u => u.rol === 'DuenoDeCasa')
-  , []);
+  // Extraer el catálogo omitiendo la opción "Todos" que se usa para los filtros
+  const tiposMulta = tiposMultaDb
+    .filter(t => t.idMulta !== 0)
+    .map(t => ({
+      id: t.idMulta.toString(),
+      tipo: t.tipoDescripcion,
+      monto: (t as any).monto || 0 // Ajusta si la API trae el monto por defecto, de lo contrario deja 0
+    }));
 
-  // Handlers para autocompletado
-  const handlePersonaSelect = (userOpt: { value: string, label: string, data: MockUser }) => {
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      try {
+        const response = await api.get("api/usuarios");
+        // Filtra por el Rol según cómo lo envíe tu backend
+        const dueños = response.data.filter((u: any) => u.rol === 'DuenoDeCasa' || u.idRol === 1); 
+        setDueñosDeCasa(dueños);
+      } catch (error) {
+        console.error('Error al cargar dueños de casa:', error);
+      }
+    };
+    fetchUsuarios();
+  }, []);
+
+  const handlePersonaSelect = (userOpt: { value: string, label: string, data: UserDTO }) => {
     const user = userOpt.data;
     setFormData(prev => ({
       ...prev,
       personaId: user.id,
       personaNombre: user.nombre,
       dni: user.dni,
-      calle: user.direccion.calle,
-      bloque: user.direccion.bloque,
-      lote: user.direccion.lote
+      calle: user.direccion?.calle || '',
+      bloque: user.direccion?.bloque || '',
+      lote: user.direccion?.lote || ''
     }));
   };
 
@@ -46,7 +68,7 @@ export function useAsignarMultaForm(onClose: () => void, onSuccess?: () => void)
       ...prev,
       tipoMultaId: tipoOpt.value,
       tipoMulta: tipoOpt.label,
-      monto: tipoOpt.monto
+      monto: tipoOpt.monto || 0
     }));
   };
 
@@ -61,16 +83,13 @@ export function useAsignarMultaForm(onClose: () => void, onSuccess?: () => void)
         monto: Number(formData.monto) || 0
       };
 
-      const response = await api.post("api/multas", payload);
-      console.log(response);
-
-      
-
+      await api.post("api/multas", payload);
       alert('Multa asignada con éxito');
-      onSuccess?.();
+      
+      if(onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error al asignar multa:', error);
       alert('Hubo un error al asignar la multa');
     } finally {
       setIsLoading(false);
@@ -82,7 +101,7 @@ export function useAsignarMultaForm(onClose: () => void, onSuccess?: () => void)
     setFormData,
     isLoading,
     dueñosDeCasa,
-    tiposMulta: TIPOS_MULTA_DB,
+    tiposMulta,
     handlePersonaSelect,
     handleTipoMultaSelect,
     handleSubmit
