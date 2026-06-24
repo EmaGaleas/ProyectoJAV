@@ -1,6 +1,6 @@
 import { X, User, AlignLeft, MapPin, AlertCircle } from "lucide-react";
 import type { MultaRecord } from "./types";
-import { L, fmtDate } from "./types";
+import { L } from "./types";
 import { useEffect, useState } from "react";
 import { getUserMultado } from "./data/mockData";
 
@@ -95,7 +95,7 @@ export function MultaDetailModal({ record, onClose }: Props) {
                 <span
                   style={{ fontSize: 16, fontWeight: 700, color: "#1A1A1A" }}
                 >
-                  {record.codigoMulta}
+                  {record.idTipoMulta}
                 </span>
               </div>
             </div>
@@ -146,10 +146,6 @@ export function MultaDetailModal({ record, onClose }: Props) {
                 icon={<AlertCircle size={13} />}
               >
                 <UniformGrid cols={2}>
-                  <InfoField
-                    label="Fecha"
-                    value={fmtDate(record.fecha ?? "")}
-                  />
                   <InfoField label="Monto" value={L(record.monto)} highlight />
                   <InfoField
                     label="Tipo de multa"

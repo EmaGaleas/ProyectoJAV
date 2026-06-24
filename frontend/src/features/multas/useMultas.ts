@@ -19,21 +19,37 @@ export function useMultas() {
   const [loading, setLoading] = useState(true);
   console.log(loading);
 
-  useEffect(() => {
-    const fetchMultas = async () => {
-      try {
-        const data = await getMultas();
-        setRecords(data);
-        console.log(data);
-      } catch (error) {
-        console.error("Error obteniendo multas", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchMultas = async () => {
+    setLoading(true);
+    try {
+      const data = await getMultas();
+      setRecords(data);
+      console.log(data);
+    } catch (error) {
+      console.error("Error obteniendo multas", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchMultas();
   }, []);
+
+  const tiposMulta: import("./types").TipoMulta[] = [
+    { idMulta: 0, tipoDescripcion: "Todos" },
+    ...Array.from(
+      new Map(
+        records.map((m) => [
+          m.idTipoMulta,
+          {
+            idMulta: Number(m.idTipoMulta) || 0,
+            tipoDescripcion: m.tipoDescripcion,
+          },
+        ]),
+      ).values(),
+    ),
+  ];
 
   // Contadores para las pestañas
   const counts = useMemo(() => {
@@ -54,7 +70,7 @@ export function useMultas() {
       const q = filters.search.toLowerCase().trim();
       if (q) {
         const match =
-          r.codigoMulta.toLowerCase().includes(q) ||
+          r.idTipoMulta.toLowerCase().includes(q) ||
           r.nombreUsuario.toLowerCase().includes(q) ||
           r.dni.toLowerCase().includes(q);
         if (!match) return false;
@@ -63,7 +79,7 @@ export function useMultas() {
         if (filters.dateFrom && r.fecha < filters.dateFrom) return false;
         if (filters.dateTo && r.fecha > filters.dateTo) return false;
       }
-      if (filters.tipo !== "Todos" && r.tipoDescripcion !== filters.tipo)
+      if (filters.tipo.tipoDescripcion !== "Todos" && r.tipoDescripcion !== filters.tipo.tipoDescripcion)
         return false;
 
       return true;
@@ -88,10 +104,12 @@ export function useMultas() {
     page,
     selected,
     filters,
+    tiposMulta,
     setPage,
     setSelected,
     setFilters,
     handleTabChange,
     handleAsignarPlaceholder,
+    fetchMultas,
   };
 }

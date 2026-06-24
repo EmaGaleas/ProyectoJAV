@@ -1,42 +1,48 @@
-import React, { useRef } from 'react';
-import { Calendar, X } from 'lucide-react';
-import type { MultaType } from './types';
-import { fmtDate } from './types'; // Importamos tu formateador de fechas
-import { SearchableSelect } from './SearchableSelect'; // Asegúrate de que la ruta sea correcta
+import React, { useRef } from "react";
+import { Calendar, X } from "lucide-react";
+import type { TipoMulta } from "./types";
+import { fmtDate } from "./types"; // Importamos tu formateador de fechas
+import { SearchableSelect } from "./SearchableSelect"; // Asegúrate de que la ruta sea correcta
 
 export interface MultasFilterValues {
   search: string;
   dateFrom: string;
   dateTo: string;
-  tipo: MultaType;
+  tipo: TipoMulta;
 }
 
-export const DEFAULT_MULTAS_FILTERS: MultasFilterValues = { 
-  search: '', 
-  dateFrom: '', 
-  dateTo: '', 
-  tipo: 'Todos' 
+export const DEFAULT_MULTAS_FILTERS: MultasFilterValues = {
+  search: "",
+  dateFrom: "",
+  dateTo: "",
+  tipo: {
+    idMulta: 0,
+    tipoDescripcion: "Todos",
+  },
 };
 
 interface Props {
   filters: MultasFilterValues;
   onChange: (f: MultasFilterValues) => void;
+  tiposMulta?: TipoMulta[];
 }
 
-// Opciones para el SearchableSelect
-const opcionesTipoFiltro = [
-  { label: "Todos", value: "Todos" },
-  { label: "Tránsito", value: "Tránsito" },
-  { label: "Estacionamiento", value: "Estacionamiento" },
-  { label: "Exceso de velocidad", value: "Exceso de velocidad" },
-  { label: "Documentación", value: "Documentación" },
-];
-
-export function MultasFilters({ filters, onChange }: Props) {
-  const set = (key: keyof MultasFilterValues, value: string) =>
+export function MultasFilters({ filters, onChange, tiposMulta = [] }: Props) {
+  const opcionesTipoFiltro = tiposMulta.map((tipo) => ({
+    label: tipo.tipoDescripcion,
+    value: tipo.tipoDescripcion,
+    data: tipo,
+  }));
+  const set = <K extends keyof MultasFilterValues>(key: K, value: MultasFilterValues[K]) =>
     onChange({ ...filters, [key]: value });
 
-  const hasAny = filters.search || filters.dateFrom || filters.dateTo || filters.tipo !== 'Todos';
+  const fechas = false;
+
+  const hasAny =
+    filters.search ||
+    filters.dateFrom ||
+    filters.dateTo ||
+    filters.tipo.tipoDescripcion !== "Todos";
   const handleClear = () => onChange(DEFAULT_MULTAS_FILTERS);
 
   return (
@@ -46,7 +52,9 @@ export function MultasFilters({ filters, onChange }: Props) {
     >
       {/* Header del Filtro */}
       <div className="flex items-center justify-between mb-5">
-        <span style={{ fontSize: 16, fontWeight: 700, color: '#1A1A1A' }}>Filtros</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#1A1A1A" }}>
+          Filtros
+        </span>
         {hasAny && (
           <button
             onClick={handleClear}
@@ -60,13 +68,13 @@ export function MultasFilters({ filters, onChange }: Props) {
       {/* Búsqueda */}
       <FilterGroup label="Buscar">
         <textarea
-          placeholder="Búsqueda por código, persona multada, DNI..."
+          placeholder="Búsqueda por código, persona multada..."
           value={filters.search}
-          onChange={e => set('search', e.target.value)}
+          onChange={(e) => set("search", e.target.value)}
           className="w-full h-20 px-3 py-2 text-sm rounded-xl border border-[rgba(0,0,0,0.12)] bg-white focus:outline-none focus:ring-2 focus:ring-[#308C58] focus:ring-opacity-30 resize-none"
-          style={{ 
-            color: filters.search ? '#1A1A1A' : undefined,
-            lineHeight: '1.25rem' 
+          style={{
+            color: filters.search ? "#1A1A1A" : undefined,
+            lineHeight: "1.25rem",
           }}
         />
       </FilterGroup>
@@ -75,32 +83,60 @@ export function MultasFilters({ filters, onChange }: Props) {
       <FilterGroup label="Tipo de multa">
         <SearchableSelect
           options={opcionesTipoFiltro}
-          value={filters.tipo}
-          onChange={(opt) => set('tipo', opt.value as MultaType)}
+          value={filters.tipo.tipoDescripcion}
+          onChange={(opt) => set("tipo", opt.data as TipoMulta)}
           placeholder="Seleccionar tipo..."
         />
       </FilterGroup>
 
       {/* Fechas */}
-      <FilterGroup label="Rango de fecha">
-        <DateInput label="Desde" value={filters.dateFrom} onChange={v => set('dateFrom', v)} />
-        <DateInput label="Hasta" value={filters.dateTo} onChange={v => set('dateTo', v)} />
-      </FilterGroup>
+      {fechas && (
+        <FilterGroup label="Rango de fecha">
+          <DateInput
+            label="Desde"
+            value={filters.dateFrom}
+            onChange={(v) => set("dateFrom", v)}
+          />
+          <DateInput
+            label="Hasta"
+            value={filters.dateTo}
+            onChange={(v) => set("dateTo", v)}
+          />
+        </FilterGroup>
+      )}
     </div>
   );
 }
 
-function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function FilterGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-2 mb-4">
-      <span style={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>{label}</span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A" }}>
+        {label}
+      </span>
       {children}
     </div>
   );
 }
 
 // Actualizado con tu caso de éxito
-function DateInput({ label, value, onChange, max }: { label: string; value: string; onChange: (v: string) => void; max?: string }) {
+function DateInput({
+  label,
+  value,
+  onChange,
+  max,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  max?: string;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenPicker = () => {
@@ -115,12 +151,20 @@ function DateInput({ label, value, onChange, max }: { label: string; value: stri
 
   return (
     <div className="flex flex-col gap-1 w-full mb-2">
-      <span style={{ fontSize: 11, fontWeight: 600, color: '#8EBFA3', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: "#8EBFA3",
+          letterSpacing: "0.05em",
+          textTransform: "uppercase",
+        }}
+      >
         {label}
       </span>
-      
+
       {/* Contenedor principal */}
-      <div 
+      <div
         onClick={handleOpenPicker}
         className="relative w-full h-9 rounded-xl border border-[rgba(0,0,0,0.12)] bg-white hover:border-[#308C58] transition-colors overflow-hidden flex items-center cursor-pointer"
       >
@@ -129,44 +173,49 @@ function DateInput({ label, value, onChange, max }: { label: string; value: stri
           type="date"
           value={value}
           max={max || undefined}
-          onChange={e => onChange(e.target.value)}
-          onClick={e => {
-            try { e.currentTarget.showPicker() } catch(err) {}
+          onChange={(e) => onChange(e.target.value)}
+          onClick={(e) => {
+            try {
+              e.currentTarget.showPicker();
+            } catch (err) {}
           }}
-          style={{ 
-            position: 'absolute',
+          style={{
+            position: "absolute",
             top: 0,
             left: 0,
-            width: '100%',
-            height: '100%',
+            width: "100%",
+            height: "100%",
             opacity: 0,
-            cursor: 'pointer',
-            zIndex: 10
+            cursor: "pointer",
+            zIndex: 10,
           }}
         />
 
         <div className="flex items-center w-full h-full pointer-events-none px-3 gap-2">
-          <Calendar size={16} style={{ color: '#8EBFA3' }} />
-          <span className="text-sm truncate" style={{ color: value ? '#1A1A1A' : '#B0C8BA' }}>
-            {value ? fmtDate(value) : 'Seleccionar...'}
+          <Calendar size={16} style={{ color: "#8EBFA3" }} />
+          <span
+            className="text-sm truncate"
+            style={{ color: value ? "#1A1A1A" : "#B0C8BA" }}
+          >
+            {value ? fmtDate(value) : "Seleccionar..."}
           </span>
         </div>
-        
+
         {value && (
           <button
             type="button"
-            onClick={(e) => { 
-              e.preventDefault(); 
-              e.stopPropagation(); 
-              onChange(''); 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onChange("");
             }}
             className="absolute right-2 flex items-center justify-center rounded-full hover:bg-[#F0FAF4] transition-colors"
-            style={{ 
-              width: 20, 
-              height: 20, 
-              color: '#8EBFA3', 
-              cursor: 'pointer', 
-              zIndex: 20 
+            style={{
+              width: 20,
+              height: 20,
+              color: "#8EBFA3",
+              cursor: "pointer",
+              zIndex: 20,
             }}
           >
             <X size={14} />

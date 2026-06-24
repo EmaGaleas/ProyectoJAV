@@ -1,11 +1,9 @@
 // types.ts
 export type MultaStatus = "Aprobado" | "Pendiente" | "Vencido";
-export type MultaType =
-  | "Tránsito"
-  | "Estacionamiento"
-  | "Exceso de velocidad"
-  | "Documentación"
-  | "Todos";
+export interface TipoMulta {
+  idMulta: number;
+  tipoDescripcion: string;
+}
 // src/components/styles.ts
 export const INPUT_CLS =
   "h-[45.6px] w-full px-[16px] py-[10px] rounded-[10px] border-[#d1d5dc] border-[0.8px] font-['Arimo',sans-serif] text-[16px] text-[#514f4f] placeholder:text-[#abafb1] bg-white focus:outline-none focus:ring-2 focus:ring-[#308c58]/20 focus:border-[#308c58]";
@@ -27,7 +25,7 @@ export interface Ubicacion {
 
 export interface MultaRecord {
   idMulta: string;
-  codigoMulta: string;
+  idTipoMulta: string;
   nombreUsuario: string;
   idUsuario: string;
   dni: string;

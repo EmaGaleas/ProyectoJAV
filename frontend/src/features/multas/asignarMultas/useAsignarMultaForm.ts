@@ -2,8 +2,9 @@
 import { useState, useMemo } from 'react';
 import type { AsignarMultaFormData, MockUser } from './asignarMultaTypes';
 import { MOCK_USERS_DB, TIPOS_MULTA_DB } from './asignarMultaTypes';
+import {api} from "../../../services/api";
 
-export function useAsignarMultaForm(onClose: () => void) {
+export function useAsignarMultaForm(onClose: () => void, onSuccess?: () => void) {
   const [formData, setFormData] = useState<AsignarMultaFormData>({
     codigo: `MUL-${Math.floor(1000 + Math.random() * 9000)}`, // Generado automáticamente
     personaId: '',
@@ -12,6 +13,7 @@ export function useAsignarMultaForm(onClose: () => void) {
     calle: '',
     bloque: '',
     lote: '',
+    tipoMultaId: '',
     tipoMulta: '',
     fecha: new Date().toISOString().split('T')[0], // Hoy por defecto
     monto: '',
@@ -42,6 +44,7 @@ export function useAsignarMultaForm(onClose: () => void) {
   const handleTipoMultaSelect = (tipoOpt: { value: string, label: string, monto: number }) => {
     setFormData(prev => ({
       ...prev,
+      tipoMultaId: tipoOpt.value,
       tipoMulta: tipoOpt.label,
       monto: tipoOpt.monto
     }));
@@ -51,12 +54,27 @@ export function useAsignarMultaForm(onClose: () => void) {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simular llamada a API
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const payload = {
+        idTipoMulta: parseInt(formData.tipoMultaId, 10) || 0,
+        idUsuario: parseInt(formData.personaId, 10) || 0,
+        monto: Number(formData.monto) || 0
+      };
+
+      const response = await api.post("api/multas", payload);
+      console.log(response);
+
+      
+
       alert('Multa asignada con éxito');
+      onSuccess?.();
       onClose();
-    }, 1000);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Hubo un error al asignar la multa');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return {

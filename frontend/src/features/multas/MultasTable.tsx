@@ -1,6 +1,6 @@
 // MultasTable.tsx
 import type { MultaRecord } from "./types";
-import { L, fmtDate } from "./types";
+import { L } from "./types";
 
 const PAGE_SIZE = 9;
 const ROW_H = 49;
@@ -80,7 +80,7 @@ export function MultasTable({ records, page, onPage, onDetails }: Props) {
                     <Cell text={r.nombreUsuario} />
                     <Cell text={r.dni} />
                     <Cell text={r.tipoDescripcion} />
-                    <Cell text={fmtDate(r.fecha ?? "")} />
+
                     <Cell text={L(r.monto)} />
                     <div className="px-3 flex items-center">
                       <button

@@ -46,7 +46,7 @@ export function MultasTabs({ tabs, active, counts, onSelect }: Props) {
                 cursor: "pointer",
               }}
             >
-              {`t.label${s}`}
+              {t.label + `${s}`}
               <span
                 className="ml-2 rounded-full px-2 py-0.5 text-xs"
                 style={{

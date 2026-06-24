@@ -5,7 +5,7 @@ export const MOCK_MULTAS: MultaRecord[] = [
   {
     idMulta: "1",
     idUsuario: "3",
-    codigoMulta: "MUL-1001",
+    idTipoMulta: "MUL-1001",
     nombreUsuario: "Juan Pérez",
     dni: "0501-1990-12345",
     ubicacion: { street: "CALLE1A", block: "A", lot: "12" },
@@ -18,7 +18,7 @@ export const MOCK_MULTAS: MultaRecord[] = [
   {
     idMulta: "2",
     idUsuario: "5",
-    codigoMulta: "MUL-1002",
+    idTipoMulta: "MUL-1002",
     nombreUsuario: "María López",
     dni: "0801-1985-67890",
     ubicacion: { street: "CALLE2C", block: "B", lot: "4" },
@@ -31,7 +31,7 @@ export const MOCK_MULTAS: MultaRecord[] = [
   {
     idMulta: "3",
     idUsuario: "6",
-    codigoMulta: "MUL-1003",
+    idTipoMulta: "MUL-1003",
     nombreUsuario: "Carlos Martínez",
     dni: "0501-1992-54321",
     ubicacion: { street: "CALLE3D", block: "C-2", lot: "15" },

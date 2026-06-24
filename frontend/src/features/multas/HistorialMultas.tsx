@@ -16,10 +16,12 @@ export default function HistorialMultas() {
     page,
     selected,
     filters,
+    tiposMulta,
     setPage,
     setSelected,
     setFilters,
     handleTabChange,
+    fetchMultas,
   } = useMultas();
 
   return (
@@ -65,6 +67,7 @@ export default function HistorialMultas() {
         <MultasFilters
             filters={filters}
             onChange={setFilters}
+            tiposMulta={tiposMulta}
         />
         </div>
         
@@ -80,7 +83,7 @@ export default function HistorialMultas() {
 
       {/* Renderizamos tu formulario aquí, pasándole onClose para que pueda cerrarse */}
       {isAsignarOpen && (
-        <AsignarMultaForm onClose={() => setIsAsignarOpen(false)} />
+        <AsignarMultaForm onClose={() => setIsAsignarOpen(false)} tiposMulta={tiposMulta} onSuccess={fetchMultas} />
       )}
     </div>
   );
