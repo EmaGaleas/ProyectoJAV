@@ -1,71 +1,88 @@
-import { useState, useMemo } from 'react';
-import type { DashboardFilters, MetricasUsuarios, MetricasFinancieras, DatosSemana, EstadoTransaccionData, DesgloceIngreso } from './types';
+import { useState, useMemo, useEffect } from 'react';
+import axios from 'axios';
+import type { 
+  DashboardFilters, 
+  MetricasUsuarios, 
+  MetricasFinancieras, 
+  DatosSemana, 
+  EstadoTransaccionData, 
+  DesgloceIngreso 
+} from './types';
 
-// ─── TIPO PARA CATEGORÍAS DE INGRESO ──────────────────────────────────────
-export interface CategoriaIngreso {
-  categoria: string;
-  monto: number;
-  color: string;
+// Definimos la interfaz de la respuesta que viene directamente del Backend (C# DTO)
+interface DashboardApiResponse {
+  metricasFinancieras: MetricasFinancieras;
+  usuarios: MetricasUsuarios;
+  datosSemanales: DatosSemana[];
+  estadoTransacciones: EstadoTransaccionData[];
+  desgloceIngresos: DesgloceIngreso[];
 }
 
-// ─── DATOS SIMULADOS (Mock Data de la Junta de Agua) ───────────────────────
-const MOCK_USUARIOS: MetricasUsuarios = {
-  total: 450,
-  activos: 380,
-  inactivos: 25,
-  morosos: 45,
-};
-
-const MOCK_SEMANAS: DatosSemana[] = [
-  { semana: 'Semana 1', ingresos: 12500, egresos: 3200 },
-  { semana: 'Semana 2', ingresos: 18000, egresos: 15000 },
-  { semana: 'Semana 3', ingresos: 8400, egresos: 2100 },
-  { semana: 'Semana 4', ingresos: 21000, egresos: 5400 },
-];
-
-const MOCK_CATEGORIAS_INGRESO: CategoriaIngreso[] = [
-  { categoria: 'Mensualidades de Agua', monto: 38000, color: '#308C58' },
-  { categoria: 'Nuevas Conexiones',     monto: 10500, color: '#2B6CB0' },
-  { categoria: 'Multas e Infracciones', monto: 3400,  color: '#E07A5F' }
-];
-
-const MOCK_ESTADO_TRANSACCIONES: EstadoTransaccionData[] = [
-  { estado: 'Pendiente', ingresos: 8, egresos: 5, color: '#FFF4E5' },
-  { estado: 'En Proceso', ingresos: 12, egresos: 9, color: '#E6F3EC' },
-  { estado: 'Rechazado', ingresos: 2, egresos: 3, color: '#F3F4F6' },
-];
-
-const MOCK_DESGLOSE_INGRESOS: DesgloceIngreso[] = [
-  { tipo: 'Multa', cantidad: 15, monto: 4500.00, color: '#E07A5F' },
-  { tipo: 'Mensualidad', cantidad: 380, monto: 57000.00, color: '#308C58' },
-  { tipo: 'Conexión', cantidad: 8, monto: 9600.00, color: '#2B6CB0' },
-];
-
-// ─── HOOK PERSONALIZADO ───────────────────────────────────────────────────
 export function useDashboard() {
+  // Inicializar filtros con el mes y año actual
   const [filters, setFilters] = useState<DashboardFilters>({
     mes: new Date().getMonth() + 1,
     anio: new Date().getFullYear(),
   });
 
-  const metricasFinancieras = useMemo<MetricasFinancieras>(() => {
-    const ingresos = MOCK_SEMANAS.reduce((acc, curr) => acc + curr.ingresos, 0);
-    const egresos = MOCK_SEMANAS.reduce((acc, curr) => acc + curr.egresos, 0);
-    
-    return {
-      ingresosTotales: ingresos,
-      egresosTotales: egresos,
-      balanceNeto: ingresos - egresos,
-      tasaMorosidad: MOCK_USUARIOS.total > 0 
-        ? (MOCK_USUARIOS.morosos / MOCK_USUARIOS.total) * 100 
-        : 0,
-    };
-  }, [filters]);
+  // Estados para manejar los datos asíncronos de la API
+  const [data, setData] = useState<DashboardApiResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Efecto que se dispara cada vez que cambia el mes o el año seleccionado
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // NOTA: Ajusta la URL base si utilizas un cliente de Axios configurado globalmente (ej. api.get(...))
+        const response = await axios.get<DashboardApiResponse>('http://localhost:5209/api/Dashboard/resumen', {
+          params: {
+            mes: filters.mes,
+            anio: filters.anio
+          }
+        });
+        
+        setData(response.data);
+      } catch (err: any) {
+        console.error("Error cargando la información del Dashboard:", err);
+        setError(err.response?.data?.mensaje || "No se pudo sincronizar la información con el servidor.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [filters.mes, filters.anio]);
+
+  // Fallbacks de datos seguros en estructura para evitar romper los componentes visuales durante la carga o error
+  const usuarios = useMemo<MetricasUsuarios>(() => {
+    return data?.usuarios || { total: 0, activos: 0, inactivos: 0, morosos: 0 };
+  }, [data]);
+
+  const metricasFinancieras = useMemo<MetricasFinancieras>(() => {
+    return data?.metricasFinancieras || { ingresosTotales: 0, egresosTotales: 0, balanceNeto: 0, tasaMorosidad: 0 };
+  }, [data]);
+
+  const datosSemanales = useMemo<DatosSemana[]>(() => {
+    return data?.datosSemanales || [];
+  }, [data]);
+
+  const estadoTransacciones = useMemo<EstadoTransaccionData[]>(() => {
+    return data?.estadoTransacciones || [];
+  }, [data]);
+
+  const desgloceIngresos = useMemo<DesgloceIngreso[]>(() => {
+    return data?.desgloceIngresos || [];
+  }, [data]);
+
+  // Refactorización: Ahora calcula el valor máximo basándose dinámicamente en los datos de la API
   const maxValueBars = useMemo<number>(() => {
-    const maxVal = Math.max(...MOCK_SEMANAS.flatMap(s => [s.ingresos, s.egresos]));
+    if (datosSemanales.length === 0) return 1;
+    const maxVal = Math.max(...datosSemanales.flatMap(s => [s.ingresos, s.egresos]));
     return maxVal > 0 ? maxVal * 1.1 : 1; 
-  }, []);
+  }, [datosSemanales]);
 
   const handleFilterChange = (key: keyof DashboardFilters, value: number) => {
     setFilters(prev => ({
@@ -78,12 +95,13 @@ export function useDashboard() {
     filters,
     setFilters,
     handleFilterChange,
-    usuarios: MOCK_USUARIOS,
+    usuarios,
     metricasFinancieras,
-    datosSemanales: MOCK_SEMANAS,
-    categoriasIngreso: MOCK_CATEGORIAS_INGRESO,
+    datosSemanales,
     maxValueBars,
-    estadoTransacciones: MOCK_ESTADO_TRANSACCIONES,
-    desgloceIngresos: MOCK_DESGLOSE_INGRESOS,
+    estadoTransacciones,
+    desgloceIngresos,
+    loading,
+    error
   };
 }
