@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import type { ChangeEvent } from 'react'
-import { CreditCard, Upload, Camera, FileText } from 'lucide-react'
+import { CreditCard, Upload, FileText } from 'lucide-react'
 
 export type Method = 'cash' | 'transfer'
 
@@ -20,7 +20,6 @@ export function PaymentMethodPanel({
 }: Props) {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const change = (m: Method) => { onMethodChange(m) }
 
@@ -75,16 +74,11 @@ export function PaymentMethodPanel({
         </label>
 
         <input type="file" ref={fileInputRef} accept="image/*,application/pdf" onChange={handleNativeFileChange} style={{ display: 'none' }} />
-        <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" onChange={handleNativeFileChange} style={{ display: 'none' }} />
 
         <div className="flex gap-2">
           <button type="button" onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 flex-1 h-10 px-3 rounded-xl border border-[rgba(0,0,0,0.1)] bg-[#F5F5F5] hover:bg-[#EBEBEB] transition-colors cursor-pointer">
             <Upload size={16} color="#555" />
             <span style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>Subir archivo</span>
-          </button>
-          <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex items-center justify-center gap-2 flex-1 h-10 px-3 rounded-xl border border-[rgba(0,0,0,0.1)] bg-[#F5F5F5] hover:bg-[#EBEBEB] transition-colors cursor-pointer">
-            <Camera size={16} color="#555" />
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#555' }}>Tomar foto</span>
           </button>
         </div>
 

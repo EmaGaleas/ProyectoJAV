@@ -42,7 +42,7 @@ export default function RegistrarEgreso() {
             disabled={!isFormComplete || isLoading}
             className="h-[48px] w-full rounded-[15px] font-medium text-[#f2f2f2] text-[20px] flex items-center justify-center transition-colors shadow-sm"
             style={{
-              background:     isFormComplete ? '#8ebfa3' : '#c8d8cf',
+              background:     isFormComplete ? '#308C58' : '#c8d8cf',
               cursor:         isFormComplete ? 'pointer' : 'not-allowed',
               opacity:        isLoading ? 0.7 : 1,
             }}
