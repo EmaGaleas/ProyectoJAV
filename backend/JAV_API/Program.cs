@@ -78,6 +78,10 @@ builder.Services.AddScoped<IJornadaCobroService, JornadaCobroService>();
 builder.Services.AddScoped<IMultaRepository, MultaRepository>();
 builder.Services.AddScoped<IMultaService, MultaService>();
 builder.Services.AddScoped<IConexionRepository, ConexionRepository>();
+builder.Services.AddScoped<IReporteRepository, ReporteRepository>();
+builder.Services.AddScoped<IReporteService, ReporteService>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // Si MensualidadRepository tampoco estaba registrado, agrégalo:
 // builder.Services.AddScoped<IMensualidadRepository, MensualidadRepository>();
