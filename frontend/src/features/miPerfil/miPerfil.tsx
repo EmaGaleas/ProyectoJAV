@@ -354,7 +354,9 @@ function FormField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className={`w-full rounded-[8px] border px-[14px] py-[10px] font-['Inter',sans-serif] font-normal text-[14px] leading-[22px]  outline-none transition-colors placeholder:text-[#bdbdbd] ${
+        className={`w-full rounded-[8px] border px-[14px] py-[10px] font-['Inter',sans-serif] font-normal text-[14px] leading-[22px] outline-none transition-colors placeholder:text-[#bdbdbd] ${
+          disabled ? "text-[#717182]" : "text-[#1a1a1a]"
+        } ${
           error
             ? "border-[#d55f5a] bg-[#fff5f5] focus:border-[#d55f5a]"
             : "border-[rgba(0,0,0,0.15)] bg-white focus:border-[#308c58]"
