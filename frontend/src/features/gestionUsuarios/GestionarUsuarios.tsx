@@ -6,6 +6,7 @@ import { useIsTablet } from "../historial/ingresos/useBreakpoint";
 import CreateUserForm from "../create_user_form";
 import { useAuthStore } from "../auth/store/authStore";
 import { api } from "../../services/api";
+import type { CreateUserFormData } from "../createUser/types";
 
 const CARDS_PER_PAGE = 4;
 export type UserRole = "Presidente" | "MiembroJav";
@@ -19,11 +20,28 @@ export interface User {
   dni: string;
   rol: string;
   estado: boolean;
+  correo: string;
+  telefono: string;
+  contrasena: string;
+  domicilios: {
+    calle: string;
+    codigoBloque: string;
+    loteCasa: string;
+    estructura: string;
+  }[];
+  tipoVivienda: string;
+  casaHabilitada: boolean;
+  cantidadApartamentos: string;
+  apartamentosHabitados: string;
 }
 
 export default function GestionarUsuarios() {
   const isTablet = useIsTablet();
   const [users, setUsers] = useState<User[]>([]);
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [selectedUser, setSelectedUser] = useState<
+    CreateUserFormData | undefined
+  >(undefined);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [activeFilters, setActiveFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -35,6 +53,46 @@ export default function GestionarUsuarios() {
   );
   console.log(user);
   console.log(token);
+
+  const handleCloseEdit = () => {
+    setMode("view");
+    setShowEditUser(false);
+  };
+
+  function userToFormData(user: User): CreateUserFormData {
+    const domicilio = user.domicilios[0];
+    const telefono = `+504 ${user.telefono}`;
+    return {
+      primerNombre: user.primerNombre,
+      segundoNombre: user.segundoNombre,
+      primerApellido: user.primerApellido,
+      segundoApellido: user.segundoApellido,
+      dni: user.dni,
+      correo: user.correo,
+      telefono: telefono,
+
+      contrasena: "",
+      domicilios: {
+        calle: domicilio?.calle,
+        codigoBloque: domicilio?.codigoBloque,
+        loteCasa: domicilio?.loteCasa,
+        estructura: domicilio?.estructura,
+      },
+
+      tipoVivienda: user.tipoVivienda,
+      casaHabilitada: user.casaHabilitada,
+      cantidadApartamentos: user.cantidadApartamentos,
+      apartamentosHabitados: user.apartamentosHabitados,
+      rol: user.rol,
+      idUsuario: user.idUsuario,
+      estado: user.estado,
+    };
+  }
+
+  const handleUserClicked = (user: User) => {
+    setSelectedUser(userToFormData(user));
+    setShowEditUser(true);
+  };
 
   const filtered = useMemo(
     () =>
@@ -76,6 +134,7 @@ export default function GestionarUsuarios() {
   );
 
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const [showEditUser, setShowEditUser] = useState(false);
 
   const handleApply = () => {
     setActiveFilters(filters);
@@ -84,6 +143,40 @@ export default function GestionarUsuarios() {
   const handleCrearUsuario = (newUser: User) => {
     setUsers((prev) => [...prev, newUser]);
   };
+  const handleEditarUsuario = (updatedUser: User) => {
+    setUsers((prev) =>
+      prev.map((user) =>
+        user.idUsuario === updatedUser.idUsuario ? updatedUser : user,
+      ),
+    );
+  };
+
+  const handleEstadoCambiado = (id: number, nuevoEstado: boolean) => {
+    setUsers((prev) =>
+      prev.map((user) =>
+        user.idUsuario === id ? { ...user, estado: nuevoEstado } : user,
+      ),
+    );
+  };
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const { data } = await api.get<User[]>("api/Usuarios");
+
+        console.log(data);
+        setUsers(data);
+        console.log(users);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    console.log("users actualizados:", users);
+  }, [users]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -172,7 +265,11 @@ export default function GestionarUsuarios() {
         {/* Cards de usuarios */}
         <div className="flex flex-col gap-4">
           {paginatedUsers.map((user) => (
-            <UserCard key={user.idUsuario} user={user} />
+            <UserCard
+              key={user.idUsuario}
+              user={user}
+              onClick={() => handleUserClicked(user)}
+            />
           ))}
           {filtered.length === 0 && (
             <div
@@ -283,13 +380,32 @@ export default function GestionarUsuarios() {
           onApply={handleApply}
         />
       )}
-      {showCreateUser && (
-        <CreateUserForm
-          onClose={() => setShowCreateUser(false)}
-          isSuperAdmin={isSuperAdmin}
-          onUserCreated={handleCrearUsuario}
-        />
-      )}
+      {
+        //Crear
+        showCreateUser && (
+          <CreateUserForm
+            onClose={() => setShowCreateUser(false)}
+            isSuperAdmin={isSuperAdmin}
+            onUserCreated={handleCrearUsuario}
+            mode="create"
+            users={users}
+          />
+        )
+      }
+      {
+        //Editar
+        showEditUser && (
+          <CreateUserForm
+            onClose={handleCloseEdit}
+            isSuperAdmin={isSuperAdmin}
+            onUserCreated={handleEditarUsuario}
+            mode={mode}
+            data={selectedUser}
+            onEdit={() => setMode("edit")}
+            users={users}
+          />
+        )
+      }
     </div>
   );
 }

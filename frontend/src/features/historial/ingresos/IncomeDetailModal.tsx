@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { X, CreditCard, MapPin, User, Loader2, FileText, ChevronRight } from 'lucide-react'
 import { L, fmtDate } from './types'
 import type { Income } from './types'
-import { apiFetch } from '../../../services/apiClient'
 import { useAuthStore } from '../../auth/store/authStore'
 import { ConfirmDialog } from '../egresos/ConfirmDialog'
+import { RejectionBanner } from '../RejectionBanner'  // ← componente compartido
 import Ingreso from '../../../assets/icons/sidebar/tesorero/ingresos.svg?react'
 
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface LineaPago {
   concepto:         string
@@ -17,32 +19,35 @@ interface LineaPago {
 }
 
 interface DetalleBackend {
-  titular:             string
-  dni:                 string
-  numeroComprobante:   string
-  calle:               string
-  bloque:              string
-  lote:                number
-  metodoPago:          string
-  codigoTransferencia?: string
-  fecha:               string
-  tipoPago:            string
-  estado:              string
-  montoTotal:          number
-  lineas:              LineaPago[]
+  titular:               string
+  dni:                   string
+  numeroComprobante:     string
+  calle:                 string
+  bloque:                string
+  lote:                  number
+  metodoPago:            string
+  codigoTransferencia?:  string
+  fecha:                 string | null
+  tipoPago:              string
+  estado:                string
+  montoTotal:            number
+  lineas:                LineaPago[]
+  urlComprobante?:         string | null
+  motivoRechazo?:        string | null
+  comentarioRechazo?:    string | null
 }
-
-// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   income:    Income | null
   userRole:  string
   onClose:   () => void
   onApprove: (id: string) => Promise<void>
-  onReject:  (id: string) => Promise<void>
+  onReject:  (id: string, motivo: string) => Promise<void> 
 }
 
 type PendingAction = 'aprobar' | 'rechazar' | null
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5209'
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
@@ -60,36 +65,62 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
     setDetail(null)
     setLoading(true)
     setShowInvoice(false)
-    apiFetch<DetalleBackend>(`/api/Pagos/${income.id}/detalle`, undefined, token ?? undefined)
-      .then(data => setDetail(data))
-      .catch(err  => console.error('Error al cargar detalle del pago:', err))
-      .finally(()  => setLoading(false))
+
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+
+    axios.get<DetalleBackend>(`${API_URL}/api/Pagos/${income.id}/detalle`, config)
+      .then(res  => setDetail(res.data))
+      .catch(err => console.error('Error al cargar detalle del pago', err))
+      .finally(() => setLoading(false))
   }, [income, token])
 
   if (!income) return null
 
   const esTransferencia = detail?.metodoPago?.toLowerCase() === 'transferencia'
+  const esRechazado     = income.status === 'Rechazado'
 
-  // Mostrar botones si: es SuperAdmin Y (estado "En revisión" O es transferencia)
   const canAct =
     userRole === 'SuperAdministrador' &&
     (income.status === 'En revisión' || esTransferencia)
 
   const codigoDisplay = esTransferencia && detail?.codigoTransferencia
     ? detail.codigoTransferencia
-    : detail?.numeroComprobante || income.receiptNumber
+    : detail?.numeroComprobante ?? income.receiptNumber
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (obs?: string) => {
     if (!pendingAction) return
     setIsSubmitting(true)
     try {
-      if (pendingAction === 'aprobar') await onApprove(income.id)
-      else                             await onReject(income.id)
+      if (pendingAction === 'aprobar') {
+          await onApprove(income.id)
+      } else {
+          // 3. Pasar el motivo a la función onReject
+          await onReject(income.id, obs || '')
+      }
       setPendingAction(null)
+      // Nota: Aquí podrías querer llamar a onClose() también si quieres que se cierre el modal padre, 
+      // al igual que lo haces en EgresoDetailModal.
     } finally {
       setIsSubmitting(false)
     }
   }
+
+// En la línea 85 aprox.
+  const getFullUrl = (url?: string | null) => {
+    if (!url) return ''
+    if (url.startsWith('http')) return url
+    return `${API_URL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
+  }
+
+  // Cambiar detail.documentoUrl por detail.urlComprobante
+  const fullDocumentUrl = detail ? getFullUrl(detail.urlComprobante) : ''
+
+  // Obtener motivo de rechazo desde el detalle o el objeto income
+  const motivoRechazo =
+    detail?.motivoRechazo ??
+    detail?.comentarioRechazo ??
+    (income as any).motivoRechazo ??
+    null
 
   return (
     <>
@@ -106,19 +137,20 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
           onClick={e => e.stopPropagation()}
         >
 
-          {/* 
+          {/* ══════════════════════════════════════════════════
               MODAL PRINCIPAL
-          */}
+          ══════════════════════════════════════════════════ */}
           <div
             className="bg-white flex flex-col overflow-hidden"
             style={{
-              width: showInvoice ? '66.666%' : '100%',
+              width:        showInvoice ? '66.666%' : '100%',
               borderRadius: showInvoice ? '20px 0 0 20px' : 20,
-              transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1), border-radius 0.3s ease',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+              transition:   'width 0.3s cubic-bezier(0.4,0,0.2,1), border-radius 0.3s ease',
+              boxShadow:    '0 20px 60px rgba(0,0,0,0.18)',
             }}
           >
-            {/* Cabecera */}
+
+            {/* ── Cabecera ── */}
             <div
               className="flex items-center justify-between px-6 py-4 shrink-0"
               style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#F8FDFB' }}
@@ -152,7 +184,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
               </div>
             </div>
 
-            {/* Cuerpo */}
+            {/* ── Cuerpo ── */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {loading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -170,81 +202,128 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
               ) : (
                 <div className="flex flex-col gap-5">
 
-                  {/* Sección 1: Titular */}
+                  {/* ── Banner de rechazo (visible solo si estado = Rechazado) ── */}
+                  {esRechazado && (
+                    <RejectionBanner motivo={motivoRechazo} />
+                  )}
+
+                  {/* ── Sección 1: Titular ── */}
                   <InfoSection title="Titular de la cuenta" icon={<User size={13} />}>
-                    <ThreeColGrid>
+                    <UniformGrid cols={3}>
                       <InfoField label="Nombre completo" value={detail.titular} />
                       <InfoField label="DNI / Identidad"  value={detail.dni} />
-                      <InfoField label="N° Comprobante" value={codigoDisplay} highlight />
-                    </ThreeColGrid>
+                      <InfoField label="N° Comprobante"   value={codigoDisplay} highlight />
+                    </UniformGrid>
                   </InfoSection>
 
-                  {/* Sección 2: Dirección */}
+                  {/* ── Sección 2: Dirección ── */}
                   <InfoSection title="Ubicación de la propiedad" icon={<MapPin size={13} />}>
-                    <ThreeColGrid>
-                      <InfoField label="Calle"  value={`${detail.calle}`} />
-                      <InfoField label="Bloque" value={`Bloque ${detail.bloque}`} />
-                      <InfoField label="Lote"   value={`Lote ${detail.lote}`} />
-                    </ThreeColGrid>
+                    <UniformGrid cols={3}>
+                      <InfoField label="Calle"  value={detail.calle ?? '—'} />
+                      <InfoField label="Bloque" value={detail.bloque ? `Bloque ${detail.bloque}` : '—'} />
+                      <InfoField label="Lote"   value={detail.lote   ? `Lote ${detail.lote}`   : '—'} />
+                    </UniformGrid>
                   </InfoSection>
 
-                  {/* Sección 3: Pago */}
+                  {/* ── Sección 3: Información del pago ── */}
                   <InfoSection title="Información del pago" icon={<CreditCard size={13} />}>
-                    <ThreeColGrid>
-                      <InfoField label="Método de pago" value={detail.metodoPago} />
-                      <InfoField label="Fecha de pago"  value={fmtDate(detail.fecha.split('T')[0])} />
-                      <InfoField label="Tipo de pago"   value={detail.tipoPago} />
-                    </ThreeColGrid>
-                    <ThreeColGrid>
-                      <InfoField 
-                        label="Estado" 
-                        value={detail.estado === 'EnRevision' ? 'En Revisión' : detail.estado} 
+                    <UniformGrid cols={3}>
+                      <InfoField label="Método de pago" value={detail.metodoPago ?? '—'} />
+                      <InfoField
+                        label="Fecha de pago"
+                        value={detail.fecha ? fmtDate(detail.fecha.split('T')[0]) : '—'}
                       />
-                      {esTransferencia && detail.codigoTransferencia && (
-                        <InfoField label="Comprobante de transferencia" value={detail.codigoTransferencia} highlight />
+                      <InfoField label="Tipo de pago" value={detail.tipoPago ?? '—'} />
+                    </UniformGrid>
+                    <UniformGrid cols={3}>
+                      <InfoField
+                        label="Estado"
+                        value={
+                          detail.estado === 'EnRevision'
+                            ? 'En Revisión'
+                            : (detail.estado ?? '—')
+                        }
+                      />
+                      {esTransferencia && detail.codigoTransferencia ? (
+                        <InfoField
+                          label="Comprobante de transferencia"
+                          value={detail.codigoTransferencia}
+                          highlight
+                        />
+                      ) : (
+                        /* Celda vacía para mantener alineación del grid */
+                        <div />
                       )}
-                    </ThreeColGrid>
+                      <InfoField label="Registrado por" value="Pendiente" />
+                    </UniformGrid>
                   </InfoSection>
 
-                  {/* Total */}
+                  {/* ── Sección 4: Documento + Factura (con alturas consistentes) ── */}
+                  <UniformGrid cols={2}>
+                    {/* Columna 1: Archivo adjunto */}
+                    <InfoSection title="Documento de respaldo" icon={<FileText size={13} />}>
+                      <DocumentViewer url={fullDocumentUrl} />
+                    </InfoSection>
+
+                    {/* Columna 2: Ver desglose de factura (con altura consistente) */}
+                    {(detail.lineas?.length ?? 0) > 0 && (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span style={{ color: '#308C58' }}>
+                            <FileText size={13} />
+                          </span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: '#308C58', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                            Desglose de factura
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setShowInvoice(v => !v)}
+                          className="flex items-center justify-between w-full px-4 py-4 rounded-xl transition-colors h-full"
+                          style={{
+                            background: showInvoice ? '#F0FAF4' : '#308C58',
+                            border:     showInvoice ? '1.5px solid #D5EDDF' : 'none',
+                            color:      showInvoice ? '#308C58' : '#fff',
+                            cursor:     'pointer',
+                            minHeight:  '52px',
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <FileText size={15} />
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>
+                              {showInvoice ? 'Cerrar desglose' : 'Ver desglose'}
+                            </span>
+                          </div>
+                          <ChevronRight
+                            size={16}
+                            style={{
+                              transform:  showInvoice ? 'rotate(180deg)' : 'none',
+                              transition: 'transform 0.2s',
+                            }}
+                          />
+                        </button>
+                      </div>
+                    )}
+                  </UniformGrid>
+
+                  {/* ── Total ── */}
                   <div
                     className="flex items-center justify-between px-4 py-3 rounded-xl"
                     style={{ background: '#F0FAF4', border: '1.5px solid #D5EDDF' }}
                   >
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>Monto Total Recaudado</span>
-                    <span style={{ fontSize: 18, fontWeight: 800, color: '#308C58' }}>{L(detail.montoTotal)}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#1A1A1A' }}>
+                      Monto Total Recaudado
+                    </span>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: '#308C58' }}>
+                      {L(detail.montoTotal ?? 0)}
+                    </span>
                   </div>
 
-                  {/* CTA ver factura */}
-                  {detail.lineas?.length > 0 && (
-                    <button
-                      onClick={() => setShowInvoice(v => !v)}
-                      className="flex items-center justify-between w-full px-4 py-3 rounded-xl transition-colors"
-                      style={{
-                        background: showInvoice ? '#F0FAF4' : '#308C58',
-                        border: showInvoice ? '1.5px solid #D5EDDF' : 'none',
-                        color: showInvoice ? '#308C58' : '#fff',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText size={15} />
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>
-                          {showInvoice ? 'Cerrar desglose de factura' : 'Ver desglose de factura'}
-                        </span>
-                      </div>
-                      <ChevronRight
-                        size={16}
-                        style={{ transform: showInvoice ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-                      />
-                    </button>
-                  )}
                 </div>
               )}
             </div>
 
-            {/* Footer con acciones */}
-            {canAct && !loading && detail && (
+            {/* ── Footer con acciones ── */}
+            {canAct && (
               <div
                 className="px-6 py-4 flex gap-3 shrink-0"
                 style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}
@@ -254,113 +333,75 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                   className="flex-1 h-[42px] rounded-[10px] text-sm font-semibold transition-colors"
                   style={{ background: '#fde8e8', color: '#c0392b', border: 'none', cursor: 'pointer' }}
                 >
-                  Rechazar ingreso
+                  Rechazar pago
                 </button>
                 <button
                   onClick={() => setPendingAction('aprobar')}
                   className="flex-1 h-[42px] rounded-[10px] text-sm font-semibold transition-colors"
                   style={{ background: '#308C58', color: '#fff', border: 'none', cursor: 'pointer' }}
                 >
-                  Aprobar ingreso
-                </button>
-              </div>
-            )}
-
-            {/* Footer sin acciones */}
-            {!canAct && !loading && (
-              <div
-                className="px-6 py-4 flex justify-end shrink-0"
-                style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#FAFAFA' }}
-              >
-                <button
-                  onClick={onClose}
-                  className="px-6 py-2 rounded-[10px] text-sm font-semibold"
-                  style={{ background: '#308C58', color: '#fff', border: 'none', cursor: 'pointer' }}
-                >
-                  Cerrar ventana
+                  Aprobar pago
                 </button>
               </div>
             )}
           </div>
 
-          {/* ══════════════════════════════════════════════════════════════
-              PANEL LATERAL: DESGLOSE DE FACTURA (1/3 del ancho)
-          ══════════════════════════════════════════════════════════════ */}
-          <div
-            style={{
-              width: showInvoice ? '33.333%' : '0%',
-              overflow: 'hidden',
-              transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
-              flexShrink: 0,
-            }}
-          >
+          {/* ══════════════════════════════════════════════════
+              PANEL DESGLOSE DE FACTURA (lateral derecho)
+          ══════════════════════════════════════════════════ */}
+          {showInvoice && detail && (
             <div
-              className="h-full flex flex-col"
+              className="bg-white flex flex-col overflow-hidden"
               style={{
-                width: '100%',
-                minWidth: 280,
-                background: '#fff',
-                borderLeft: '1px solid rgba(0,0,0,0.08)',
+                width:        '33.333%',
                 borderRadius: '0 20px 20px 0',
-                boxShadow: '4px 0 20px rgba(0,0,0,0.06) inset',
+                borderLeft:   '1px solid rgba(0,0,0,0.06)',
+                transition:   'width 0.3s cubic-bezier(0.4,0,0.2,1)',
               }}
             >
-              {/* Header del panel */}
+              {/* Cabecera */}
               <div
-                className="flex items-center justify-between px-4 py-4 shrink-0"
-                style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: '#F0FAF4' }}
+                className="px-6 py-4 shrink-0"
+                style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#F8FDFB' }}
               >
-                <div className="flex items-center gap-2">
-                  <FileText size={15} style={{ color: '#308C58' }} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A1A' }}>
-                    Desglose de Factura
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#308C58', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block' }}>
+                  Desglose de factura
+                </span>
+              </div>
+
+              {/* Cuerpo con líneas */}
+              <div className="flex-1 overflow-y-auto px-4 py-5">
+                <div className="flex flex-col gap-2.5">
+                  {detail.lineas?.map((item, idx) => (
+                    <InvoiceLine key={idx} item={item} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer con total */}
+              <div
+                className="px-4 py-4 shrink-0"
+                style={{ borderTop: '1px solid rgba(0,0,0,0.06)', background: '#F8FDFB' }}
+              >
+                <div className="flex items-center justify-between">
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A' }}>
+                    Total
+                  </span>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>
+                    {L(detail.montoTotal ?? 0)}
                   </span>
                 </div>
-                <button
-                  onClick={() => setShowInvoice(false)}
-                  className="rounded-lg hover:bg-white transition-colors p-1"
-                  style={{ color: '#8EBFA3' }}
-                >
-                  <X size={15} />
-                </button>
               </div>
-
-              {/* Líneas de factura con scroll */}
-              <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
-                {detail?.lineas?.map((item, i) => (
-                  <InvoiceLine key={i} item={item} />
-                ))}
-              </div>
-
-              {/* Total del panel */}
-              {detail && (
-                <div
-                  className="px-4 py-4 shrink-0"
-                  style={{ borderTop: '1px solid rgba(0,0,0,0.07)', background: '#F8FDFB' }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#8EBFA3', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                      Total
-                    </span>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#308C58' }}>
-                      {L(detail.montoTotal)}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 10, color: '#B0C8BA', marginTop: 4 }}>
-                    {detail.lineas?.length ?? 0} ítem{(detail.lineas?.length ?? 0) !== 1 ? 's' : ''} incluidos
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* ── Diálogos de confirmación ── */}
       {pendingAction === 'aprobar' && (
         <ConfirmDialog
-          title="Aprobar ingreso"
-          message="¿Está seguro de que desea aprobar y procesar este ingreso? Esta acción no se puede deshacer."
+          title="Aprobar pago"
+          message="¿Está seguro de que desea aprobar este pago? Esta acción no se puede deshacer."
           confirmLabel={isSubmitting ? 'Aprobando...' : 'Sí, aprobar'}
           confirmStyle="green"
           onConfirm={handleConfirm}
@@ -370,8 +411,8 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
       )}
       {pendingAction === 'rechazar' && (
         <ConfirmDialog
-          title="Rechazar ingreso"
-          message="¿Está seguro de que desea rechazar este ingreso? El pago quedará invalidado permanentemente."
+          title="Rechazar pago"
+          message="¿Está seguro de que desea rechazar este pago? Esta acción no se puede deshacer."
           confirmLabel={isSubmitting ? 'Rechazando...' : 'Sí, rechazar'}
           confirmStyle="red"
           onConfirm={handleConfirm}
@@ -385,13 +426,17 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
+/**
+ * Badge de estado con semántica de color.
+ */
 function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, { bg: string; color: string }> = {
-    'Procesado':   { bg: '#e6f3ec', color: '#308C58' },
-    'Rechazado':   { bg: '#fde8e8', color: '#c0392b' },
-    'En revisión': { bg: '#fef9e7', color: '#b7791f' },
+  const map: Record<string, { bg: string; color: string }> = {
+    'Aprobado':       { bg: '#e6f3ec', color: '#308C58' },
+    'Rechazado':      { bg: '#fde8e8', color: '#c0392b' },
+    'En revisión':    { bg: '#fef9e7', color: '#b7791f' },
+    'En Revisión':    { bg: '#fef9e7', color: '#b7791f' },
   }
-  const s = styles[status] ?? styles['En revisión']
+  const s = map[status] ?? map['En Revisión']
   return (
     <span
       className="text-xs font-semibold px-3 py-1 rounded-full"
@@ -402,7 +447,18 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function InfoSection({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+/**
+ * Contenedor de sección con ícono, título y card de fondo.
+ */
+function InfoSection({
+  title,
+  icon,
+  children,
+}: {
+  title:    string
+  icon:     React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-1.5">
@@ -421,26 +477,200 @@ function InfoSection({ title, icon, children }: { title: string; icon: React.Rea
   )
 }
 
-function InfoField({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+/**
+ * Campo de información con label y valor.
+ * Maneja valores nulos/indefinidos mostrando un guión.
+ */
+function InfoField({
+  label,
+  value,
+  highlight,
+}: {
+  label:      string
+  value?:     string | null
+  highlight?: boolean
+}) {
+  const display = value?.trim() || '—'
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-0.5 min-w-0">
       <span style={{ fontSize: 10, fontWeight: 600, color: '#B0C8BA', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </span>
-      <span style={{ fontSize: 13, fontWeight: highlight ? 700 : 500, color: highlight ? '#308C58' : '#1A1A1A' }}>
-        {value || '—'}
+      <span
+        className="truncate"
+        title={display !== '—' ? display : undefined}
+        style={{ fontSize: 13, fontWeight: highlight ? 700 : 500, color: highlight ? '#308C58' : '#1A1A1A' }}
+      >
+        {display}
       </span>
     </div>
   )
 }
 
-
-function ThreeColGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-3 gap-3">{children}</div>
+/**
+ * Grid uniforme: cada columna ocupa exactamente 1fr del espacio disponible.
+ * Usa minmax(0, 1fr) para evitar que el contenido rompa la uniformidad.
+ */
+function UniformGrid({
+  cols,
+  children,
+}: {
+  cols: 2 | 3
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        display:             'grid',
+        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gap:                 12,
+      }}
+    >
+      {children}
+    </div>
+  )
 }
 
-function InvoiceLine({ item }: { item: { concepto: string; montoBase: number; mora: number; tipo: string; fechaVencimiento: string | null } }) {
-  const subtotal = item.montoBase + item.mora
+/**
+ * Visor de documentos - detecta automáticamente el tipo de archivo.
+ * Soporta imágenes, PDFs y otros tipos de archivo.
+ */
+function DocumentViewer({ url }: { url: string }) {
+  if (!url) {
+    return (
+      <span style={{ fontSize: 13, color: '#6b7280' }}>
+        No hay recibo asociado
+      </span>
+    )
+  }
+
+  // Extraer la extensión de la URL (manejando posibles parámetros de consulta)
+  const cleanUrl = url.split('?')[0]
+  const extension = cleanUrl.split('.').pop()?.toLowerCase()
+
+  const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')
+  const isPdf = extension === 'pdf'
+
+  // ── Acciones compartidas (reutilizadas en los tres casos) ──────────────────
+  const FileActions = () => (
+    <div className="flex items-center gap-3">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ fontSize: 12, fontWeight: 500, color: '#308C58', textDecoration: 'none' }}
+        className="hover:underline"
+      >
+        Ver archivo
+      </a>
+      <a
+        href={url}
+        download
+        style={{ fontSize: 12, fontWeight: 500, color: '#308C58', textDecoration: 'none' }}
+        className="hover:underline"
+      >
+        Descargar
+      </a>
+    </div>
+  )
+
+  // ── Imagen ─────────────────────────────────────────────────────────────────
+  if (isImage) {
+    return (
+      <div
+        className="flex items-center gap-3 w-fit"
+        style={{ background: '#F3F4F6', borderRadius: 10, padding: '10px 14px', border: '1px solid rgba(0,0,0,0.07)' }}
+      >
+        {/* Miniatura clicable */}
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="shrink-0 hover:opacity-85 transition-opacity"
+        >
+          <img
+            src={url}
+            alt="Documento de respaldo"
+            style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(0,0,0,0.08)' }}
+          />
+        </a>
+        <div className="flex flex-col gap-0.5">
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
+            Imagen adjunta
+          </span>
+          <FileActions />
+        </div>
+      </div>
+    )
+  }
+
+  // ── PDF ────────────────────────────────────────────────────────────────────
+  if (isPdf) {
+    return (
+      <div
+        className="flex items-center gap-3 w-fit"
+        style={{ background: '#F3F4F6', borderRadius: 10, padding: '10px 14px', border: '1px solid rgba(0,0,0,0.07)' }}
+      >
+        <div
+          className="flex items-center justify-center rounded-lg shrink-0"
+          style={{ width: 40, height: 40, background: '#E5E7EB' }}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
+            Documento PDF
+          </span>
+          <FileActions />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Archivo genérico ───────────────────────────────────────────────────────
+  return (
+    <div
+      className="flex items-center gap-3 w-fit"
+      style={{ background: '#F3F4F6', borderRadius: 10, padding: '10px 14px', border: '1px solid rgba(0,0,0,0.07)' }}
+    >
+      <div 
+        className="shrink-0" 
+        style={{ width: 14, height: 14, borderRadius: 4, background: '#308C58' }} 
+      />
+      <div className="flex flex-col gap-0.5">
+        <span style={{ fontSize: 13, fontWeight: 600, color: '#1f2937' }}>
+          Archivo adjunto
+        </span>
+        <FileActions />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Línea individual del desglose de factura.
+ */
+function InvoiceLine({
+  item,
+}: {
+  item: {
+    concepto:         string
+    montoBase:        number
+    mora:             number
+    tipo:             string
+    fechaVencimiento: string | null
+  }
+}) {
+  const base     = item.montoBase ?? 0
+  const mora     = item.mora      ?? 0
+  const subtotal = base + mora
+
   return (
     <div
       className="flex flex-col gap-1.5 p-3 rounded-xl"
@@ -464,10 +694,18 @@ function InvoiceLine({ item }: { item: { concepto: string; montoBase: number; mo
           {L(subtotal)}
         </span>
       </div>
-      {item.mora > 0 && (
-        <div className="flex items-center justify-between pt-1.5" style={{ borderTop: '1px dashed rgba(0,0,0,0.08)' }}>
-          <span style={{ fontSize: 10, color: '#8EBFA3' }}>Base: {L(item.montoBase)}</span>
-          <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600 }}>+{L(item.mora)} mora</span>
+
+      {mora > 0 && (
+        <div
+          className="flex items-center justify-between pt-1.5"
+          style={{ borderTop: '1px dashed rgba(0,0,0,0.08)' }}
+        >
+          <span style={{ fontSize: 10, color: '#8EBFA3' }}>
+            Base: {L(base)}
+          </span>
+          <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600 }}>
+            +{L(mora)} mora
+          </span>
         </div>
       )}
     </div>

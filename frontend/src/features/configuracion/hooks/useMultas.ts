@@ -45,18 +45,15 @@ export function useMultas() {
     setVigentes((prev) => [...prev, nueva]);
   };
 
-  const updateMulta = async (id: number, data: Omit<MultaTipoDto, "id">) => {
-    const updated = await svc.updateMulta(id, data);
-    setVigentes((prev) => prev.map((m) => (m.id === id ? updated : m)));
-    // El historial se recarga para reflejar el nuevo registro creado en el backend
+  const updateMulta = async (id: number, tipoNuevo: string) => {
+    await svc.updateMulta(id, tipoNuevo);
+    // 2. Se actualiza el estado local copiando el objeto e inyectando el nuevo tipo
+    setVigentes((prev) => prev.map((m) => (m.id === id ? { ...m, tipo: tipoNuevo } : m)));
+    // Se recarga el historial para que los nombres agrupados se actualicen visualmente
     const hist = await svc.getHistorial();
     setHistorial(hist);
   };
 
-  const deleteMulta = async (id: number) => {
-    await svc.deleteMulta(id);
-    setVigentes((prev) => prev.filter((m) => m.id !== id));
-  };
 
   const addProximaVigencia = async (data: Omit<ProximaMultaDto, "id">) => {
     const nueva = await svc.createProximaVigencia(data);
@@ -76,7 +73,6 @@ export function useMultas() {
     error,
     addMulta,
     updateMulta,
-    deleteMulta,
     addProximaVigencia,
     removeProximaVigencia,
     refetch: fetchAll,

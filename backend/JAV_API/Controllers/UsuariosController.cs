@@ -94,4 +94,164 @@ public class UsuariosController : ControllerBase
             return BadRequest(new { mensaje = ex.Message });
         }
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Endpoints de perfil del usuario autenticado
+    // ──────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Obtiene el perfil completo del usuario que está actualmente autenticado.
+    /// </summary>
+    /// <response code="200">Perfil obtenido exitosamente.</response>
+    /// <response code="401">Token JWT ausente o inválido.</response>
+    /// <response code="404">El usuario del token ya no existe en la base de datos.</response>
+    [HttpGet("me")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ObtenerPerfil()
+    {
+        var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idStr, out int idUsuario))
+            return Unauthorized(new { mensaje = "No se pudo determinar la identidad del usuario desde el token." });
+
+        var perfil = await _usuarioService.ObtenerPerfilAsync(idUsuario);
+        if (perfil is null)
+            return NotFound(new { mensaje = "El usuario autenticado no fue encontrado." });
+
+        return Ok(perfil);
+    }
+
+    /// <summary>
+    /// Actualiza el correo y el teléfono del usuario autenticado.
+    /// </summary>
+    /// <response code="204">Contacto actualizado exitosamente.</response>
+    /// <response code="400">El correo o teléfono ya están en uso por otro usuario.</response>
+    /// <response code="401">Token JWT ausente o inválido.</response>
+    [HttpPatch("me/contacto")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ActualizarContacto([FromBody] ActualizarContactoRequest request)
+    {
+        var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idStr, out int idUsuario))
+            return Unauthorized(new { mensaje = "No se pudo determinar la identidad del usuario desde el token." });
+
+        try
+        {
+            await _usuarioService.ActualizarContactoAsync(idUsuario, request);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Cambia la contraseña del usuario autenticado.
+    /// Requiere la contraseña actual para confirmar la identidad.
+    /// </summary>
+    /// <response code="204">Contraseña cambiada exitosamente.</response>
+    /// <response code="400">La contraseña actual es incorrecta o la nueva no cumple los requisitos.</response>
+    /// <response code="401">Token JWT ausente o inválido.</response>
+    [HttpPatch("me/contrasena")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CambiarContrasena([FromBody] CambiarContrasenaRequest request)
+    {
+        var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(idStr, out int idUsuario))
+            return Unauthorized(new { mensaje = "No se pudo determinar la identidad del usuario desde el token." });
+
+        try
+        {
+            await _usuarioService.CambiarContrasenaAsync(idUsuario, request);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { mensaje = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Endpoints de edición de usuario (Presidente y Secretario)
+    // ──────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Verifica la contraseña del usuario autenticado como paso previo a editar otro usuario.
+    /// </summary>
+    /// <response code="204">Contraseña correcta — identidad verificada.</response>
+    /// <response code="401">Contraseña incorrecta o token inválido.</response>
+    [HttpPost("verificar-identidad")]
+    [Authorize(Roles = "Presidente,Secretario")]
+    public async Task<IActionResult> VerificarIdentidad([FromBody] VerificarIdentidadRequest request)
+    {
+        var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idClaim, out int idAdmin))
+            return Unauthorized(new { mensaje = "Token inválido." });
+
+        try
+        {
+            await _usuarioService.VerificarIdentidadAsync(idAdmin, request.Password);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { mensaje = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { mensaje = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Activa o desactiva el usuario con el ID indicado.
+    /// </summary>
+    /// <response code="200">Estado cambiado exitosamente.</response>
+    /// <response code="404">No existe un usuario con ese ID.</response>
+    [HttpPatch("{id:int}/estado")]
+    [Authorize(Roles = "Presidente,Vicepresidente,Secretario,Vocal")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CambiarEstado(int id, [FromBody] bool estado)
+    {
+        var usuario = await _usuarioService.CambiarEstadoAsync(id, estado);
+        if (usuario is null)
+            return NotFound(new { mensaje = $"No se encontró un usuario con ID {id}." });
+        return Ok(usuario);
+    }
+
+    /// <summary>
+    /// Actualiza todos los campos editables de la Persona y el Usuario con el ID indicado.
+    /// </summary>
+    /// <response code="200">Usuario actualizado exitosamente con sus nuevos datos.</response>
+    /// <response code="400">Correo, DNI o teléfono ya en uso por otro usuario.</response>
+    /// <response code="404">No existe un usuario con ese ID.</response>
+    [HttpPatch("{id:int}")]
+    [Authorize(Roles = "Presidente,Secretario")]
+    public async Task<IActionResult> EditarUsuario(int id, [FromBody] EditarUsuarioRequest request)
+    {
+        try
+        {
+            var usuario = await _usuarioService.EditarUsuarioAsync(id, request);
+            return Ok(usuario);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { mensaje = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mensaje = ex.Message });
+        }
+    }
 }

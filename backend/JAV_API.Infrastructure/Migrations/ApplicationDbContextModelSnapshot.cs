@@ -199,6 +199,11 @@ namespace JAV_API.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("aprobado_Por");
 
+                    b.Property<string>("ComentarioRechazo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("comentario_Rechazo");
+
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -397,6 +402,11 @@ namespace JAV_API.Infrastructure.Migrations
                     b.Property<int?>("AprobadoPor")
                         .HasColumnType("integer")
                         .HasColumnName("aprobado_Por");
+
+                    b.Property<string>("ComentarioRechazo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("comentario_Rechazo");
 
                     b.Property<string>("Estado")
                         .IsRequired()

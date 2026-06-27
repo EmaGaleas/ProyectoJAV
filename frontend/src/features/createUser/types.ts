@@ -3,18 +3,23 @@ export interface CreateUserFormData {
   segundoNombre: string;
   primerApellido: string;
   segundoApellido: string;
-  identificacion: string;
+  dni: string;
   correo: string;
-  celular: string;
+  telefono: string;
   contrasena: string;
-  calle: string;
-  bloque: string;
-  numerolote: string;
+  domicilios: {
+    calle: string;
+    codigoBloque: string;
+    loteCasa: string;
+    estructura: string;
+  };
   tipoVivienda: string;
   casaHabilitada: boolean;
   cantidadApartamentos: string;
   apartamentosHabitados: string;
   rol: string;
+  idUsuario: number;
+  estado?: boolean;
 }
 
 export const INITIAL_FORM_DATA: CreateUserFormData = {
@@ -22,42 +27,47 @@ export const INITIAL_FORM_DATA: CreateUserFormData = {
   segundoNombre: "",
   primerApellido: "",
   segundoApellido: "",
-  identificacion: "",
+  dni: "",
   correo: "",
-  celular: "",
+  telefono: "",
   contrasena: "",
-  calle: "",
-  bloque: "",
-  numerolote: "",
+  domicilios: {
+    calle: "",
+    codigoBloque: "",
+    loteCasa: "",
+    estructura: "",
+  },
   tipoVivienda: "Casa",
   casaHabilitada: true,
   cantidadApartamentos: "",
   apartamentosHabitados: "",
   rol: "DuenoDeCasa",
+  idUsuario: -1,
+  estado: true,
 };
 
 export const CALLES = [
-  { value: "Calle1A", label: "Calle 1A" },
-  { value: "Calle1B", label: "Calle 1B" },
-  { value: "Calle2A", label: "Calle 2A" },
-  { value: "Calle2B", label: "Calle 2B" },
-  { value: "Calle3A", label: "Calle 3A" },
-  { value: "Calle3B", label: "Calle 3B" },
-  { value: "Calle4A", label: "Calle 4A" },
+  { value: "Calle1A", calle: "Calle1A", label: "Calle 1A" },
+  { value: "Calle1B", calle: "Calle1B", label: "Calle 1B" },
+  { value: "Calle2A", calle: "Calle2A", label: "Calle 2A" },
+  { value: "Calle2B", calle: "Calle2B", label: "Calle 2B" },
+  { value: "Calle3A", calle: "Calle3A", label: "Calle 3A" },
+  { value: "Calle3B", calle: "Calle3B", label: "Calle 3B" },
+  { value: "Calle4A", calle: "Calle4A", label: "Calle 4A" },
 ];
 
 export const BLOQUES = [
   { value: "FGAD", label: "FGAD" },
-  { value: "A", label: "Bloque A" },
-  { value: "B", label: "Bloque B" },
-  { value: "C", label: "Bloque C" },
-  { value: "D", label: "Bloque D" },
-  { value: "E", label: "Bloque E" },
-  { value: "F", label: "Bloque F" },
-  { value: "G", label: "Bloque G" },
-  { value: "H", label: "Bloque H" },
-  { value: "I", label: "Bloque I" },
-  { value: "J", label: "Bloque J" },
+  { value: "A", codigoBloque: "A", label: "Bloque A" },
+  { value: "B", codigoBloque: "B", label: "Bloque B" },
+  { value: "C", codigoBloque: "C", label: "Bloque C" },
+  { value: "D", codigoBloque: "D", label: "Bloque D" },
+  { value: "E", codigoBloque: "E", label: "Bloque E" },
+  { value: "F", codigoBloque: "F", label: "Bloque F" },
+  { value: "G", codigoBloque: "G", label: "Bloque G" },
+  { value: "H", codigoBloque: "H", label: "Bloque H" },
+  { value: "I", codigoBloque: "I", label: "Bloque I" },
+  { value: "J", codigoBloque: "J", label: "Bloque J" },
 ];
 
 export const INPUT_CLS =

@@ -2,7 +2,7 @@ export const ROUTES = {
   LOGIN:        '/login',
   UNAUTHORIZED: '/no-autorizado',
 
-  DASHBOARD:    '/',
+  DASHBOARD:    '/Dash',
 
   // Ingresos
   INGRESOS:               '/ingresos',
