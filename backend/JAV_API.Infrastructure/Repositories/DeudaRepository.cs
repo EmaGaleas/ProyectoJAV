@@ -16,7 +16,7 @@ public class DeudaRepository : IDeudaRepository
         _context = context;
     }
 
-    public async Task<DeudasUsuarioResponse> ObtenerDeudasPendientesPorUsuarioAsync(int idUsuario)
+    public async Task<DeudasUsuarioResponse> ObtenerDeudasPendientesPorUsuarioAsync(int idUsuario, decimal valorMoraActual)
     {
         var response = new DeudasUsuarioResponse();
 
@@ -28,39 +28,50 @@ public class DeudaRepository : IDeudaRepository
         response.Mensualidades = mensualidades.Select(m => new DeudaDetalleResponse
         {
             IdReal = m.IdMensualidad,
-            IdVirtual = $"mensualidad-{m.IdMensualidad}", // Clave para el frontend
+            IdVirtual = $"mensualidad-{m.IdMensualidad}",
             Concepto = m.PeriodoPago.HasValue ? $"Mensualidad {m.PeriodoPago.Value:MMMM yyyy}" : "Mensualidad",
             Monto = m.Monto,
             FechaVencimiento = m.FechaVencimiento,
             Estado = m.Estado.ToString(),
             Vencida = m.Estado == Estado.Vencido,
-            Mora = CalcularMora(m.Estado, m.Monto) 
+            Mora = m.Estado == Estado.Vencido ? valorMoraActual : 0m // Mora inyectada dinámicamente
         }).ToList();
 
         // 2. Obtener Multas pendientes o vencidas
         var multas = await _context.Set<Multa>()
-            .Include(m => m.TipoMulta) // Para traernos la descripción
+            .Include(m => m.TipoMulta)
             .Where(m => m.IdUsuario == idUsuario && (m.Estado == Estado.Pendiente || m.Estado == Estado.Vencido))
             .ToListAsync();
 
         response.Multas = multas.Select(m => new DeudaDetalleResponse
         {
             IdReal = m.IdMulta,
-            IdVirtual = $"multa-{m.IdMulta}", // Clave para el frontend
+            IdVirtual = $"multa-{m.IdMulta}",
             Concepto = m.TipoMulta != null ? m.TipoMulta.Descripcion : "Multa",
             Monto = m.Monto,
-            FechaVencimiento = null, // La tabla multa no tiene vencimiento explícito en DB.txt
+            FechaVencimiento = null,
             Estado = m.Estado.ToString(),
             Vencida = m.Estado == Estado.Vencido,
-            Mora = 0m // Suponiendo que las multas no generan doble mora
+            Mora = 0m
+        }).ToList();
+
+        // 3. Obtener Conexiones pendientes o vencidas
+        var conexiones = await _context.Set<Conexion>()
+            .Where(c => c.IdUsuario == idUsuario && (c.Estado == Estado.Pendiente || c.Estado == Estado.Vencido))
+            .ToListAsync();
+
+        response.Conexiones = conexiones.Select(c => new DeudaDetalleResponse
+        {
+            IdReal = c.IdConexion,
+            IdVirtual = $"conexion-{c.IdConexion}",
+            Concepto = "Servicio de Conexión/Reconexión",
+            Monto = c.Monto,
+            FechaVencimiento = null,
+            Estado = c.Estado.ToString(),
+            Vencida = c.Estado == Estado.Vencido,
+            Mora = 0m 
         }).ToList();
 
         return response;
-    }
-
-    // Método auxiliar (puedes ajustar la lógica de negocio real aquí)
-    private decimal CalcularMora(Estado estado, decimal montoBase)
-    {
-        return estado == Estado.Vencido ? montoBase * 0.10m : 0m; 
     }
 }

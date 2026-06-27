@@ -1,13 +1,22 @@
 import { ChevronRight } from "lucide-react";
 import type { CreateUserFormData } from "./types";
-import { CALLES, BLOQUES, INPUT_CLS, LABEL_CLS, SECTION_TITLE_CLS, SELECT_CLS } from "./types";
-
+import {
+  CALLES,
+  BLOQUES,
+  INPUT_CLS,
+  LABEL_CLS,
+  SECTION_TITLE_CLS,
+  SELECT_CLS,
+} from "./types";
 
 interface Props {
   formData: CreateUserFormData;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => void;
   onTipoViviendaChange: (tipo: string) => void;
   onCasaHabilitadaChange: (value: boolean) => void;
+  disable?: boolean;
 }
 
 function SelectField({
@@ -18,6 +27,7 @@ function SelectField({
   options,
   placeholder,
   required,
+  disable,
 }: {
   label: string;
   name: string;
@@ -26,6 +36,7 @@ function SelectField({
   options: { value: string; label: string }[];
   placeholder: string;
   required?: boolean;
+  disable?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -39,6 +50,7 @@ function SelectField({
           onChange={onChange}
           required={required}
           className={SELECT_CLS}
+          disabled={disable}
         >
           <option value="">{placeholder}</option>
           {options.map((o) => (
@@ -61,9 +73,11 @@ export function SeccionDireccion({
   onChange,
   onTipoViviendaChange,
   onCasaHabilitadaChange,
+  disable,
 }: Props) {
   const tieneApts =
-    formData.tipoVivienda === "Apartamentos" || formData.tipoVivienda === "Ambos";
+    formData.tipoVivienda === "Apartamentos" ||
+    formData.tipoVivienda === "Ambos";
   const tieneCasa =
     formData.tipoVivienda === "Casa" || formData.tipoVivienda === "Ambos";
 
@@ -76,20 +90,22 @@ export function SeccionDireccion({
         <SelectField
           label="Calle"
           name="calle"
-          value={formData.calle}
+          value={formData.domicilios.calle}
           onChange={onChange}
           options={CALLES}
           placeholder="Selecciona una calle"
           required
+          disable={disable}
         />
         <SelectField
           label="Bloque"
           name="bloque"
-          value={formData.bloque}
+          value={formData.domicilios.codigoBloque}
           onChange={onChange}
           options={BLOQUES}
           placeholder="Selecciona un bloque"
           required
+          disable={disable}
         />
       </div>
 
@@ -102,13 +118,14 @@ export function SeccionDireccion({
           <input
             type="number"
             name="numerolote"
-            value={formData.numerolote}
+            value={formData.domicilios.loteCasa}
             onChange={onChange}
             placeholder="Ej: 15"
             min="1"
             step="1"
             required
             className={INPUT_CLS}
+            disabled={disable}
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -122,6 +139,7 @@ export function SeccionDireccion({
               onChange={(e) => onTipoViviendaChange(e.target.value)}
               required
               className={SELECT_CLS}
+              disabled={disable}
             >
               <option value="Casa">Casa</option>
               <option value="Apartamentos">Apartamentos</option>
@@ -142,22 +160,25 @@ export function SeccionDireccion({
             ¿La casa está habilitada? <span className="text-red-500">*</span>
           </label>
           <div className="flex gap-4">
-            {([{ label: "Sí", value: true }, { label: "No", value: false }] as const).map(
-              ({ label, value }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => onCasaHabilitadaChange(value)}
-                  className={`flex-1 h-[45.6px] rounded-[10px] border-[0.8px] font-['Arimo',sans-serif] text-[16px] transition-colors cursor-pointer ${
-                    formData.casaHabilitada === value
-                      ? "bg-[#308c58] text-white border-[#308c58]"
-                      : "bg-white text-[#514f4f] border-[#d1d5dc] hover:border-[#308c58]"
-                  }`}
-                >
-                  {label}
-                </button>
-              ),
-            )}
+            {(
+              [
+                { label: "Sí", value: true },
+                { label: "No", value: false },
+              ] as const
+            ).map(({ label, value }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onCasaHabilitadaChange(value)}
+                className={`flex-1 h-[45.6px] rounded-[10px] border-[0.8px] font-['Arimo',sans-serif] text-[16px] transition-colors cursor-pointer ${
+                  formData.casaHabilitada === value
+                    ? "bg-[#308c58] text-white border-[#308c58]"
+                    : "bg-white text-[#514f4f] border-[#d1d5dc] hover:border-[#308c58]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -179,6 +200,7 @@ export function SeccionDireccion({
               step="1"
               required
               className={INPUT_CLS}
+              disabled={disable}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -195,6 +217,7 @@ export function SeccionDireccion({
               step="1"
               required
               className={INPUT_CLS}
+              disabled={disable}
             />
           </div>
         </div>

@@ -20,8 +20,9 @@ public class PagoRepository : IPagoRepository
         List<PagoMulta> pagoMultas, 
         List<PagoConexion> pagoConexiones,
         List<Mensualidad> mensualidades,
-        List<Multa> multas,
-        List<Conexion> conexiones)
+        List<Multa> multasExistentes,
+        List<Conexion> conexiones,
+        List<Multa> multasNuevas) // Recibimos las nuevas
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -30,13 +31,17 @@ public class PagoRepository : IPagoRepository
             _context.Pagos.Add(pago);
             _context.Comprobantes.Add(comprobante);
             
+            // Insertamos las moras generadas al vuelo a la BD
+            if (multasNuevas.Any()) _context.Multas.AddRange(multasNuevas);
+            
+            // Insertamos las relaciones
             if (pagoMensualidades.Any()) _context.PagoMensualidades.AddRange(pagoMensualidades);
             if (pagoMultas.Any()) _context.PagoMultas.AddRange(pagoMultas);
             if (pagoConexiones.Any()) _context.PagoConexiones.AddRange(pagoConexiones);
 
-            // Actualizamos los estados de las entidades cobradas
+            // Actualizamos los estados de las entidades cobradas preexistentes
             if (mensualidades.Any()) _context.Mensualidades.UpdateRange(mensualidades);
-            if (multas.Any()) _context.Multas.UpdateRange(multas);
+            if (multasExistentes.Any()) _context.Multas.UpdateRange(multasExistentes);
             if (conexiones.Any()) _context.Conexiones.UpdateRange(conexiones);
 
             await _context.SaveChangesAsync();
@@ -159,15 +164,46 @@ public class PagoRepository : IPagoRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task RechazarAsync(int idPago)
+    public async Task RechazarAsync(int idPago, string? comentario)
     {
-        var pago = await _context.Pagos.FindAsync(idPago)
-            ?? throw new KeyNotFoundException($"No se encontró el ingreso con ID {idPago}.");
+        var pago = await _context.Pagos
+            .Include(p => p.PagoMensualidades).ThenInclude(pm => pm.Mensualidad)
+            .Include(p => p.PagoMultas).ThenInclude(pm => pm.Multa).ThenInclude(m => m.TipoMulta) // Incluimos TipoMulta para validar
+            .Include(p => p.PagoConexiones).ThenInclude(pc => pc.Conexion)
+            .FirstOrDefaultAsync(p => p.IdPago == idPago)
+            ?? throw new KeyNotFoundException($"No se encontró el pago con ID {idPago}.");
 
         if (pago.Estado != EstadoAprobacion.EnRevision)
-            throw new InvalidOperationException($"El ingreso ya fue procesado con estado '{pago.Estado}'.");
+            throw new InvalidOperationException($"El pago ya fue procesado con estado '{pago.Estado}'.");
+
+        foreach (var pm in pago.PagoMensualidades)
+        {
+            // Las mensualidades siempre vuelven a Vencido si se rechaza
+            pm.Mensualidad.Estado = Estado.Vencido; 
+        }
+
+        foreach (var pm in pago.PagoMultas)
+        {
+            // Si la multa es estrictamente de concepto "Mora", la anulamos para no cobrarla doble
+            if (pm.Multa.TipoMulta != null && pm.Multa.TipoMulta.Descripcion.ToLower().Contains("mora"))
+            {
+                pm.Multa.Estado = Estado.Anulado; 
+            }
+            else
+            {
+                // Si era una multa normal (ej. reconexión, daño), vuelve a su estado pendiente original
+                pm.Multa.Estado = Estado.Pendiente;
+            }
+        }
+
+        foreach (var pc in pago.PagoConexiones)
+        {
+            pc.Conexion.Estado = Estado.Pendiente;
+        }
 
         pago.Estado = EstadoAprobacion.Rechazado;
+        pago.ComentarioRechazo = comentario;
+
         await _context.SaveChangesAsync();
     }
 }

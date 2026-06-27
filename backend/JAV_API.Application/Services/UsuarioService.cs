@@ -66,6 +66,110 @@ public class UsuarioService : IUsuarioService
         return MapearAResponse(usuario);
     }
 
+    /// <inheritdoc/>
+    public async Task<UsuarioResponse?> ObtenerPerfilAsync(int idUsuario)
+    {
+        var usuario = await _usuarioRepository.ObtenerPorIdAsync(idUsuario);
+        return usuario is null ? null : MapearAResponse(usuario);
+    }
+
+    /// <inheritdoc/>
+    public async Task ActualizarContactoAsync(int idUsuario, ActualizarContactoRequest request)
+    {
+        // Validar que el correo no esté en uso por OTRO usuario
+        var usuarioPorCorreo = await _usuarioRepository.ObtenerPorCorreoAsync(request.Correo);
+        if (usuarioPorCorreo is not null && usuarioPorCorreo.IdUsuario != idUsuario)
+            throw new InvalidOperationException($"El correo '{request.Correo}' ya está en uso por otro usuario.");
+
+        // Validar que el teléfono no esté en uso por OTRO usuario
+        var existeTelefono = await _usuarioRepository.ExisteTelefonoAsync(request.Telefono);
+        if (existeTelefono)
+        {
+            // Verificar que no sea el propio usuario el que ya tiene ese teléfono
+            var usuarioActual = await _usuarioRepository.ObtenerPorIdAsync(idUsuario);
+            if (usuarioActual?.Telefono != request.Telefono)
+                throw new InvalidOperationException($"El teléfono '{request.Telefono}' ya está en uso por otro usuario.");
+        }
+
+        await _usuarioRepository.ActualizarContactoAsync(idUsuario, request.Correo, request.Telefono);
+    }
+
+    /// <inheritdoc/>
+    public async Task CambiarContrasenaAsync(int idUsuario, CambiarContrasenaRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ContrasenaNueva) || request.ContrasenaNueva.Length < 8)
+            throw new InvalidOperationException("La nueva contraseña debe tener al menos 8 caracteres.");
+
+        var nuevoHash = _passwordHasher.Hash(request.ContrasenaNueva);
+        await _usuarioRepository.ActualizarContrasenaAsync(idUsuario, nuevoHash);
+    }
+
+    /// <inheritdoc/>
+    public async Task VerificarIdentidadAsync(int idAdmin, string password)
+    {
+        var usuario = await _usuarioRepository.ObtenerPorIdAsync(idAdmin)
+            ?? throw new KeyNotFoundException($"No se encontró el usuario con ID {idAdmin}.");
+
+        if (!_passwordHasher.Verify(password, usuario.PasswordHash))
+            throw new UnauthorizedAccessException("La contraseña proporcionada es incorrecta.");
+    }
+
+    /// <inheritdoc/>
+    public async Task<UsuarioResponse> EditarUsuarioAsync(int id, EditarUsuarioRequest request)
+    {
+        // 1. Verificar que el usuario existe
+        var existente = await _usuarioRepository.ObtenerPorIdAsync(id)
+            ?? throw new KeyNotFoundException($"No se encontró un usuario con ID {id}.");
+
+        // 2. Validar unicidad excluyendo al propio usuario
+        if (await _usuarioRepository.ExisteCorreoEnOtroUsuarioAsync(request.Correo, id))
+            throw new InvalidOperationException($"El correo '{request.Correo}' ya está en uso por otro usuario.");
+
+        if (await _usuarioRepository.ExisteDniEnOtroUsuarioAsync(request.Dni, id))
+            throw new InvalidOperationException($"El DNI '{request.Dni}' ya está registrado por otro usuario.");
+
+        if (await _usuarioRepository.ExisteTelefonoEnOtroUsuarioAsync(request.Telefono, id))
+            throw new InvalidOperationException($"El teléfono '{request.Telefono}' ya está en uso por otro usuario.");
+
+        // 3. Resolver IdTipoUsuario desde el Rol
+        int idTipoUsuario;
+        if (request.Rol.HasValue && _tipoNombrePorRol.TryGetValue(request.Rol.Value, out var nombreTipo))
+        {
+            var tipo = await _usuarioRepository.ObtenerTipoUsuarioPorNombreAsync(nombreTipo);
+            idTipoUsuario = tipo?.IdTipo ?? throw new InvalidOperationException(
+                $"No se encontró el TipoUsuario para el rol '{request.Rol}'.");
+        }
+        else
+        {
+            // Mantener el TipoUsuario actual usando el nombre del navigation property
+            var nombreTipoActual = existente.TipoUsuario?.Nombre
+                ?? throw new InvalidOperationException("El usuario no tiene un TipoUsuario asignado.");
+            var tipoActual = await _usuarioRepository.ObtenerTipoUsuarioPorNombreAsync(nombreTipoActual);
+            idTipoUsuario = tipoActual?.IdTipo ?? throw new InvalidOperationException(
+                "No se pudo resolver el TipoUsuario actual del usuario.");
+        }
+
+        // 4. Persistir
+        await _usuarioRepository.EditarAsync(id,
+            request.PrimerNombre, request.SegundoNombre,
+            request.PrimerApellido, request.SegundoApellido,
+            request.Dni, request.Correo, request.Telefono,
+            request.Estado, request.Rol, idTipoUsuario);
+
+        // 5. Devolver datos actualizados
+        var actualizado = await _usuarioRepository.ObtenerPorIdAsync(id)!;
+        return MapearAResponse(actualizado!);
+    }
+
+    /// <inheritdoc/>
+    public async Task<UsuarioResponse?> CambiarEstadoAsync(int id, bool estado)
+    {
+        var cambiado = await _usuarioRepository.CambiarEstadoAsync(id, estado);
+        if (!cambiado) return null;
+        var usuario = await _usuarioRepository.ObtenerPorIdAsync(id);
+        return usuario is null ? null : MapearAResponse(usuario);
+    }
+
     // ─────────────────────────────────────────────────────────
     // Métodos privados (ayudantes internos con nombre semántico)
     // ─────────────────────────────────────────────────────────

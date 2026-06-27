@@ -52,7 +52,7 @@ public class EgresoRepository : IEgresoRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task RechazarAsync(int idEgreso)
+    public async Task RechazarAsync(int idEgreso, string? comentario)
     {
         var egreso = await _context.Egresos.FindAsync(idEgreso)
             ?? throw new KeyNotFoundException($"No se encontró el egreso con ID {idEgreso}.");
@@ -61,6 +61,7 @@ public class EgresoRepository : IEgresoRepository
             throw new InvalidOperationException($"El egreso ya fue procesado con estado '{egreso.Estado}'.");
 
         egreso.Estado = EstadoAprobacion.Rechazado;
+        egreso.ComentarioRechazo = comentario; // Se guarda el motivo
         await _context.SaveChangesAsync();
     }
 }

@@ -22,4 +22,31 @@ public interface IUsuarioService
     /// <param name="request">Datos del nuevo usuario.</param>
     /// <param name="rolSolicitante">Rol del usuario autenticado que hace la solicitud (extraído del JWT).</param>
     Task<UsuarioResponse> CrearUsuarioAsync(RegistroUsuarioRequest request, string rolSolicitante);
+
+    /// <summary>Obtiene el perfil completo del usuario autenticado.</summary>
+    Task<UsuarioResponse?> ObtenerPerfilAsync(int idUsuario);
+
+    /// <summary>
+    /// Actualiza el correo y el teléfono del usuario autenticado.
+    /// Valida que el nuevo correo/teléfono no estén en uso por otro usuario.
+    /// </summary>
+    Task ActualizarContactoAsync(int idUsuario, ActualizarContactoRequest request);
+
+    /// <summary>Cambia la contraseña del usuario autenticado.</summary>
+    Task CambiarContrasenaAsync(int idUsuario, CambiarContrasenaRequest request);
+
+    /// <summary>
+    /// Verifica que la contraseña proporcionada coincida con la del usuario autenticado.
+    /// Lanza <see cref="UnauthorizedAccessException"/> si no coincide.
+    /// </summary>
+    Task VerificarIdentidadAsync(int idAdmin, string password);
+
+    /// <summary>
+    /// Edita todos los campos de la Persona y el Usuario con el ID indicado.
+    /// Valida duplicados excluyendo al propio usuario.
+    /// </summary>
+    Task<UsuarioResponse> EditarUsuarioAsync(int id, EditarUsuarioRequest request);
+
+    /// <summary>Activa o desactiva el usuario con el ID indicado. Devuelve null si no existe.</summary>
+    Task<UsuarioResponse?> CambiarEstadoAsync(int id, bool estado);
 }
