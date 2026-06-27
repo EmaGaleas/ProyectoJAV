@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5209'
 
 export class ApiError extends Error {
@@ -9,6 +11,17 @@ export class ApiError extends Error {
   }
 }
 
+// Configuración global de Axios para replicar el comportamiento exacto de tu fetch anterior
+export const apiClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    // El backend espera este header explícitamente en todas las peticiones
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
+})
+
+// Mantenemos apiFetch intacto para el resto del proyecto, pero impulsado por Axios
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit,
@@ -24,12 +37,28 @@ export async function apiFetch<T>(
 
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, body.mensaje ?? body.error ?? `Error ${res.status}`)
+  let data = options?.body;
+  if (typeof data === 'string' && headers['Content-Type'] === 'application/json') {
+    try {
+      data = JSON.parse(data);
+    } catch (e) {
+      // Ignorar error de parseo
+    }
   }
 
-  return res.json() as Promise<T>
+  try {
+    const res = await apiClient.request<T>({
+      url: path,
+      method: options?.method ?? 'GET',
+      headers,
+      data: data instanceof FormData ? options?.body : data,
+    })
+    return res.data
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      const body = error.response.data || {}
+      throw new ApiError(error.response.status, body.mensaje ?? body.error ?? `Error ${error.response.status}`)
+    }
+    throw new ApiError(500, 'Error de conexión con el servidor')
+  }
 }

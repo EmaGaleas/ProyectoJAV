@@ -8,6 +8,9 @@ import { ModalActualizado } from "./shared/ModalActualizado";
 import type { DatosActualizacion } from "./shared/ModalActualizado";
 import { ProximasVigencias } from "./shared/ProximasVigencias";
 import type { VigenciaFutura } from "./shared/ProximasVigencias";
+import { toast } from 'react-toastify'
+import * as mensualidadService from "./services/mensualidadService";
+import type { MesFechaDto, MensualidadHistorialDto } from "./services/mensualidadService";
 
 import * as mensualidadService from "./services/mensualidadService";
 import type { MesFechaDto, MensualidadHistorialDto } from "./services/mensualidadService";
@@ -34,14 +37,14 @@ const toIso = (y: number, m: number, d: number) =>
 // ─── Estado Actual (Lectura del monto vigente y control de jornadas) ─────────
 
 function EstadoActualMensualidad({ monto, montoFI }: { monto: number; montoFI: string }) {
-  const YEAR = new Date().getFullYear(); // o 2025 según tu necesidad
+  const YEAR = new Date().getFullYear(); 
   const [meses, setMeses] = useState<MesFechaDto[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [draftDay, setDraftDay] = useState(1);
-  const [rowError, setRowError] = useState("");
   const [modalFecha, setModalFecha] = useState<DatosActualizacion | null>(null);
+  // Eliminado: const [rowError, setRowError] = useState("");
 
   useEffect(() => {
     cargarMeses();
@@ -59,9 +62,19 @@ function EstadoActualMensualidad({ monto, montoFI }: { monto: number; montoFI: s
   };
 
   const handleEdit = (idx: number) => { 
+    const mesObj = meses[idx];
+    const mesNumber = parseInt(mesObj.fechaInicio.split("-")[1]) - 1;
+    const currentMonth = new Date().getMonth();
+    const isPastYear = YEAR < new Date().getFullYear();
+
+    // Validación: Evitar editar meses pasados
+    if (isPastYear || (YEAR === new Date().getFullYear() && mesNumber < currentMonth)) {
+      toast.error("No se puede editar la jornada de cobro de un mes que ya ha pasado.");
+      return;
+    }
+
     setEditingIdx(idx); 
-    setDraftDay(parseInt(meses[idx].fechaInicio.split("-")[2])); 
-    setRowError(""); 
+    setDraftDay(parseInt(mesObj.fechaInicio.split("-")[2])); 
   };
 
   const handleSaveRow = async (idx: number) => {
@@ -70,7 +83,7 @@ function EstadoActualMensualidad({ monto, montoFI }: { monto: number; montoFI: s
     const max = lastDayOfMonth(YEAR, mesNumber);
     
     if (draftDay < 1 || draftDay > max) { 
-      setRowError(`El día debe estar entre 1 y ${max} para ${mesObj.mes}`); 
+      toast.error(`El día debe estar entre 1 y ${max} para ${mesObj.mes}`); 
       return; 
     }
     
@@ -84,7 +97,6 @@ function EstadoActualMensualidad({ monto, montoFI }: { monto: number; montoFI: s
       next[idx] = { ...next[idx], fechaInicio: nuevo };
       setMeses(next);
       setEditingIdx(null);
-      setRowError("");
       
       setModalFecha({ 
         etiqueta: `Fecha de inicio — ${mesObj.mes}`, 
@@ -92,8 +104,10 @@ function EstadoActualMensualidad({ monto, montoFI }: { monto: number; montoFI: s
         nuevaFechaInicio: nuevo, 
         anteriorFechaInicio: anterior 
       });
+      toast.success("Fecha de jornada actualizada correctamente.");
     } catch (error: any) {
-      setRowError(error.response?.data?.message || "Ocurrió un error al actualizar la jornada.");
+      // Reemplazo de rowError por toast
+      toast.error(error.response?.data?.message || "Ocurrió un error al actualizar la jornada.");
     }
   };
 
@@ -114,7 +128,6 @@ function EstadoActualMensualidad({ monto, montoFI }: { monto: number; montoFI: s
         <div className="px-5 py-4 border-b border-[#e5e7eb]">
           <h4 className="font-['Montserrat',sans-serif] text-[15px] text-[#364153]">Control de Fechas de Mensualidades del Año Presente</h4>
         </div>
-        {rowError && <div className="mx-5 mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-[8px]"><p className="text-red-600 font-['Arimo',sans-serif] text-[13px]">{rowError}</p></div>}
         
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -159,7 +172,7 @@ function EstadoActualMensualidad({ monto, montoFI }: { monto: number; montoFI: s
                         {isEditing ? (
                           <div className="flex justify-end gap-2">
                             <button onClick={() => handleSaveRow(idx)} className="h-[30px] px-3 rounded-[6px] bg-[#308c58] text-white text-[12px] font-['Arimo',sans-serif] hover:bg-[#267045] cursor-pointer flex items-center gap-1"><Check size={12}/> Guardar</button>
-                            <button onClick={() => { setEditingIdx(null); setRowError(""); }} className="h-[30px] px-2 rounded-[6px] border border-[#d1d5dc] text-[#6b7280] hover:bg-[#f9fafb] cursor-pointer"><X size={13}/></button>
+                            <button onClick={() => setEditingIdx(null)} className="h-[30px] px-2 rounded-[6px] border border-[#d1d5dc] text-[#6b7280] hover:bg-[#f9fafb] cursor-pointer"><X size={13}/></button>
                           </div>
                         ) : (
                           <button onClick={() => handleEdit(idx)} className="h-[30px] px-3 rounded-[6px] border border-[#d1d5dc] text-[#514f4f] text-[12px] font-['Arimo',sans-serif] hover:bg-[#f9fafb] cursor-pointer flex items-center gap-1 ml-auto"><Pencil size={12}/> Editar día</button>
@@ -276,12 +289,28 @@ export function SeccionMensualidad({ subTab }: Props) {
   };
 
   const handleAddProxima = async (v: Omit<VigenciaFutura, "id">) => {
+    // Validación UI: Prevenir múltiples vigencias futuras antes de ir al backend
+    if (vigencias.length > 0) {
+      toast.error("Ya existe un precio programado para el futuro. Bórrelo o modifíquelo antes de registrar uno nuevo.");
+      return;
+    }
+
     try {
+      const hoy = new Date().toISOString().split("T")[0];
+      const esFutura = v.fechaInicio > hoy;
+
       const nueva = await mensualidadService.createProximaVigencia(v);
-      setVigencias((p) => [...p, nueva]);
-      cargarDatos(); // Recargar el estado actual por si entra en vigencia de inmediato
-    } catch (error) {
-      console.error("Error al crear próxima vigencia", error);
+
+      if (esFutura) {
+        setVigencias((p) => [...p, nueva]);
+        toast.success("Próxima vigencia registrada correctamente.");
+      } else {
+        await cargarDatos(); 
+        toast.success("La nueva vigencia ha entrado en efecto inmediatamente.");
+      }
+    } catch (error: any) {
+      // Captura de errores de validación del backend (ej. monto incorrecto o fechas inválidas)
+      toast.error(error.response?.data?.message || error.response?.data || "Ocurrió un error al registrar la vigencia.");
     }
   };
 

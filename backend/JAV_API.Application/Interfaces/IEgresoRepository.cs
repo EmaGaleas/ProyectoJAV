@@ -9,5 +9,5 @@ public interface IEgresoRepository
     Task<IEnumerable<Egreso>> ObtenerHistorialEgresosAsync();
     Task<Egreso?> ObtenerPorIdAsync(int idEgreso);
     Task AprobarAsync(int idEgreso, int aprobadoPor);
-    Task RechazarAsync(int idEgreso);
+    Task RechazarAsync(int idEgreso, string? comentario);
 }

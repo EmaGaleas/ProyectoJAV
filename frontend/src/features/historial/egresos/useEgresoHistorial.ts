@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
-import { apiFetch } from '../../../services/apiClient'
+import axios from 'axios'
 import { useAuthStore } from '../../auth/store/authStore'
 import type { EgresoRecord, EgresoStatus } from './types'
 import { DEFAULT_EGRESO_FILTERS } from './EgresoFilters'
@@ -18,8 +18,9 @@ interface EgresoBackend {
   receptorPago:  string
   descripcion:   string
   facturaUrl:    string
-  estado:        string   // 'Aprobado' | 'Pendiente' | 'Rechazado'
+  estado:        string
   aprobadoPor?:  string | null
+  comentarioRechazo?: string | null
 }
 
 function mapBackendToRecord(b: EgresoBackend): EgresoRecord {
@@ -35,8 +36,12 @@ function mapBackendToRecord(b: EgresoBackend): EgresoRecord {
     facturaUrl:    b.facturaUrl,
     status:        (b.estado as EgresoStatus) ?? 'Pendiente',
     aprobadoPor:   b.aprobadoPor ?? undefined,
+    comentarioRechazo: b.comentarioRechazo ?? undefined,
   }
 }
+
+// ─── URL Base del Backend ─────────────────────────────────────────────────────
+const API_URL = 'http://localhost:5209'
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -44,21 +49,27 @@ export function useEgresoHistorial() {
   const { token, user } = useAuthStore()
   const userName: string = user?.nombre ?? 'Administrador'
 
-  const [records,       setRecords]       = useState<EgresoRecord[]>(MOCK_EGRESOS)
-  const [loading,       setLoading]       = useState(false)
-  const [activeTab,     setActiveTab]     = useState<EgresoStatus>('Pendiente')
-  const [page,          setPage]          = useState(1)
-  const [selected,      setSelected]      = useState<EgresoRecord | null>(null)
-  const [stagedFilters, setStagedFilters] = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
-  const [activeFilters, setActiveFilters] = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
+  const [records,  setRecords]  = useState<EgresoRecord[]>(MOCK_EGRESOS)
+  const [loading,  setLoading]  = useState(false)
+  const [activeTab,setActiveTab]= useState<EgresoStatus>('Pendiente')
+  const [page,     setPage]     = useState(1)
+  const [selected, setSelected] = useState<EgresoRecord | null>(null)
+  
+  // Estado único para filtros en tiempo real
+  const [filters,  setFilters]  = useState<EgresoFilterValues>(DEFAULT_EGRESO_FILTERS)
 
   // ── Carga inicial: GET /api/Egresos ──────────────────────────────────────────
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    apiFetch<EgresoBackend[]>('/api/Egresos', undefined, token ?? undefined)
-      .then(data => {
-        if (!cancelled) setRecords(data.map(mapBackendToRecord))
+
+    const config = {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    }
+
+    axios.get<EgresoBackend[]>(`${API_URL}/api/Egresos`, config)
+      .then(res => {
+        if (!cancelled) setRecords(res.data.map(mapBackendToRecord))
       })
       .catch(() => {
         if (!cancelled) setRecords(MOCK_EGRESOS)
@@ -66,14 +77,15 @@ export function useEgresoHistorial() {
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
+      
     return () => { cancelled = true }
   }, [token])
 
-  // ── Filtrado ─────────────────────────────────────────────────────────────────
+  // ── Filtrado (Tiempo Real) ───────────────────────────────────────────────────
   const byTab = records.filter(r => r.status === activeTab)
 
   const filtered = byTab.filter(r => {
-    const q = activeFilters.search.toLowerCase().trim()
+    const q = filters.search.toLowerCase().trim()
     if (q) {
       const match =
         r.codigoEgreso.toLowerCase().includes(q)  ||
@@ -82,8 +94,8 @@ export function useEgresoHistorial() {
         r.dni.toLowerCase().includes(q)
       if (!match) return false
     }
-    if (activeFilters.dateFrom && r.fecha < activeFilters.dateFrom) return false
-    if (activeFilters.dateTo   && r.fecha > activeFilters.dateTo)   return false
+    if (filters.dateFrom && r.fecha < filters.dateFrom) return false
+    if (filters.dateTo   && r.fecha > filters.dateTo)   return false
     return true
   })
 
@@ -98,53 +110,44 @@ export function useEgresoHistorial() {
     setActiveTab(s)
     setPage(1)
     setSelected(null)
-    setStagedFilters(DEFAULT_EGRESO_FILTERS)
-    setActiveFilters(DEFAULT_EGRESO_FILTERS)
-  }
-
-  const handleApply = () => {
-    setActiveFilters(stagedFilters)
-    setPage(1)
   }
 
   const handleApprove = async (id: string) => {
     const userId  = user ? parseInt(user.id, 10) : 0
     const payload = { AprobadoPor: userId }
+    const config = { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+
     try {
-      await apiFetch(
-        `/api/Egresos/${id}/aprobar`,
-        { method: 'PATCH', body: JSON.stringify(payload) },
-        token ?? undefined,
-      )
+      await axios.patch(`${API_URL}/api/Egresos/${id}/aprobar`, payload, config)
       toast.success('Egreso aprobado exitosamente.')
+      setRecords(prev => prev.map(r => r.id === id ? { ...r, status: 'Aprobado', aprobadoPor: userName } : r))
     } catch {
       toast.error('No se pudo aprobar el egreso. Intenta de nuevo más tarde.')
+    } finally {
+      setSelected(null)
     }
-
-    setRecords(prev =>
-      prev.map(r => r.id === id ? { ...r, status: 'Aprobado', aprobadoPor: userName } : r)
-    )
-    setSelected(null)
   }
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, motivo: string) => { // <-- 1. Agregamos motivo
     const userId  = user ? parseInt(user.id, 10) : 0
-    const payload = { RechazadoPor: userId }
+    
+    // 2. Incluimos el Motivo en el cuerpo de la petición
+    const payload = { RechazadoPor: userId, Motivo: motivo }
+    const config = { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+
     try {
-      await apiFetch(
-        `/api/Egresos/${id}/rechazar`,
-        { method: 'PATCH', body: JSON.stringify(payload) },
-        token ?? undefined,
-      )
+      await axios.patch(`${API_URL}/api/Egresos/${id}/rechazar`, payload, config)
       toast.success('Egreso rechazado.')
+      
+      // 3. Reflejamos el cambio en el estado local
+      setRecords(prev => 
+        prev.map(r => r.id === id ? { ...r, status: 'Rechazado', rechazadoPor: userName, motivoRechazo: motivo } : r)
+      )
     } catch {
       toast.error('No se pudo rechazar el egreso. Intenta de nuevo más tarde.')
+    } finally {
+      setSelected(null)
     }
-
-    setRecords(prev =>
-      prev.map(r => r.id === id ? { ...r, status: 'Rechazado', rechazadoPor: userName } : r)
-    )
-    setSelected(null)
   }
 
   return {
@@ -153,13 +156,12 @@ export function useEgresoHistorial() {
     activeTab,
     page,
     selected,
-    stagedFilters,
+    filters, // <-- Modificado
     loading,
     setPage,
     setSelected,
-    setStagedFilters,
+    setFilters, // <-- Modificado
     handleTabChange,
-    handleApply,
     handleApprove,
     handleReject,
   }

@@ -21,20 +21,14 @@ export default function HistorialEgresos() {
     activeTab,
     page,
     selected,
-    stagedFilters,
+    filters,      // <-- Actualizado
     setPage,
     setSelected,
-    setStagedFilters,
+    setFilters,   // <-- Actualizado
     handleTabChange,
-    handleApply,
     handleApprove,
     handleReject,
   } = useEgresoHistorial();
-
-  const handleApplyAndClose = () => {
-    handleApply();
-    setFiltersOpen(false);
-  };
 
   return (
     <div
@@ -81,17 +75,15 @@ export default function HistorialEgresos() {
               }}
             >
               <EgresoFilters
-                filters={stagedFilters}
-                onChange={setStagedFilters}
-                onApply={handleApplyAndClose}
+                filters={filters}
+                onChange={setFilters}
               />
             </div>
           </>
         ) : (
           <EgresoFilters
-            filters={stagedFilters}
-            onChange={setStagedFilters}
-            onApply={handleApply}
+            filters={filters}
+            onChange={setFilters}
           />
         )}
       </div>

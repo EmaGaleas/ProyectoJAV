@@ -288,6 +288,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Estado).HasColumnName("estado").HasConversion<string>()
                   .HasDefaultValue(JAV_API.Domain.Enums.EstadoAprobacion.EnRevision);
             entity.Property(e => e.AprobadoPor).HasColumnName("aprobado_Por");
+            entity.Property(e => e.ComentarioRechazo).HasColumnName("comentario_Rechazo").HasMaxLength(500);
 
             entity.HasOne(p => p.Registrador)
                   .WithMany(u => u.PagosRegistrados)
@@ -404,6 +405,8 @@ public class ApplicationDbContext : DbContext
             
             // CORREGIDO: Se elimina .IsRequired() para permitir nulos en la columna
             entity.Property(e => e.AprobadoPor).HasColumnName("aprobado_Por");
+
+            entity.Property(e => e.ComentarioRechazo).HasColumnName("comentario_Rechazo").HasMaxLength(500);
 
             entity.HasOne(e => e.Registrador)
                   .WithMany(u => u.EgresosRegistrados)

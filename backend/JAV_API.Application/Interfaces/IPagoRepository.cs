@@ -13,7 +13,8 @@ public interface IPagoRepository
         List<PagoConexion> pagoConexiones,
         List<Mensualidad> mensualidades,
         List<Multa> multas,
-        List<Conexion> conexiones
+        List<Conexion> conexiones,
+        List<Multa> multasNuevas
     );
     
     Task<IEnumerable<Pago>> ObtenerHistorialPagosAsync();
@@ -24,5 +25,5 @@ public interface IPagoRepository
 
     Task<Pago?> ObtenerPorIdAsync(int idPago);
     Task AprobarAsync(int idPago, int aprobadoPor);
-    Task RechazarAsync(int idPago);
+    Task RechazarAsync(int idPago, string? comentario);
 }

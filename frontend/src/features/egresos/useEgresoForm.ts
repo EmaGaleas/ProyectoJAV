@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'react-toastify'
-import { apiFetch } from '../../services/apiClient'
+import { api } from '../../services/api'
 import { useAuthStore } from '../auth/store/authStore'
 import type { EgresoFormData } from './types'
 import { MAX_FILE_SIZE_BYTES } from './types'
@@ -13,7 +13,7 @@ const EMPTY_FORM: EgresoFormData = {
 }
 
 export function useEgresoForm() {
-  const { token, user } = useAuthStore()
+  const { user } = useAuthStore()
 
   const registradoPor: number = parseInt(user?.id ?? '0', 10)
   const nombreUsuario: string = user?.nombre ?? 'Usuario desconocido'
@@ -57,15 +57,21 @@ export function useEgresoForm() {
       body.append('RegistradoPor', String(registradoPor))
       body.append('Titulo',        formData.cliente.trim())
       body.append('Descripcion',   formData.descripcion.trim())
-      body.append('Monto',         formData.monto)
+      body.append('Monto',         formData.monto) 
       body.append('Evidencia',     formData.factura!)
 
-      await apiFetch('/api/Egresos', { method: 'POST', body }, token ?? undefined)
+      
+      await api.post('/api/Egresos', body)
 
       toast.success('Egreso registrado exitosamente.')
       setFormData(EMPTY_FORM)
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Ocurrió un error al registrar el egreso.'
+    } catch (err: any) {
+      // Axios guarda el mensaje de error de tu backend en err.response.data
+      const message = err.response?.data?.error 
+                      ?? err.response?.data?.title 
+                      ?? err.message 
+                      ?? 'Ocurrió un error al registrar el egreso.'
+                      
       toast.error(message)
     } finally {
       setIsLoading(false)

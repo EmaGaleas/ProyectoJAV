@@ -1,6 +1,7 @@
 import { apiFetch } from '../../../services/apiClient'
 import type { AuthUser, Role } from '../types'
 
+
 interface LoginApiResponse {
   token: string
   correo: string
@@ -40,7 +41,7 @@ export async function loginApi(
   })
 
   const rol = ROLE_MAP[data.rol]
-  if (!rol) throw new Error(`Rol no reconocido en el sistema: ${data.rol}`)
+  if (!rol) throw new Error(`Usuario no reconocido en el sistema: ${data.rol}`)
 
   return {
     user: {

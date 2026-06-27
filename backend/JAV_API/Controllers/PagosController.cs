@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using System;
-using System.Collections.Generic;
 using System.Security.Claims;
-using System.Threading.Tasks;
+using System.Text.Json;
 using JAV_API.Application.DTOs.Requests;
 using JAV_API.Application.DTOs.Responses;
 using JAV_API.Application.Services;
+using System.Text.Json.Serialization;
 
 namespace JAV_API.Controllers;
 
@@ -18,26 +17,43 @@ public class PagosController : ControllerBase
 
     public PagosController(PagoService pagoService) => _pagoService = pagoService;
 
-    /// <summary>Registra un pago único o múltiple (Mensualidades, Multas, Conexiones) mediante JSON.</summary>
+    /// <summary>Registra un pago con comprobante físico y genera moras dinámicas.</summary>
     [HttpPost]
-    public async Task<IActionResult> RegistrarPago([FromBody] RegistrarPagoRequest request)
+    public async Task<IActionResult> RegistrarPago(
+        IFormFile comprobanteArchivo, 
+        [FromForm] string datosJson)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(datosJson))
+                return BadRequest(new { error = "Los datos del pago no pueden estar vacíos." });
+
+            // 1. CONFIGURAR LAS OPCIONES PARA SOPORTAR ENUMS EN TEXTO
+            var jsonOptions = new JsonSerializerOptions 
+            { 
+                PropertyNameCaseInsensitive = true 
+            };
+            jsonOptions.Converters.Add(new JsonStringEnumConverter()); // <--- CRUCIAL
+
+            // 2. Deserializar usando las opciones configuradas
+            var request = JsonSerializer.Deserialize<RegistrarPagoRequest>(datosJson, jsonOptions);
+            
+            if (request == null)
+                return BadRequest(new { error = "Formato JSON inválido." });
+
+            if (comprobanteArchivo != null && comprobanteArchivo.Length > 0)
+            {
+                request.ComprobanteStream = comprobanteArchivo.OpenReadStream();
+                request.ComprobanteNombre = comprobanteArchivo.FileName;
+            }
+
             await _pagoService.RegistrarPagoAsync(request);
-            return StatusCode(201, new { mensaje = "Pago y comprobante de auditoría registrados exitosamente." });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { error = ex.Message });
+            return StatusCode(201, new { mensaje = "Pago registrado exitosamente." });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { error = "Ocurrió un error interno al procesar el multi-pago.", detalle = ex.Message });
+            // Esto te ayudará a ver el error real en la respuesta si vuelve a fallar
+            return StatusCode(500, new { error = "Ocurrió un error interno.", detalle = ex.Message, inner = ex.InnerException?.Message });
         }
     }
 
