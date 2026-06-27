@@ -4,5 +4,5 @@ namespace JAV_API.Application.Interfaces;
 
 public interface IDeudaRepository
 {
-    Task<DeudasUsuarioResponse> ObtenerDeudasPendientesPorUsuarioAsync(int idUsuario);
+    Task<DeudasUsuarioResponse> ObtenerDeudasPendientesPorUsuarioAsync(int idUsuario, decimal valorMoraActual);
 }

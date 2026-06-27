@@ -9,12 +9,16 @@ interface Props {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => void;
   onCelularChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isEditing?: boolean;
+  disable?: boolean;
 }
 
 export function SeccionContacto({
   formData,
   onChange,
   onCelularChange,
+  isEditing,
+  disable,
 }: Props) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -35,6 +39,7 @@ export function SeccionContacto({
             placeholder="ejemplo@correo.com"
             required
             className={INPUT_CLS}
+            disabled={disable}
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -44,42 +49,44 @@ export function SeccionContacto({
           <input
             type="text"
             name="celular"
-            value={formData.celular}
+            value={formData.telefono}
             onChange={onCelularChange}
             placeholder="+504 12345678"
             required
             className={INPUT_CLS}
+            disabled={disable}
           />
           <p className="text-[#6b7280] text-[13px] font-['Arimo',sans-serif]">
             +504 seguido de 8 dígitos
           </p>
         </div>
       </div>
-
-      <div className="flex flex-col gap-2">
-        <label className={LABEL_CLS}>
-          Contraseña <span className="text-red-500">*</span>
-        </label>
-        <div className="relative">
-          <input
-            type={showPassword ? "text" : "password"}
-            name="contrasena"
-            value={formData.contrasena}
-            onChange={onChange}
-            placeholder="Mínimo 6 caracteres"
-            required
-            className={`${INPUT_CLS} pr-12`}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#abafb1] hover:text-[#514f4f] transition-colors cursor-pointer"
-            tabIndex={-1}
-          >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
+      {!isEditing && (
+        <div className="flex flex-col gap-2">
+          <label className={LABEL_CLS}>
+            Contraseña <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="contrasena"
+              value={formData.contrasena}
+              onChange={onChange}
+              placeholder="Mínimo 6 caracteres"
+              required
+              className={`${INPUT_CLS} pr-12`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#abafb1] hover:text-[#514f4f] transition-colors cursor-pointer"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

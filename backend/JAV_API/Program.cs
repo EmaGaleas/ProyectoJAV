@@ -76,7 +76,12 @@ builder.Services.AddScoped<ITipoCobroService, TipoCobroService>();
 builder.Services.AddScoped<IJornadaCobroRepository, JornadaCobroRepository>();
 builder.Services.AddScoped<IJornadaCobroService, JornadaCobroService>();
 builder.Services.AddScoped<IMultaRepository, MultaRepository>();
+builder.Services.AddScoped<IMultaService, MultaService>();
 builder.Services.AddScoped<IConexionRepository, ConexionRepository>();
+builder.Services.AddScoped<IReporteRepository, ReporteRepository>();
+builder.Services.AddScoped<IReporteService, ReporteService>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // Si MensualidadRepository tampoco estaba registrado, agrégalo:
 // builder.Services.AddScoped<IMensualidadRepository, MensualidadRepository>();
@@ -299,34 +304,52 @@ if (app.Environment.IsDevelopment())
         }
 
         // ── Semilla: Historial de Costos (Precios) ──────────────────────────
+        // ── Semilla: Historial de Costos (Precios) ──────────────────────────
         if (!context.Set<HistorialCostos>().Any())
         {
             var admin = context.Usuarios.First(u => u.Rol == Rol.Presidente);
             var tipos = context.Set<TipoCobro>().ToList();
 
+            // Identificar los tipos de cobro por su descripción exacta
             var mensualidadAgua = tipos.First(t => t.Tipo == TipoCobroEnum.Mensualidad);
             var nuevaConexion = tipos.First(t => t.Tipo == TipoCobroEnum.Pegue);
-            
-            // 1. Identificar todos los tipos de multas declarados
-            var multaDesperdicio = tipos.First(t => t.Descripcion.Contains("desperdicio"));
-            var multaBasura = tipos.First(t => t.Descripcion.Contains("basura"));
-            var multaMora = tipos.First(t => t.Descripcion.Contains("Mora"));
+            var multaDesperdicio = tipos.First(t => t.Descripcion == "Multa por desperdicio de agua");
+            var multaBasura = tipos.First(t => t.Descripcion == "Multa por botar basura en áreas verdes");
+            var multaMora = tipos.First(t => t.Descripcion == "Mora por atraso");
+
+            // Fechas clave dinámicas para las vigencias (Pasado, Presente, Futuro)
+            var fechaActual = DateTime.UtcNow;
+            var inicioAnioPasado = new DateTime(fechaActual.Year - 2, 1, 1, 0, 0, 0, DateTimeKind.Utc);     // Hace 2 años
+            var finAnioAnterior = new DateTime(fechaActual.Year - 1, 12, 31, 23, 59, 59, DateTimeKind.Utc); // Fin del año pasado
+            var inicioAnioActual = new DateTime(fechaActual.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);         // 1 de enero de este año
+            var inicioFuturo = new DateTime(fechaActual.Year + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);         // 1 de enero del próximo año
 
             context.Set<HistorialCostos>().AddRange(
                 // --- HISTORIAL MENSUALIDAD ---
-                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 200m, FechaEmision = new DateTime(2023, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
-                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 350m, FechaEmision = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
-                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 400m, FechaEmision = new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 200m, FechaEmision = inicioAnioPasado, FechaAnulacion = new DateTime(fechaActual.Year - 1, 5, 31, 23, 59, 59, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 200m, FechaEmision = new DateTime(fechaActual.Year - 1, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = finAnioAnterior, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 350m, FechaEmision = inicioAnioActual, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = mensualidadAgua.IdTipoCobro, Monto = 450m, FechaEmision = inicioFuturo, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
 
-                // --- HISTORIAL NUEVA CONEXIÓN ---
-                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1200m, FechaEmision = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = new DateTime(2026, 5, 31, 0, 0, 0, DateTimeKind.Utc), EditadoPor = admin.IdUsuario },
-                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1500m, FechaEmision = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                // --- HISTORIAL MORA POR ATRASO ---
+                new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 20m, FechaEmision = inicioAnioPasado, FechaAnulacion = finAnioAnterior, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 30m, FechaEmision = inicioAnioActual, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 50m, FechaEmision = inicioFuturo, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
 
-                // --- HISTORIAL MULTAS ---
-                new HistorialCostos { IdTipoCobro = multaDesperdicio.IdTipoCobro, Monto = 500m, FechaEmision = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
-                new HistorialCostos { IdTipoCobro = multaBasura.IdTipoCobro, Monto = 800m, FechaEmision = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario },
-                // 2. Se agrega la multa por mora que faltaba
-                new HistorialCostos { IdTipoCobro = multaMora.IdTipoCobro, Monto = 35m, FechaEmision = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), FechaAnulacion = null, EditadoPor = admin.IdUsuario }
+                // --- HISTORIAL NUEVA CONEXIÓN (PEGUE) ---
+                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1000m, FechaEmision = inicioAnioPasado, FechaAnulacion = finAnioAnterior, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 1500m, FechaEmision = inicioAnioActual, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = nuevaConexion.IdTipoCobro, Monto = 2000m, FechaEmision = inicioFuturo, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+
+                // --- HISTORIAL MULTA POR DESPERDICIO ---
+                new HistorialCostos { IdTipoCobro = multaDesperdicio.IdTipoCobro, Monto = 300m, FechaEmision = inicioAnioPasado, FechaAnulacion = finAnioAnterior, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaDesperdicio.IdTipoCobro, Monto = 500m, FechaEmision = inicioAnioActual, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaDesperdicio.IdTipoCobro, Monto = 750m, FechaEmision = inicioFuturo, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+
+                // --- HISTORIAL MULTA POR BASURA ---
+                new HistorialCostos { IdTipoCobro = multaBasura.IdTipoCobro, Monto = 500m, FechaEmision = inicioAnioPasado, FechaAnulacion = finAnioAnterior, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaBasura.IdTipoCobro, Monto = 800m, FechaEmision = inicioAnioActual, FechaAnulacion = null, EditadoPor = admin.IdUsuario },
+                new HistorialCostos { IdTipoCobro = multaBasura.IdTipoCobro, Monto = 1200m, FechaEmision = inicioFuturo, FechaAnulacion = null, EditadoPor = admin.IdUsuario }
             );
             context.SaveChanges();
         }

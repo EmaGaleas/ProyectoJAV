@@ -13,4 +13,5 @@ public class EgresoResponse
     public string FacturaUrl    { get; set; } = string.Empty;  // URL del archivo
     public string Estado        { get; set; } = string.Empty;  // "Aprobado" | "Pendiente" | "Rechazado"
     public string? AprobadoPor  { get; set; }                  // nombre del aprobador
+    public string? ComentarioRechazo { get; set; }
 }

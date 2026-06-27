@@ -51,10 +51,13 @@ public class CostosService : ICostosService
     {
         var historial = await _costosRepository.ObtenerHistorialAsync(tipoCobro);
 
-        return historial.Select(h => new CostoHistorialResponse
+        var historialSinMora = historial.Where(h => !h.TipoCobro.Descripcion.ToLower().Contains("mora"));
+
+        return historialSinMora.Select(h => new CostoHistorialResponse
         {
             Id = h.IdCobro,
             Tipo = h.TipoCobro.Tipo.ToString(),
+            Descripcion = h.TipoCobro.Descripcion,      
             Monto = h.Monto,
             FechaInicio = h.FechaEmision?.ToString("yyyy-MM-dd") ?? "",
             FechaFin = h.FechaAnulacion?.ToString("yyyy-MM-dd") ?? "",
@@ -159,6 +162,7 @@ public class CostosService : ICostosService
         return new CostoVigenteResponse
         {
             Id = moraVigente.IdCobro,
+            IdTipoCobro = moraVigente.IdTipoCobro,
             Tipo = moraVigente.TipoCobro.Tipo.ToString(),
             Descripcion = moraVigente.TipoCobro.Descripcion,
             Monto = moraVigente.Monto,
@@ -196,6 +200,7 @@ public class CostosService : ICostosService
         {
             Id = h.IdCobro,
             Tipo = h.TipoCobro.Tipo.ToString(),
+            Descripcion = h.TipoCobro.Descripcion,
             Monto = h.Monto,
             FechaInicio = h.FechaEmision?.ToString("yyyy-MM-dd") ?? "",
             FechaFin = h.FechaAnulacion?.ToString("yyyy-MM-dd") ?? "",

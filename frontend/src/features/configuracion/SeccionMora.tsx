@@ -136,14 +136,20 @@ export function SeccionMora({ subTab }: Props) {
 
   const handleAddProxima = async (v: Omit<VigenciaFutura, "id">) => {
     try {
+      const hoy = new Date().toISOString().split("T")[0];
+      const esFutura = v.fechaInicio > hoy;
+
       const nueva = await moraService.createProximaVigencia(v);
-      setVigencias((p) => [...p, nueva]);
-      cargarDatos(); // Recargar el estado actual por si la nueva vigencia entra en vigor de inmediato
+
+      if (esFutura) {
+        setVigencias((p) => [...p, nueva]);
+      } else {
+        await cargarDatos(); 
+      }
     } catch (error) {
       console.error("Error al crear próxima vigencia de mora", error);
     }
   };
-
   const handleRemoveProxima = async (id: number) => {
     try {
       await moraService.deleteProximaVigencia(id);

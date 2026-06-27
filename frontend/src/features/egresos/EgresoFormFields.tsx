@@ -8,7 +8,7 @@ interface Props {
 
 const todayDisplay = () => {
   const d = new Date()
-  return d.toLocaleDateString('es-HN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.toLocaleDateString('es-HN', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
 // ─── Estilos compartidos ──────────────────────────────────────────────────────

@@ -4,5 +4,6 @@ public enum Estado
 {
     Pendiente,
     Pagado,
-    Vencido
+    Vencido,
+    Anulado
 }
