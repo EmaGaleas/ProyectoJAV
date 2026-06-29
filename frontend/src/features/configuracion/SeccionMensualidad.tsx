@@ -12,8 +12,6 @@ import { toast } from 'react-toastify'
 import * as mensualidadService from "./services/mensualidadService";
 import type { MesFechaDto, MensualidadHistorialDto } from "./services/mensualidadService";
 
-import * as mensualidadService from "./services/mensualidadService";
-import type { MesFechaDto, MensualidadHistorialDto } from "./services/mensualidadService";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -68,29 +68,6 @@ export function useCreateUserForm(
     }));
   };
 
-  const handleDniChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, "");
-
-    value = value.substring(0, 13);
-
-    let formatted = "";
-
-    if (value.length > 0) {
-      formatted += value.substring(0, 4);
-    }
-    if (value.length > 4) {
-      formatted += "-" + value.substring(4, 8);
-    }
-    if (value.length > 8) {
-      formatted += "-" + value.substring(8, 13);
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      identificacion: formatted,
-    }));
-  };
-
   const setField = <K extends keyof CreateUserFormData>(
     key: K,
     value: CreateUserFormData[K],
