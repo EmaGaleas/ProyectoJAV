@@ -151,13 +151,6 @@ export default function GestionarUsuarios() {
     );
   };
 
-  const handleEstadoCambiado = (id: number, nuevoEstado: boolean) => {
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.idUsuario === id ? { ...user, estado: nuevoEstado } : user,
-      ),
-    );
-  };
 
   useEffect(() => {
     const fetchUsers = async () => {

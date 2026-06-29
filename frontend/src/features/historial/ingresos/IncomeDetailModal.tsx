@@ -5,7 +5,7 @@ import { L, fmtDate } from './types'
 import type { Income } from './types'
 import { useAuthStore } from '../../auth/store/authStore'
 import { ConfirmDialog } from '../egresos/ConfirmDialog'
-import { RejectionBanner } from '../RejectionBanner'  // ← componente compartido
+import { RejectionBanner } from '../RejectionBanner'  
 import Ingreso from '../../../assets/icons/sidebar/tesorero/ingresos.svg?react'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ interface DetalleBackend {
   estado:                string
   montoTotal:            number
   lineas:                LineaPago[]
-  urlComprobante?:         string | null
+  urlComprobante?:       string | null
   motivoRechazo?:        string | null
   comentarioRechazo?:    string | null
 }
@@ -94,28 +94,22 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
       if (pendingAction === 'aprobar') {
           await onApprove(income.id)
       } else {
-          // 3. Pasar el motivo a la función onReject
           await onReject(income.id, obs || '')
       }
       setPendingAction(null)
-      // Nota: Aquí podrías querer llamar a onClose() también si quieres que se cierre el modal padre, 
-      // al igual que lo haces en EgresoDetailModal.
     } finally {
       setIsSubmitting(false)
     }
   }
 
-// En la línea 85 aprox.
   const getFullUrl = (url?: string | null) => {
     if (!url) return ''
     if (url.startsWith('http')) return url
     return `${API_URL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
   }
 
-  // Cambiar detail.documentoUrl por detail.urlComprobante
   const fullDocumentUrl = detail ? getFullUrl(detail.urlComprobante) : ''
 
-  // Obtener motivo de rechazo desde el detalle o el objeto income
   const motivoRechazo =
     detail?.motivoRechazo ??
     detail?.comentarioRechazo ??
@@ -137,9 +131,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
           onClick={e => e.stopPropagation()}
         >
 
-          {/* ══════════════════════════════════════════════════
-              MODAL PRINCIPAL
-          ══════════════════════════════════════════════════ */}
+          {/* MODAL PRINCIPAL */}
           <div
             className="bg-white flex flex-col overflow-hidden"
             style={{
@@ -202,7 +194,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
               ) : (
                 <div className="flex flex-col gap-5">
 
-                  {/* ── Banner de rechazo (visible solo si estado = Rechazado) ── */}
+                  {/* ── Banner de rechazo ── */}
                   {esRechazado && (
                     <RejectionBanner motivo={motivoRechazo} />
                   )}
@@ -251,21 +243,18 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                           highlight
                         />
                       ) : (
-                        /* Celda vacía para mantener alineación del grid */
                         <div />
                       )}
                       <InfoField label="Registrado por" value="Pendiente" />
                     </UniformGrid>
                   </InfoSection>
 
-                  {/* ── Sección 4: Documento + Factura (con alturas consistentes) ── */}
+                  {/* ── Sección 4: Documento + Factura ── */}
                   <UniformGrid cols={2}>
-                    {/* Columna 1: Archivo adjunto */}
                     <InfoSection title="Documento de respaldo" icon={<FileText size={13} />}>
                       <DocumentViewer url={fullDocumentUrl} />
                     </InfoSection>
 
-                    {/* Columna 2: Ver desglose de factura (con altura consistente) */}
                     {(detail.lineas?.length ?? 0) > 0 && (
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-1.5">
@@ -346,9 +335,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
             )}
           </div>
 
-          {/* ══════════════════════════════════════════════════
-              PANEL DESGLOSE DE FACTURA (lateral derecho)
-          ══════════════════════════════════════════════════ */}
+          {/* PANEL DESGLOSE DE FACTURA (lateral derecho) */}
           {showInvoice && detail && (
             <div
               className="bg-white flex flex-col overflow-hidden"
@@ -393,7 +380,7 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -426,9 +413,6 @@ export function IncomeDetailModal({ income, userRole, onClose, onApprove, onReje
 
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
-/**
- * Badge de estado con semántica de color.
- */
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; color: string }> = {
     'Aprobado':       { bg: '#e6f3ec', color: '#308C58' },
@@ -447,9 +431,6 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-/**
- * Contenedor de sección con ícono, título y card de fondo.
- */
 function InfoSection({
   title,
   icon,
@@ -477,10 +458,6 @@ function InfoSection({
   )
 }
 
-/**
- * Campo de información con label y valor.
- * Maneja valores nulos/indefinidos mostrando un guión.
- */
 function InfoField({
   label,
   value,
@@ -507,10 +484,6 @@ function InfoField({
   )
 }
 
-/**
- * Grid uniforme: cada columna ocupa exactamente 1fr del espacio disponible.
- * Usa minmax(0, 1fr) para evitar que el contenido rompa la uniformidad.
- */
 function UniformGrid({
   cols,
   children,
@@ -531,10 +504,6 @@ function UniformGrid({
   )
 }
 
-/**
- * Visor de documentos - detecta automáticamente el tipo de archivo.
- * Soporta imágenes, PDFs y otros tipos de archivo.
- */
 function DocumentViewer({ url }: { url: string }) {
   if (!url) {
     return (
@@ -544,14 +513,12 @@ function DocumentViewer({ url }: { url: string }) {
     )
   }
 
-  // Extraer la extensión de la URL (manejando posibles parámetros de consulta)
   const cleanUrl = url.split('?')[0]
   const extension = cleanUrl.split('.').pop()?.toLowerCase()
 
   const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')
   const isPdf = extension === 'pdf'
 
-  // ── Acciones compartidas (reutilizadas en los tres casos) ──────────────────
   const FileActions = () => (
     <div className="flex items-center gap-3">
       <a
@@ -574,14 +541,12 @@ function DocumentViewer({ url }: { url: string }) {
     </div>
   )
 
-  // ── Imagen ─────────────────────────────────────────────────────────────────
   if (isImage) {
     return (
       <div
         className="flex items-center gap-3 w-fit"
         style={{ background: '#F3F4F6', borderRadius: 10, padding: '10px 14px', border: '1px solid rgba(0,0,0,0.07)' }}
       >
-        {/* Miniatura clicable */}
         <a 
           href={url} 
           target="_blank" 
@@ -604,7 +569,6 @@ function DocumentViewer({ url }: { url: string }) {
     )
   }
 
-  // ── PDF ────────────────────────────────────────────────────────────────────
   if (isPdf) {
     return (
       <div
@@ -633,7 +597,6 @@ function DocumentViewer({ url }: { url: string }) {
     )
   }
 
-  // ── Archivo genérico ───────────────────────────────────────────────────────
   return (
     <div
       className="flex items-center gap-3 w-fit"
@@ -649,19 +612,10 @@ function DocumentViewer({ url }: { url: string }) {
         </span>
         <FileActions />
       </div>
-      {item.mora > 0 && (
-        <div className="flex items-center justify-between pt-1.5" style={{ borderTop: '1px dashed rgba(0,0,0,0.08)' }}>
-          <span style={{ fontSize: 10, color: '#8EBFA3' }}>Base: {L(item.montoBase)}</span>
-          <span style={{ fontSize: 10, color: '#EF4444', fontWeight: 600 }}>+{L(item.mora)} mora</span>
-        </div>
-      )}
     </div>
   )
 }
 
-/**
- * Línea individual del desglose de factura.
- */
 function InvoiceLine({
   item,
 }: {
