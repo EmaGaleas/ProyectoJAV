@@ -4,7 +4,7 @@ WORKDIR /app
 EXPOSE 8080
 
 # ===== Etapa de Construcción (SDK) =====
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copiar los archivos de proyecto (.csproj) de todas las capas para aprovechar la caché de Docker
